@@ -1,0 +1,36 @@
+hardstatus alwayslastline "%{= bw} %{= bc}[%{-}%0c%{= bc}]%{-} [%-Lw%{= bW}%{+b}%50>%n%f* %t%{-b}%{= bw}%+Lw]%<"
+escape ^Oo
+startup_message off
+defscrollback 10000
+autodetach on
+
+# vi key bindings
+bind j next
+bind l next
+bind k prev
+bind h prev
+bind p paste .
+
+# From http://www4.informatik.uni-erlangen.de/~jnweiger/screen-faq.html
+# Q: My xterm scrollbar does not work with screen.
+# A: The problem is that xterm will not allow scrolling if the alternate text buffer
+# is selected. The standard definitions of the termcap initialize capabilities ti
+# and te switch to and from the alternate text buffer. (The scrollbar also does not
+# work when you start e.g. ?vi?). You can tell screen not to use these
+# initialisations by adding the line ?termcapinfo xterm ti@:te@? to your ~/.screenrc
+# file. 
+termcapinfo xterm ti@:te@
+
+# F8 to turn the status bar off
+bindkey -k k7 hardstatus alwayslastline
+# F9 to turn the status bar on 
+bindkey -k k8 hardstatus alwaysignore
+# F5 and F6 to move one screen forward or backward
+bindkey -k k5 prev
+bindkey -k k6 next
+
+vbell_msg "[[[ ding ]]]"
+vbell off
+nethack on
+term screen-256color
+zombie ko

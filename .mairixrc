@@ -1,0 +1,6 @@
+base=~/Mail
+mfolder=~/Mail/mairix_matches
+database=~/.mairix_database
+maildir=...
+omit=**backup**:**mairix_matches**:mbox
+mformat=maildir
