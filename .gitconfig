@@ -1,0 +1,17 @@
+[alias]
+    graph = log --branches --pretty=short --decorate --graph
+
+[color]
+    branch = on
+    diff = on
+    interactive = on
+    status = on
+
+[diff]
+    external = git_diff_wrapper
+
+[pager]
+    diff =
+
+[push]
+	default = tracking
