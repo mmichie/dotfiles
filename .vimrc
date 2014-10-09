@@ -7,16 +7,15 @@
 
 " Preamble ---------------------------------------------------------------- {{{
 
-filetype off
-filetype plugin indent on
 set nocompatible
+filetype off
 
-set rtp+=~/.vim/bundle/vundle/
-call vundle#rc()
+" set the runtime path to include Vundle and initialize
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
 
-" let Vundle manage Vundle
-" required! 
-Bundle 'gmarik/vundle'
+" let Vundle manage Vundle, required
+Plugin 'gmarik/Vundle.vim'
 
 " My Bundles here:
 "
@@ -26,14 +25,16 @@ Bundle 'Lokaltog/vim-easymotion'
 Bundle 'rstacruz/sparkup', {'rtp': 'vim/'}
 " vim-scripts repos
 Bundle 'L9'
-Bundle 'statline'
 Bundle 'Syntastic'
+Bundle 'statline'
 Bundle 'FuzzyFinder'
+Bundle 'noahfrederick/vim-hemisu'
 " non github repos
 Bundle 'git://git.wincent.com/command-t.git'
 " ...
 " }}}
 " Basic options ----------------------------------------------------------- {{{
+
 set encoding=utf-8
 set modelines=0
 set autoindent
@@ -158,7 +159,7 @@ set statusline+=%w   " Preview window flag.
 set statusline+=\    " Space.
 
 set statusline+=%#redbar#                " Highlight the following as a warning.
-set statusline+=%{SyntasticStatuslineFlag()} " Syntastic errors.
+"set statusline+=%{SyntasticStatuslineFlag()} " Syntastic errors.
 set statusline+=%*                           " Reset highlighting.
 
 set statusline+=%=   " Right align.
@@ -174,6 +175,8 @@ set statusline+=)
 
 " Line and column position and counts.
 set statusline+=\ (line\ %l\/%L,\ col\ %03c)
+
+"filetype plugin indent on
 
 " }}}
 " Abbreviations ----------------------------------------------------------- {{{
