@@ -1,12 +1,3 @@
-" .vimrc
-" Author: Steve Losh <steve@stevelosh.com>
-" Source: http://bitbucket.org/sjl/dotfiles/src/tip/vim/
-"
-" This file changes a lot.  I'll try to document pieces of it whenever I have
-" a few minutes to kill.
-
-" Preamble ---------------------------------------------------------------- {{{
-
 set nocompatible
 filetype off
 
@@ -17,8 +8,6 @@ call vundle#begin()
 " let Vundle manage Vundle, required
 Plugin 'gmarik/Vundle.vim'
 
-" My Bundles here:
-"
 " original repos on github
 Bundle 'tpope/vim-fugitive'
 Bundle 'Lokaltog/vim-easymotion'
@@ -29,6 +18,8 @@ Bundle 'Syntastic'
 Bundle 'statline'
 Bundle 'FuzzyFinder'
 Bundle 'noahfrederick/vim-hemisu'
+Bundle 'davidhalter/jedi-vim'
+Bundle 'ervandew/supertab'
 " non github repos
 Bundle 'git://git.wincent.com/command-t.git'
 " ...
@@ -53,8 +44,8 @@ set history=1000
 set undofile
 set undoreload=10000
 set cpoptions+=J
-set list
-set listchars=tab:▸\ ,eol:¬,extends:❯,precedes:❮
+"set list
+"set listchars=tab:▸\ ,eol:¬,extends:❯,precedes:❮
 set shell=/bin/bash
 set lazyredraw
 set matchtime=3
@@ -68,7 +59,9 @@ set nottimeout
 set autowrite
 set shiftround
 set autoread
-set title
+set title 
+set titleold="" 
+set titlestring=VIM:\ %F 
 set dictionary=/usr/share/dict/words
 
 " Wildmenu completion {{{
@@ -113,7 +106,7 @@ set expandtab
 set wrap
 set textwidth=80
 set formatoptions=qrn1
-set colorcolumn=+1
+"set colorcolumn=+1
 
 " }}}
 " Backups {{{
@@ -133,8 +126,10 @@ let maplocalleader = "\\"
 " Color scheme {{{
 
 syntax on
-set background=dark
-colorscheme hemisu
+set background=light
+"set background=dark
+"colorscheme hemisu
+colorscheme pyte
 
 " Highlight VCS conflict markers
 match ErrorMsg '^\(<\|=\|>\)\{7\}\([^=].\+\)\?$'
@@ -423,180 +418,12 @@ augroup ft_cram
 augroup END
 
 
-" }}}
-" CSS and LessCSS {{{
-
-augroup ft_css
-    au!
-
-    au BufNewFile,BufRead *.less setlocal filetype=less
-
-    au Filetype less,css setlocal foldmethod=marker
-    au Filetype less,css setlocal foldmarker={,}
-    au Filetype less,css setlocal omnifunc=csscomplete#CompleteCSS
-    au Filetype less,css setlocal iskeyword+=-
-
-    " Use <leader>S to sort properties.  Turns this:
-    "
-    "     p {
-    "         width: 200px;
-    "         height: 100px;
-    "         background: red;
-    "
-    "         ...
-    "     }
-    "
-    " into this:
-
-    "     p {
-    "         background: red;
-    "         height: 100px;
-    "         width: 200px;
-    "
-    "         ...
-    "     }
-    au BufNewFile,BufRead *.less,*.css nnoremap <buffer> <localleader>S ?{<CR>jV/\v^\s*\}?$<CR>k:sort<CR>:noh<CR>
-
-    " Make {<cr> insert a pair of brackets in such a way that the cursor is correctly
-    " positioned inside of them AND the following code doesn't get unfolded.
-    au BufNewFile,BufRead *.less,*.css inoremap <buffer> {<cr> {}<left><cr><space><space><space><space>.<cr><esc>kA<bs>
-augroup END
-
-" }}}
-" Django {{{
-
-augroup ft_django
-    au!
-
-    au BufNewFile,BufRead urls.py           setlocal nowrap
-    au BufNewFile,BufRead urls.py           normal! zR
-    au BufNewFile,BufRead dashboard.py      normal! zR
-    au BufNewFile,BufRead local_settings.py normal! zR
-
-    au BufNewFile,BufRead admin.py     setlocal filetype=python.django
-    au BufNewFile,BufRead urls.py      setlocal filetype=python.django
-    au BufNewFile,BufRead models.py    setlocal filetype=python.django
-    au BufNewFile,BufRead views.py     setlocal filetype=python.django
-    au BufNewFile,BufRead settings.py  setlocal filetype=python.django
-    au BufNewFile,BufRead settings.py  setlocal foldmethod=marker
-    au BufNewFile,BufRead forms.py     setlocal filetype=python.django
-    au BufNewFile,BufRead common_settings.py  setlocal filetype=python.django
-    au BufNewFile,BufRead common_settings.py  setlocal foldmethod=marker
-augroup END
-
-" }}}
-" Firefox {{{
-
-augroup ft_firefox
-    au!
-    au BufRead,BufNewFile ~/Library/Caches/*.html setlocal buftype=nofile
-augroup END
-
-" }}}
-" Fish {{{
-
-augroup ft_fish
-    au!
-
-    au BufNewFile,BufRead *.fish setlocal filetype=fish
-augroup END
-
-" }}}
-" HTML and HTMLDjango {{{
-
-augroup ft_html
-    au!
-
-    au BufNewFile,BufRead *.html setlocal filetype=htmldjango
-    au FileType html,jinja,htmldjango setlocal foldmethod=manual
-
-    " Use <localleader>f to fold the current tag.
-    au FileType html,jinja,htmldjango nnoremap <buffer> <localleader>f Vatzf
-
-    " Use Shift-Return to turn this:
-    "     <tag>|</tag>
-    "
-    " into this:
-    "     <tag>
-    "         |
-    "     </tag>
-    au FileType html,jinja,htmldjango nnoremap <buffer> <s-cr> vit<esc>a<cr><esc>vito<esc>i<cr><esc>
-
-    " Smarter pasting
-    au FileType html,jinja,htmldjango nnoremap <buffer> p :<C-U>YRPaste 'p'<CR>v`]=`]
-    au FileType html,jinja,htmldjango nnoremap <buffer> P :<C-U>YRPaste 'P'<CR>v`]=`]
-    au FileType html,jinja,htmldjango nnoremap <buffer> π :<C-U>YRPaste 'p'<CR>
-    au FileType html,jinja,htmldjango nnoremap <buffer> ∏ :<C-U>YRPaste 'P'<CR>
-
-    " Django tags
-    au FileType jinja,htmldjango inoremap <buffer> <c-t> {%<space><space>%}<left><left><left>
-
-    " Django variables
-    au FileType jinja,htmldjango inoremap <buffer> <c-f> {{<space><space>}}<left><left><left>
-augroup END
-
-" }}}
-" Javascript {{{
-
-augroup ft_javascript
-    au!
-
-    au FileType javascript setlocal foldmethod=marker
-    au FileType javascript setlocal foldmarker={,}
-augroup END
-
-" }}}
-" Lisp {{{
-
-augroup ft_lisp
-    au!
-    au FileType lisp call TurnOnLispFolding()
-augroup END
-
-" }}}
-" Markdown {{{
-
-augroup ft_markdown
-    au!
-
-    au BufNewFile,BufRead *.m*down setlocal filetype=markdown
-
-    " Use <localleader>1/2/3 to add headings.
-    au Filetype markdown nnoremap <buffer> <localleader>1 yypVr=
-    au Filetype markdown nnoremap <buffer> <localleader>2 yypVr-
-    au Filetype markdown nnoremap <buffer> <localleader>3 I### <ESC>
-augroup END
-
-" }}}
-" Nginx {{{
-
-augroup ft_nginx
-    au!
-
-    au BufRead,BufNewFile /etc/nginx/conf/*                      set ft=nginx
-    au BufRead,BufNewFile /etc/nginx/sites-available/*           set ft=nginx
-    au BufRead,BufNewFile /usr/local/etc/nginx/sites-available/* set ft=nginx
-    au BufRead,BufNewFile vhost.nginx                            set ft=nginx
-
-    au FileType nginx setlocal foldmethod=marker foldmarker={,}
-augroup END
-
-" }}}
 " OrgMode {{{
 
 augroup ft_org
     au!
 
     au Filetype org nmap <buffer> Q vahjgq
-augroup END
-
-" }}}
-" Pentadactyl {{{
-
-augroup ft_pentadactyl
-    au!
-    au BufNewFile,BufRead .pentadactylrc set filetype=pentadactyl
-    au BufNewFile,BufRead ~/Library/Caches/TemporaryItems/pentadactyl-*.tmp set nolist wrap linebreak columns=100 colorcolumn=0
 augroup END
 
 " }}}
@@ -626,126 +453,10 @@ augroup ft_python
 augroup END
 
 " }}}
-" QuickFix {{{
-
-augroup ft_quickfix
-    au!
-    au Filetype qf setlocal colorcolumn=0 nolist nocursorline nowrap
-augroup END
-
-" }}}
-" ReStructuredText {{{
-
-augroup ft_rest
-    au!
-
-    au Filetype rst nnoremap <buffer> <localleader>1 yypVr=
-    au Filetype rst nnoremap <buffer> <localleader>2 yypVr-
-    au Filetype rst nnoremap <buffer> <localleader>3 yypVr~
-    au Filetype rst nnoremap <buffer> <localleader>4 yypVr`
-augroup END
-
-" }}}
-" Ruby {{{
-
-augroup ft_ruby
-    au!
-    au Filetype ruby setlocal foldmethod=syntax
-augroup END
-
-" }}}
-" Vagrant {{{
-
-augroup ft_vagrant
-    au!
-    au BufRead,BufNewFile Vagrantfile set ft=ruby
-augroup END
-
-" }}}
-" Vim {{{
-
-augroup ft_vim
-    au!
-
-    au FileType vim setlocal foldmethod=marker
-    au FileType help setlocal textwidth=78
-    au BufWinEnter *.txt if &ft == 'help' | wincmd L | endif
-augroup END
-
-" }}}
-
-" }}}
-" Quick editing ----------------------------------------------------------- {{{
-
-nnoremap <leader>ev <C-w>s<C-w>j<C-w>L:e $MYVIMRC<cr>
-nnoremap <leader>es <C-w>s<C-w>j<C-w>L:e ~/.vim/snippets/<cr>
-nnoremap <leader>eo <C-w>s<C-w>j<C-w>L:e ~/Dropbox/Org<cr>4j
-nnoremap <leader>eh <C-w>s<C-w>j<C-w>L:e ~/.hgrc<cr>
-nnoremap <leader>em <C-w>s<C-w>j<C-w>L:e ~/.mutt/muttrc<cr>
-nnoremap <leader>ez <C-w>s<C-w>j<C-w>L:e ~/lib/dotfiles/zsh<cr>4j
-nnoremap <leader>ek <C-w>s<C-w>j<C-w>L:e ~/lib/dotfiles/keymando/keymandorc.rb<cr>
-
-" }}}
-" Shell ------------------------------------------------------------------- {{{
-
-function! s:ExecuteInShell(command) " {{{
-    let command = join(map(split(a:command), 'expand(v:val)'))
-    let winnr = bufwinnr('^' . command . '$')
-    silent! execute  winnr < 0 ? 'botright vnew ' . fnameescape(command) : winnr . 'wincmd w'
-    setlocal buftype=nowrite bufhidden=wipe nobuflisted noswapfile nowrap nonumber
-    echo 'Execute ' . command . '...'
-    silent! execute 'silent %!'. command
-    silent! redraw
-    silent! execute 'au BufUnload <buffer> execute bufwinnr(' . bufnr('#') . ') . ''wincmd w'''
-    silent! execute 'nnoremap <silent> <buffer> <LocalLeader>r :call <SID>ExecuteInShell(''' . command . ''')<CR>:AnsiEsc<CR>'
-    silent! execute 'nnoremap <silent> <buffer> q :q<CR>'
-    silent! execute 'AnsiEsc'
-    echo 'Shell command ' . command . ' executed.'
-endfunction " }}}
-command! -complete=shellcmd -nargs=+ Shell call s:ExecuteInShell(<q-args>)
-nnoremap <leader>! :Shell 
-
-" }}}
 " Convenience mappings ---------------------------------------------------- {{{
 
 " Clean whitespace
 map <leader>W  :%s/\s\+$//<cr>:let @/=''<CR>
-
-" Dammit, Slimv
-map <leader>WW :%s/\s\+$//<cr>:let @/=''<CR>
-
-" Change case
-nnoremap <C-u> gUiw
-inoremap <C-u> <esc>gUiwea
-
-" Substitute
-nnoremap <leader>s :%s//<left>
-
-" Diffoff
-nnoremap <leader>D :diffoff!<cr>
-
-" Yankring
-nnoremap <silent> <F6> :YRShow<cr>
-
-" Formatting, TextMate-style
-nnoremap Q gqip
-
-" Easier linewise reselection
-nnoremap <leader>V V`]
-
-" Preview Files
-nnoremap <leader>p :w<cr>:Hammer<cr>
-
-" HTML tag closing
-inoremap <C-_> <Space><BS><Esc>:call InsertCloseTag()<cr>a
-
-" Align text
-nnoremap <leader>Al :left<cr>
-nnoremap <leader>Ac :center<cr>
-nnoremap <leader>Ar :right<cr>
-vnoremap <leader>Al :left<cr>
-vnoremap <leader>Ac :center<cr>
-vnoremap <leader>Ar :right<cr>
 
 " Less chording
 nnoremap ; :
@@ -764,9 +475,6 @@ nnoremap <D-p> "_ddPV`]=
 noremap ' `
 noremap æ '
 noremap ` <C-^>
-
-" Calculator
-inoremap <C-B> <C-O>yiW<End>=<C-R>=<C-R>0<CR>
 
 " Better Completion
 set completeopt=longest,menuone,preview
@@ -1298,7 +1006,7 @@ nnoremap <leader>hb :HgBlame<cr>
 
 let g:Powerline_symbols = 'fancy'
 if has('gui_running')
-    set guifont=Consolas:h13
+    set guifont=Consolas:h15
 
     " Remove all the UI cruft
     "set go-=T
@@ -1351,121 +1059,4 @@ else
 endif
 
 " }}}
-" Nyan! ------------------------------------------------------------------- {{{
 
-function! NyanMe() " {{{
-    hi NyanFur             guifg=#BBBBBB
-    hi NyanPoptartEdge     guifg=#ffd0ac
-    hi NyanPoptartFrosting guifg=#fd3699 guibg=#fe98ff
-    hi NyanRainbow1        guifg=#6831f8
-    hi NyanRainbow2        guifg=#0099fc
-    hi NyanRainbow3        guifg=#3cfa04
-    hi NyanRainbow4        guifg=#fdfe00
-    hi NyanRainbow5        guifg=#fc9d00
-    hi NyanRainbow6        guifg=#fe0000
-
-
-    echohl NyanRainbow1
-    echon "≈"
-    echohl NyanRainbow2
-    echon "≋"
-    echohl NyanRainbow3
-    echon "≈"
-    echohl NyanRainbow4
-    echon "≋"
-    echohl NyanRainbow5
-    echon "≈"
-    echohl NyanRainbow6
-    echon "≋"
-    echohl NyanRainbow1
-    echon "≈"
-    echohl NyanRainbow2
-    echon "≋"
-    echohl NyanRainbow3
-    echon "≈"
-    echohl NyanRainbow4
-    echon "≋"
-    echohl NyanRainbow5
-    echon "≈"
-    echohl NyanRainbow6
-    echon "≋"
-    echohl None
-    echo ""
-
-    echohl NyanRainbow1
-    echon "≈"
-    echohl NyanRainbow2
-    echon "≋"
-    echohl NyanRainbow3
-    echon "≈"
-    echohl NyanRainbow4
-    echon "≋"
-    echohl NyanRainbow5
-    echon "≈"
-    echohl NyanRainbow6
-    echon "≋"
-    echohl NyanRainbow1
-    echon "≈"
-    echohl NyanRainbow2
-    echon "≋"
-    echohl NyanRainbow3
-    echon "≈"
-    echohl NyanRainbow4
-    echon "≋"
-    echohl NyanRainbow5
-    echon "≈"
-    echohl NyanRainbow6
-    echon "≋"
-    echohl NyanFur
-    echon "╰"
-    echohl NyanPoptartEdge
-    echon "⟨"
-    echohl NyanPoptartFrosting
-    echon "⣮⣯⡿"
-    echohl NyanPoptartEdge
-    echon "⟩"
-    echohl NyanFur
-    echon "⩾^ω^⩽"
-    echohl None
-    echo ""
-
-    echohl NyanRainbow1
-    echon "≈"
-    echohl NyanRainbow2
-    echon "≋"
-    echohl NyanRainbow3
-    echon "≈"
-    echohl NyanRainbow4
-    echon "≋"
-    echohl NyanRainbow5
-    echon "≈"
-    echohl NyanRainbow6
-    echon "≋"
-    echohl NyanRainbow1
-    echon "≈"
-    echohl NyanRainbow2
-    echon "≋"
-    echohl NyanRainbow3
-    echon "≈"
-    echohl NyanRainbow4
-    echon "≋"
-    echohl NyanRainbow5
-    echon "≈"
-    echohl NyanRainbow6
-    echon "≋"
-    echohl None
-    echon " "
-    echohl NyanFur
-    echon "”   ‟"
-    echohl None
-
-    sleep 1
-    redraw
-    echo " "
-    echo " "
-    echo "Noms?"
-    redraw
-endfunction " }}}
-command! NyanMe call NyanMe()
-
-" }}}
