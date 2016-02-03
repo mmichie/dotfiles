@@ -8,10 +8,6 @@ if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
 
-if [ -f ~/s3ssh ]; then
-    . ~/s3ssh
-fi
-
 export PATH=$PATH:~/bin
 export P4CONFIG=.p4config
 export P4EDITOR=vim
@@ -19,10 +15,11 @@ export EDITOR=vim
 export LANG=C
 
 # Aliases
-alias ls="ls --color=auto"
+#alias ls="ls --color=auto"
+alias ls="ls -G"
 alias grep='grep --color=auto -d skip'
 alias grpe='grep --color=auto -d skip'
-alias ssh="ssh -2 -A -X -C -c blowfish -o StrictHostKeyChecking=no"
+alias ssh="ssh -A -C -o StrictHostKeyChecking=no"
 alias nsr='netstat -rn '
 alias nsa='netstat -an | sed -n "1,/Active UNIX domain sockets/ p"'
 # lsock: to display open sockets (the -P option to lsof disables port names)
@@ -36,7 +33,7 @@ alias ::::='cd ../../../..'
 alias :::::='cd ../../../../..'
 alias ::::::='cd ../../../../../..'
 # Disable stupid bell
-setterm -blength 0
+#setterm -blength 0
 
 # Functions
 

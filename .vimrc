@@ -919,9 +919,6 @@ nmap <silent> <f4> :QFixToggle<cr>
 " }}}
 " Utils ------------------------------------------------------------------- {{{
 
-function! g:echodammit(msg)
-    exec 'echom "----------> ' . a:msg . '"'
-endfunction
 
 " Synstack {{{
 
