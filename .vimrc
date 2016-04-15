@@ -1,29 +1,8 @@
 set nocompatible
-filetype off
 
-" set the runtime path to include Vundle and initialize
-set rtp+=~/.vim/bundle/Vundle.vim
-call vundle#begin()
-
-" let Vundle manage Vundle, required
-Plugin 'gmarik/Vundle.vim'
-
-" original repos on github
-Bundle 'tpope/vim-fugitive'
-Bundle 'Lokaltog/vim-easymotion'
-Bundle 'rstacruz/sparkup', {'rtp': 'vim/'}
-" vim-scripts repos
-Bundle 'L9'
-Bundle 'Syntastic'
-Bundle 'statline'
-Bundle 'FuzzyFinder'
-Bundle 'noahfrederick/vim-hemisu'
-Bundle 'davidhalter/jedi-vim'
-Bundle 'ervandew/supertab'
-" non github repos
-Bundle 'git://git.wincent.com/command-t.git'
-" ...
-" }}}
+execute pathogen#infect()
+syntax on
+filetype plugin indent on
 " Basic options ----------------------------------------------------------- {{{
 
 set encoding=utf-8
@@ -170,8 +149,6 @@ set statusline+=)
 
 " Line and column position and counts.
 set statusline+=\ (line\ %l\/%L,\ col\ %03c)
-
-"filetype plugin indent on
 
 " }}}
 " Abbreviations ----------------------------------------------------------- {{{
@@ -426,17 +403,6 @@ augroup ft_org
     au Filetype org nmap <buffer> Q vahjgq
 augroup END
 
-" }}}
-" Puppet {{{
-
-augroup ft_puppet
-    au!
-
-    au Filetype puppet setlocal foldmethod=marker
-    au Filetype puppet setlocal foldmarker={,}
-augroup END
-
-" }}}
 " Python {{{
 
 augroup ft_python
@@ -448,7 +414,6 @@ augroup ft_python
 
     au FileType python setlocal omnifunc=pythoncomplete#Complete
     au FileType python setlocal define=^\s*\\(def\\\\|class\\)
-    au FileType python compiler nose
     au FileType man nnoremap <buffer> <cr> :q<cr>
 augroup END
 
