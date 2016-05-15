@@ -983,9 +983,9 @@ if has('gui_running')
     set fillchars+=vert:│
 
     " Different cursors for different modes.
-    set guicursor=n-c:block-Cursor-blinkon0
-    set guicursor+=v:block-vCursor-blinkon0
-    set guicursor+=i-ci:ver20-iCursor
+    "set guicursor=n-c:block-Cursor-blinkon0
+    "set guicursor+=v:block-vCursor-blinkon0
+    "set guicursor+=i-ci:ver20-iCursor
 
     if has("gui_macvim")
         " Full screen means FULL screen
