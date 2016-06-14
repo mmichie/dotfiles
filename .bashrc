@@ -12,8 +12,9 @@ export PATH=$PATH:~/bin
 export P4CONFIG=.p4config
 export P4EDITOR=vim
 export EDITOR=vim
-export LANG=C
-
+#export LANG=C
+export LC_ALL=en_US.UTF-8  
+export LANG=en_US.UTF-8
 # Aliases
 #alias ls="ls --color=auto"
 alias ls="ls -G"

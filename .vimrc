@@ -28,7 +28,7 @@ set cpoptions+=J
 set shell=/bin/bash
 set lazyredraw
 set matchtime=3
-set showbreak=↪
+"set showbreak=↪
 set splitbelow
 set splitright
 set fillchars=diff:\ 
@@ -200,38 +200,6 @@ map <tab> %
 " Made D behave
 nnoremap D d$
 
-" Keep search matches in the middle of the window.
-nnoremap n nzzzv
-nnoremap N Nzzzv
-
-" Don't move on *
-nnoremap * *<c-o>
-
-" Same when jumping around
-nnoremap g; g;zz
-nnoremap g, g,zz
-
-" Easier to type, and I never use the default behavior.
-noremap H ^
-noremap L $
-
-" Heresy
-inoremap <c-a> <esc>I
-inoremap <c-e> <esc>A
-
-" Open a Quickfix window for the last search.
-nnoremap <silent> <leader>/ :execute 'vimgrep /'.@/.'/g %'<CR>:copen<CR>
-
-" Ack for the last search.
-nnoremap <silent> <leader>? :execute "Ack! '" . substitute(substitute(substitute(@/, "\\\\<", "\\\\b", ""), "\\\\>", "\\\\b", ""), "\\\\v", "", "") . "'"<CR>
-
-" Fix linewise visual selection of various text objects
-nnoremap VV V
-nnoremap Vit vitVkoj
-nnoremap Vat vatV
-nnoremap Vab vabV
-nnoremap VaB vaBV
-
 " Error navigation {{{
 "
 "             Location List     QuickFix Window
@@ -263,21 +231,6 @@ noremap <C-l>  <C-w>l
 noremap <leader>v <C-w>v
 
 " }}}
-
-" Highlight word {{{
-nnoremap <silent> <leader>hh :execute 'match InterestingWord1 /\<<c-r><c-w>\>/'<cr>
-nnoremap <silent> <leader>h1 :execute 'match InterestingWord1 /\<<c-r><c-w>\>/'<cr>
-nnoremap <silent> <leader>h2 :execute '2match InterestingWord2 /\<<c-r><c-w>\>/'<cr>
-nnoremap <silent> <leader>h3 :execute '3match InterestingWord3 /\<<c-r><c-w>\>/'<cr>
-" }}}
-
-" Visual Mode */# from Scrooloose {{{
-function! s:VSetSearch()
-  let temp = @@
-  norm! gvy
-  let @/ = '\V' . substitute(escape(@@, '\'), '\n', '\\n', 'g')
-  let @@ = temp
-endfunction
 
 vnoremap * :<C-u>call <SID>VSetSearch()<CR>//<CR><c-o>
 vnoremap # :<C-u>call <SID>VSetSearch()<CR>??<CR><c-o>
@@ -340,37 +293,6 @@ augroup ft_c
 augroup END
 
 " }}}
-" Clojure {{{
-
-let g:slimv_leader = '\'
-let g:slimv_keybindings = 2
-
-augroup ft_clojure
-    au!
-
-    au FileType clojure call TurnOnClojureFolding()
-    au FileType clojure compiler clojure
-    au FileType clojure setlocal report=100000
-    au FileType clojure nnoremap <buffer> o jI<cr><esc>kA
-    au FileType clojure nnoremap <buffer> O I<cr><esc>kA
-
-    au BufWinEnter        Slimv.REPL.clj setlocal winfixwidth
-    au BufNewFile,BufRead Slimv.REPL.clj setlocal nowrap
-    au BufNewFile,BufRead Slimv.REPL.clj setlocal foldlevel=99
-    au BufNewFile,BufRead Slimv.REPL.clj nnoremap <buffer> A GA
-    au BufNewFile,BufRead Slimv.REPL.clj nnoremap <buffer> <localleader>R :emenu REPL.<Tab>
-
-    " Fix the eval mapping.
-    au FileType clojure nmap <buffer> \ee \ed
-
-    " Indent top-level form.
-    au FileType clojure nmap <buffer> <localleader>= v((((((((((((=%
-
-    " Use a swank command that works, and doesn't require new app windows.
-    au FileType clojure let g:slimv_swank_cmd='!dtach -n /tmp/dtach-swank.sock -r winch lein swank'
-augroup END
-
-" }}}
 " Confluence {{{
 
 augroup ft_c
@@ -384,24 +306,6 @@ augroup END
 
 " }}}
 " Cram {{{
-
-let cram_fold=1
-
-augroup ft_cram
-    au!
-
-    au BufNewFile,BufRead *.t set filetype=cram
-    au Syntax cram setlocal foldlevel=1
-augroup END
-
-
-" OrgMode {{{
-
-augroup ft_org
-    au!
-
-    au Filetype org nmap <buffer> Q vahjgq
-augroup END
 
 " Python {{{
 
