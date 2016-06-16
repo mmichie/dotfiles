@@ -1,5 +1,6 @@
 set nocompatible
 
+runtime bundle/vim-pathogen/autoload/pathogen.vim
 execute pathogen#infect()
 syntax on
 filetype plugin indent on
@@ -105,10 +106,10 @@ let maplocalleader = "\\"
 " Color scheme {{{
 
 syntax on
-set background=light
-"set background=dark
-"colorscheme hemisu
-colorscheme pyte
+"set background=light
+set background=dark
+colorscheme hemisu
+"colorscheme pyte
 
 " Highlight VCS conflict markers
 match ErrorMsg '^\(<\|=\|>\)\{7\}\([^=].\+\)\?$'
@@ -925,4 +926,3 @@ else
 endif
 
 " }}}
-
