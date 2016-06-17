@@ -19,3 +19,6 @@
 [submodule "vim/.vim/bundle/puppet"]
 	path = vim/.vim/bundle/puppet
 	url = git://github.com/rodjek/vim-puppet.git
+[submodule "vim/.vim/bundle/YouCompleteMe"]
+	path = vim/.vim/bundle/YouCompleteMe
+	url = https://github.com/Valloric/YouCompleteMe
