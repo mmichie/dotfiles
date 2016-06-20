@@ -44,32 +44,9 @@ set titleold=""
 set titlestring=VIM:\ %F 
 set dictionary=/usr/share/dict/words
 
-" Wildmenu completion {{{
-
-set wildmenu
-set wildmode=list:longest
-
-set wildignore+=.hg,.git,.svn                    " Version control
-set wildignore+=*.aux,*.out,*.toc                " LaTeX intermediate files
-set wildignore+=*.jpg,*.bmp,*.gif,*.png,*.jpeg   " binary images
-set wildignore+=*.o,*.obj,*.exe,*.dll,*.manifest " compiled object files
-set wildignore+=*.spl                            " compiled spelling word lists
-set wildignore+=*.sw?                            " Vim swap files
-set wildignore+=*.DS_Store                       " OSX bullshit
-
-set wildignore+=*.luac                           " Lua byte code
-
-set wildignore+=migrations                       " Django migrations
-set wildignore+=*.pyc                            " Python byte code
-
-" Clojure/Leiningen
-set wildignore+=classes
-set wildignore+=lib
-
-" }}}
-
 " Make Vim able to edit crontab files again.
 set backupskip=/tmp/*,/private/tmp/*" 
+
 
 " Save when losing focus
 "au FocusLost * :wa
@@ -101,6 +78,23 @@ set backup                        " enable backups
 
 let mapleader = ","
 let maplocalleader = "\\"
+
+noremap <leader>1 :tabnext 1<cr>
+noremap <leader>2 :tabnext 2<cr>
+noremap <leader>3 :tabnext 3<cr>
+noremap <leader>4 :tabnext 4<cr>
+noremap <leader>5 :tabnext 5<cr>
+noremap <leader>6 :tabnext 6<cr>
+noremap <leader>7 :tabnext 7<cr>
+noremap <leader>8 :tabnext 8<cr>
+noremap <leader>9 :tabnext 9<cr>
+map <leader>tt :tabnew<cr>
+map <leader>tc :tabclose<cr>
+map <leader>tm :tabmove
+map <leader>tn :tabnext<cr>
+map <leader>tp :tabprevious<cr>
+
+
 
 " }}}
 " Color scheme {{{
@@ -134,7 +128,7 @@ set statusline+=%w   " Preview window flag.
 set statusline+=\    " Space.
 
 set statusline+=%#redbar#                " Highlight the following as a warning.
-"set statusline+=%{SyntasticStatuslineFlag()} " Syntastic errors.
+set statusline+=%{SyntasticStatuslineFlag()} " Syntastic errors.
 set statusline+=%*                           " Reset highlighting.
 
 set statusline+=%=   " Right align.
@@ -152,28 +146,7 @@ set statusline+=)
 set statusline+=\ (line\ %l\/%L,\ col\ %03c)
 
 " }}}
-" Abbreviations ----------------------------------------------------------- {{{
 
-function! EatChar(pat)
-    let c = nr2char(getchar(0))
-    return (c =~ a:pat) ? '' : c
-endfunction
-
-function! MakeSpacelessIabbrev(from, to)
-    execute "iabbrev <silent> ".a:from." ".a:to."<C-R>=EatChar('\\s')<CR>"
-endfunction
-
-call MakeSpacelessIabbrev('sl/',  'http://stevelosh.com/')
-call MakeSpacelessIabbrev('bb/',  'http://bitbucket.org/')
-call MakeSpacelessIabbrev('bbs/', 'http://bitbucket.org/sjl/')
-call MakeSpacelessIabbrev('gh/',  'http://github.com/')
-call MakeSpacelessIabbrev('ghs/', 'http://github.com/sjl/')
-
-iabbrev ldis ಠ_ಠ
-iabbrev sl@ steve@stevelosh.com
-iabbrev vrcf `~/.vimrc` file
-
-" }}}
 " Searching and movement -------------------------------------------------- {{{
 
 " Use sane regexes.
@@ -271,42 +244,6 @@ endfunction " }}}
 set foldtext=MyFoldText()
 
 " }}}
-" Destroy infuriating keys ------------------------------------------------ {{{
-
-" Fuck you, help key.
-noremap  <F1> :set invfullscreen<CR>
-inoremap <F1> <ESC>:set invfullscreen<CR>a
-
-" Fuck you too, manual key.
-nnoremap K <nop>
-
-" Stop it, hash key.
-inoremap # X<BS>#
-
-" }}}
-" Various filetype-specific stuff ----------------------------------------- {{{
-
-" C {{{
-
-augroup ft_c
-    au!
-    au FileType c setlocal foldmethod=syntax
-augroup END
-
-" }}}
-" Confluence {{{
-
-augroup ft_c
-    au!
-
-    au BufRead,BufNewFile *.confluencewiki setlocal filetype=confluencewiki
-
-    " Wiki pages should be soft-wrapped.
-    au FileType confluencewiki setlocal wrap linebreak nolist
-augroup END
-
-" }}}
-" Cram {{{
 
 " Python {{{
 
@@ -355,42 +292,9 @@ set completeopt=longest,menuone,preview
 " Sudo to write
 cmap w!! w !sudo tee % >/dev/null
 
-" I suck at typing.
-nnoremap <localleader>= ==
-vnoremap - =
-
-" Easy filetype switching {{{
-nnoremap _md :set ft=markdown<CR>
-nnoremap _hd :set ft=htmldjango<CR>
-nnoremap _jt :set ft=htmljinja<CR>
-nnoremap _cw :set ft=confluencewiki<CR>
-nnoremap _pd :set ft=python.django<CR>
-nnoremap _d  :set ft=diff<CR>
-" }}}
-
 " Toggle paste
 set pastetoggle=<F8>
 
-" Split/Join {{{
-"
-" Basically this splits the current line into two new ones at the cursor position,
-" then joins the second one with whatever comes next.
-"
-" Example:                      Cursor Here
-"                                    |
-"                                    V
-" foo = ('hello', 'world', 'a', 'b', 'c',
-"        'd', 'e')
-"
-"            becomes
-"
-" foo = ('hello', 'world', 'a', 'b',
-"        'c', 'd', 'e')
-"
-" Especially useful for adding items in the middle of long lists/tuples in Python
-" while maintaining a sane text width.
-nnoremap K h/[^ ]<cr>"zd$jyyP^v$h"zpJk:s/\v +$//<cr>:noh<cr>j^
-" }}}
 
 " Handle URL {{{
 " Stolen from https://github.com/askedrelic/homedir/blob/master/.vimrc
@@ -406,10 +310,6 @@ function! HandleURI()
 endfunction
 map <leader>u :call HandleURI()<CR>
 " }}}
-
-" Quickreturn
-inoremap <c-cr> <esc>A<cr>
-inoremap <s-cr> <esc>A:<cr>
 
 " Indent Guides {{{
 
@@ -457,23 +357,6 @@ inoremap <c-f> <c-x><c-f>
 " }}}
 " Plugin settings --------------------------------------------------------- {{{
 
-" Ack {{{
-
-map <leader>a :Ack! 
-
-" }}}
-" Autoclose {{{
-
-nmap <Leader>x <Plug>ToggleAutoCloseMappings
-
-" }}}
-" Commentary {{{
-
-nmap <leader>c <Plug>CommentaryLine
-xmap <leader>c <Plug>Commentary
-au FileType htmldjango setlocal commentstring={#\ %s\ #}
-
-" }}}
 " Ctrl-P {{{
 
 let g:ctrlp_map = '<leader>,'
@@ -551,8 +434,7 @@ nnoremap \| :call MakeGreen('')<cr>
 " }}}
 " NERD Tree {{{
 
-noremap  <F2> :NERDTreeToggle<cr>
-inoremap <F2> <esc>:NERDTreeToggle<cr>
+nmap <leader>nt :NERDTreeToggle<cr>
 
 au Filetype nerdtree setlocal nolist
 
@@ -677,46 +559,6 @@ endfunction
 " }}}
 
 " }}}
-" Text objects ------------------------------------------------------------ {{{
-
-" Shortcut for [] {{{
-
-onoremap id i[
-onoremap ad a[
-vnoremap id i[
-vnoremap ad a[
-
-" }}}
-" Next and Last {{{
-
-" Motion for "next/last object". For example, "din(" would go to the next "()" pair
-" and delete its contents.
-
-onoremap an :<c-u>call <SID>NextTextObject('a', 'f')<cr>
-xnoremap an :<c-u>call <SID>NextTextObject('a', 'f')<cr>
-onoremap in :<c-u>call <SID>NextTextObject('i', 'f')<cr>
-xnoremap in :<c-u>call <SID>NextTextObject('i', 'f')<cr>
-
-onoremap al :<c-u>call <SID>NextTextObject('a', 'F')<cr>
-xnoremap al :<c-u>call <SID>NextTextObject('a', 'F')<cr>
-onoremap il :<c-u>call <SID>NextTextObject('i', 'F')<cr>
-xnoremap il :<c-u>call <SID>NextTextObject('i', 'F')<cr>
-
-function! s:NextTextObject(motion, dir)
-  let c = nr2char(getchar())
-
-  if c ==# "b"
-      let c = "("
-  elseif c ==# "B"
-      let c = "{"
-  elseif c ==# "d"
-      let c = "["
-  endif
-
-  exe "normal! ".a:dir.c."v".a:motion.c
-endfunction
-
-" }}}
 
 " }}}
 " Ack motions ------------------------------------------------------------- {{{
@@ -821,54 +663,8 @@ nnoremap <leader>dw :call ToggleDiffWhitespace()<CR>
 " }}}
 
 " }}}
-" Hg ---------------------------------------------------------------------- {{{
 
-function! s:HgDiff()
-    diffthis
 
-    let fn = expand('%:p')
-    let ft = &ft
-
-    wincmd v
-    edit __hgdiff_orig__
-
-    setlocal buftype=nofile
-
-    normal ggdG
-    execute "silent r!hg cat --rev . " . fn
-    normal ggdd
-
-    execute "setlocal ft=" . ft
-
-    diffthis
-    diffupdate
-endf
-command! -nargs=0 HgDiff call s:HgDiff()
-nnoremap <leader>hd :HgDiff<cr>
-
-function! s:HgBlame()
-    let fn = expand('%:p')
-
-    wincmd v
-    wincmd h
-    edit __hgblame__
-    vertical resize 28
-
-    setlocal scrollbind winfixwidth nolist nowrap nonumber buftype=nofile ft=none
-
-    normal ggdG
-    execute "silent r!hg blame -undq " . fn
-    normal ggdd
-    execute ':%s/\v:.*$//'
-
-    wincmd l
-    setlocal scrollbind
-    syncbind
-endf
-command! -nargs=0 HgBlame call s:HgBlame()
-nnoremap <leader>hb :HgBlame<cr>
-
-" }}}
 " Environments (GUI/Console) ---------------------------------------------- {{{
 
 let g:Powerline_symbols = 'fancy'
