@@ -669,7 +669,7 @@ nnoremap <leader>dw :call ToggleDiffWhitespace()<CR>
 
 let g:Powerline_symbols = 'fancy'
 if has('gui_running')
-    set guifont=Consolas:h15
+    set guifont=Consolas:h14
 
     " Remove all the UI cruft
     "set go-=T
