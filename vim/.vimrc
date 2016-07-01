@@ -48,6 +48,12 @@ set dictionary=/usr/share/dict/words
 set backupskip=/tmp/*,/private/tmp/*" 
 
 
+" Enable the list of buffers
+let g:airline#extensions#tabline#enabled = 1
+
+" Show just the filename
+let g:airline#extensions#tabline#fnamemod = ':t'
+
 " Save when losing focus
 "au FocusLost * :wa
 

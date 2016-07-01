@@ -1,7 +1,9 @@
 dotfiles
 ========
 
-These are my Linux dotfiles. There are many like them, but these are mine.
+These are my Linux dotfiles. There are many like them, but these are mine.  They
+were hand tailored for me, so understand what you are doing before blindly using
+them.  No warranty provided.
 
 Hopefully I don't check in something sensitive here.
 
@@ -25,3 +27,5 @@ See Also
   * https://github.com/r00k
   * https://github.com/tpope/tpope
   * https://github.com/benbernard/HomeDir
+  * https://github.com/ninrod/dotfiles
+  * https://github.com/aaronbieber/dotfiles

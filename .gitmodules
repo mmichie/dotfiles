@@ -34,3 +34,12 @@
 [submodule "vim/.vim/bundle/vim-notes"]
 	path = vim/.vim/bundle/vim-notes
 	url = https://github.com/xolox/vim-notes
+[submodule "vim/.vim/bundle/vim-orgmode"]
+	path = vim/.vim/bundle/vim-orgmode
+	url = https://github.com/jceb/vim-orgmode
+[submodule "vim/.vim/bundle/vim-surround"]
+	path = vim/.vim/bundle/vim-surround
+	url = https://github.com/tpope/vim-surround
+[submodule "vim/.vim/bundle/vim-endwise"]
+	path = vim/.vim/bundle/vim-endwise
+	url = https://github.com/tpope/vim-endwise
