@@ -5,7 +5,7 @@ execute pathogen#infect()
 syntax on
 filetype plugin indent on
 " Basic options ----------------------------------------------------------- {{{
-
+set t_Co=256
 set encoding=utf-8
 set modelines=0
 set autoindent
@@ -85,15 +85,16 @@ set backup                        " enable backups
 let mapleader = ","
 let maplocalleader = "\\"
 
-noremap <leader>1 :tabnext 1<cr>
-noremap <leader>2 :tabnext 2<cr>
-noremap <leader>3 :tabnext 3<cr>
-noremap <leader>4 :tabnext 4<cr>
-noremap <leader>5 :tabnext 5<cr>
-noremap <leader>6 :tabnext 6<cr>
-noremap <leader>7 :tabnext 7<cr>
-noremap <leader>8 :tabnext 8<cr>
-noremap <leader>9 :tabnext 9<cr>
+map <D-1> 1gt
+map <D-2> 2gt
+map <D-3> 3gt
+map <D-4> 4gt
+map <D-5> 5gt
+map <D-6> 6gt
+map <D-7> 7gt
+map <D-8> 8gt
+map <D-9> 9gt
+map <D-0> :tablast<CR>
 map <leader>tt :tabnew<cr>
 map <leader>tc :tabclose<cr>
 map <leader>tm :tabmove
@@ -674,8 +675,14 @@ nnoremap <leader>dw :call ToggleDiffWhitespace()<CR>
 " Environments (GUI/Console) ---------------------------------------------- {{{
 
 let g:Powerline_symbols = 'fancy'
+let g:airline_powerline_fonts = 1
+
 if has('gui_running')
-    set guifont=Consolas:h14
+    "set guifont=Consolas:h14
+    "set guifont=ConsolasForPowerline:h14
+    set guifont=InconsolataForPowerline:h14
+
+    
 
     " Remove all the UI cruft
     "set go-=T
