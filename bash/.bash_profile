@@ -16,7 +16,6 @@ case $TERM in
 esac
 
 
-
 export PATH=$HOME/bin:$(brew --prefix)/sbin:$(brew --prefix)/bin:$PATH
 
 export EDITOR=mvim
@@ -37,8 +36,6 @@ if [ -z "$GOPATH" ]; then
   echo "export PATH=\"$PATH:$GOPATH/bin\"" >> ~/.bash_profile
 fi
 
-source ~/.bashrc
-
 cdsync () {
     cd $(boxer sync_dir $@)
 }
@@ -50,5 +47,7 @@ opensync () {
 }
 
 test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
+
 export GOPATH="/Users/mattm/Uber/go"
 export PATH="/Users/mattm/.nvm/v0.10.32/bin:/Users/mattm/bin:/usr/local/sbin:/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/usr/local/MacGPG2/bin:/Users/mattm/Uber/go/bin"
+export PATH="/Users/mattm/.nvm/v0.10.32/bin:/Users/mattm/bin:/usr/local/sbin:/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/usr/local/MacGPG2/bin:/Users/mattm/bin:/Users/mattm/Uber/go/bin"

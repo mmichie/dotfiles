@@ -8,6 +8,18 @@ if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
 
+
+if [ -z "$SHELL_PLATFORM" ]; then
+    SHELL_PLATFORM='OTHER'
+    case "$OSTYPE" in
+      *'linux'*   ) SHELL_PLATFORM='LINUX' ;;
+      *'darwin'*  ) SHELL_PLATFORM='OSX' ;;
+      *'freebsd'* ) SHELL_PLATFORM='BSD' ;;
+      *'cygwin'*  ) SHELL_PLATFORM='CYGWIN' ;;
+    esac
+fi
+
+
 export PATH=$PATH:~/bin
 export P4CONFIG=.p4config
 export P4EDITOR=vim
@@ -15,9 +27,17 @@ export EDITOR=vim
 #export LANG=C
 export LC_ALL=en_US.UTF-8  
 export LANG=en_US.UTF-8
+
 # Aliases
-#alias ls="ls --color=auto"
-alias ls="ls -G"
+if [ "$SHELL_PLATFORM" == "OSX" ]; then
+	alias ls="gls --color=auto"
+    #alias ls="ls -G"
+fi
+
+if [ "$SHELL_PLATFORM" == "LINUX" ]; then
+	alias ls="ls --color=auto"
+fi
+
 alias grep='grep --color=auto -d skip'
 alias grpe='grep --color=auto -d skip'
 alias ssh="ssh -A -C -o StrictHostKeyChecking=no"
@@ -33,6 +53,8 @@ alias :::='cd ../../..'
 alias ::::='cd ../../../..'
 alias :::::='cd ../../../../..'
 alias ::::::='cd ../../../../../..'
+alias slock='pmset displaysleepnow && ssh 172.17.122.15 '\''DISPLAY=:0 slock'\'''
+
 # Disable stupid bell
 #setterm -blength 0
 
