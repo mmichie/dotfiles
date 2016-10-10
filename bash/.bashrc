@@ -38,6 +38,18 @@ if [ "$SHELL_PLATFORM" == "LINUX" ]; then
 	alias ls="ls --color=auto"
 fi
 
+
+man() {
+	env \
+		LESS_TERMCAP_md=$'\e[1;36m' \
+		LESS_TERMCAP_me=$'\e[0m' \
+		LESS_TERMCAP_se=$'\e[0m' \
+		LESS_TERMCAP_so=$'\e[1;40;92m' \
+		LESS_TERMCAP_ue=$'\e[0m' \
+		LESS_TERMCAP_us=$'\e[1;32m' \
+			man "$@"
+}
+
 alias grep='grep --color=auto -d skip'
 alias grpe='grep --color=auto -d skip'
 alias ssh="ssh -A -C -o StrictHostKeyChecking=no"
@@ -87,7 +99,9 @@ export HISTIGNORE="&:ls:[bf]g:exit"
 if [ "$TERM" != "dumb" ]; then
     [ -e "$HOME/.dircolors" ] && DIR_COLORS="$HOME/.dircolors"
     [ -e "$DIR_COLORS" ] || DIR_COLORS=""
-    eval "`dircolors -b $DIR_COLORS`"
+	if hash dircolors 2>/dev/null; then
+    	eval "`dircolors -b $DIR_COLORS`"
+    fi
 fi
 
 SSH_ENV="$HOME/.ssh/environment"
@@ -154,3 +168,5 @@ complete -A file -A directory -A group chgrp
 complete -o default -W 'Makefile' -P '-o ' qmake
 complete -A command man which whatis whereis sudo info apropos
 complete -A file {,z}cat pico nano vi {,{,r}g,e,r}vi{m,ew} vimdiff elvis emacs {,r}ed e{,x} joe jstar jmacs rjoe jpico {,z}less {,z}more p{,g}
+
+cd $HOME/tmp
