@@ -18,7 +18,6 @@ esac
 
 export PATH=$HOME/bin:$(brew --prefix)/sbin:$(brew --prefix)/bin:$PATH
 
-export EDITOR=mvim
 export UBER_HOME="$HOME/Uber"
 export UBER_OWNER="mattm@uber.com"
 export UBER_LDAP_UID="mattm"

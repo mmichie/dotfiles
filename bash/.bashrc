@@ -22,8 +22,8 @@ fi
 
 export PATH=$PATH:~/bin
 export P4CONFIG=.p4config
-export P4EDITOR=vim
-export EDITOR=vim
+export P4EDITOR="mvim -f"
+export EDITOR="mvim -f"
 #export LANG=C
 export LC_ALL=en_US.UTF-8  
 export LANG=en_US.UTF-8
