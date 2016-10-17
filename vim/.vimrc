@@ -55,6 +55,9 @@ let g:airline#extensions#tabline#enabled = 1
 " Show just the filename
 let g:airline#extensions#tabline#fnamemod = ':t'
 
+let g:SuperTabClosePreviewOnPopupClose = 1
+let g:ycm_autoclose_preview_window_after_completion = 1
+
 " Save when losing focus
 "au FocusLost * :wa
 

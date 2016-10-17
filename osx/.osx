@@ -12,6 +12,9 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 # General UI/UX                                                               #
 ###############################################################################
 
+# Disable MacVim Auto-Update
+defaults write org.vim.MacVim SUEnableAutomaticChecks -bool false
+
 # Set computer name (as done via System Preferences → Sharing)
 sudo scutil --set ComputerName "mattm-laptop"
 sudo scutil --set HostName "mattm-laptop"
