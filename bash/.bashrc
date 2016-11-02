@@ -9,6 +9,8 @@ if [ -f /etc/bashrc ]; then
 fi
 
 
+# User specific environment and startup programs
+
 if [ -z "$SHELL_PLATFORM" ]; then
     SHELL_PLATFORM='OTHER'
     case "$OSTYPE" in
@@ -19,18 +21,53 @@ if [ -z "$SHELL_PLATFORM" ]; then
     esac
 fi
 
+unset USERNAME
+case $TERM in
+    (xterm*)
+        PROMPT_COMMAND='echo -ne "\033]0;${HOSTNAME}: ${PWD}\007"' ;;
+esac
+
+
+export UBER_HOME="$HOME/Uber"
+export UBER_OWNER="mattm@uber.com"
+export UBER_LDAP_UID="mattm"
 
 export PATH=$PATH:~/bin
 export P4CONFIG=.p4config
-export P4EDITOR="mvim -f"
-export EDITOR="mvim -f"
-#export LANG=C
+export P4EDITOR="vim -f"
+export EDITOR="vim -f"
 export LC_ALL=en_US.UTF-8  
 export LANG=en_US.UTF-8
 
+export VAGRANT_DEFAULT_PROVIDER=aws
+
+[ -s "/usr/local/bin/virtualenvwrapper.sh" ] && . /usr/local/bin/virtualenvwrapper.sh
+[ -s "$HOME/.nvm/nvm.sh" ] && . $HOME/.nvm/nvm.sh
+#if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
+
+if [ -z "$GOPATH" ]; then
+  export GOPATH="$UBER_HOME/go"
+  mkdir -p "$GOPATH"
+fi
+
+cdsync () {
+    cd $(boxer sync_dir $@)
+}
+editsync () {
+    $EDITOR $(boxer sync_dir $@)
+}
+opensync () {
+    open $(boxer sync_dir $@)
+}
+
+
 # Aliases
 if [ "$SHELL_PLATFORM" == "OSX" ]; then
+    alias slock='pmset displaysleepnow && ssh 172.17.122.15 '\''DISPLAY=:0 slock'\'''
+    type "brew" &>/dev/null && [ -s "$(brew --prefix)/etc/bash_completion" ] && . $(brew --prefix)/etc/bash_completion
+    export PATH=$HOME/bin:$(brew --prefix)/sbin:$(brew --prefix)/bin:$PATH
 	alias ls="gls --color=auto"
+    test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
     #alias ls="ls -G"
 fi
 
@@ -65,7 +102,6 @@ alias :::='cd ../../..'
 alias ::::='cd ../../../..'
 alias :::::='cd ../../../../..'
 alias ::::::='cd ../../../../../..'
-alias slock='pmset displaysleepnow && ssh 172.17.122.15 '\''DISPLAY=:0 slock'\'''
 
 # Disable stupid bell
 #setterm -blength 0
@@ -93,7 +129,7 @@ shopt -s execfail
 
 # History
 export HISTCONTROL=ignoreboth
-export HISTSIZE=10000
+export HISTSIZE=100000
 export HISTIGNORE="&:ls:[bf]g:exit"
 
 if [ "$TERM" != "dumb" ]; then
@@ -168,5 +204,3 @@ complete -A file -A directory -A group chgrp
 complete -o default -W 'Makefile' -P '-o ' qmake
 complete -A command man which whatis whereis sudo info apropos
 complete -A file {,z}cat pico nano vi {,{,r}g,e,r}vi{m,ew} vimdiff elvis emacs {,r}ed e{,x} joe jstar jmacs rjoe jpico {,z}less {,z}more p{,g}
-
-cd $HOME/tmp
