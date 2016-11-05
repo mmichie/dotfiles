@@ -27,7 +27,6 @@ case $TERM in
         PROMPT_COMMAND='echo -ne "\033]0;${HOSTNAME}: ${PWD}\007"' ;;
 esac
 
-
 export UBER_HOME="$HOME/Uber"
 export UBER_OWNER="mattm@uber.com"
 export UBER_LDAP_UID="mattm"
@@ -48,6 +47,7 @@ if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 if [ -z "$GOPATH" ]; then
   export GOPATH="$UBER_HOME/go"
   mkdir -p "$GOPATH"
+  export PATH=$PATH:$GOPATH/bin
 fi
 
 cdsync () {
