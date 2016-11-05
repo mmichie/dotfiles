@@ -43,7 +43,7 @@ export VAGRANT_DEFAULT_PROVIDER=aws
 
 [ -s "/usr/local/bin/virtualenvwrapper.sh" ] && . /usr/local/bin/virtualenvwrapper.sh
 [ -s "$HOME/.nvm/nvm.sh" ] && . $HOME/.nvm/nvm.sh
-#if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
+if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 
 if [ -z "$GOPATH" ]; then
   export GOPATH="$UBER_HOME/go"
@@ -69,6 +69,7 @@ if [ "$SHELL_PLATFORM" == "OSX" ]; then
 	alias ls="gls --color=auto"
     test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
     #alias ls="ls -G"
+    alias ignas='echo -ne "@\xd1\x96gnas" | pbcopy'
 fi
 
 if [ "$SHELL_PLATFORM" == "LINUX" ]; then
