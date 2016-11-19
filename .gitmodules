@@ -58,3 +58,6 @@
 [submodule "vim/.vim/bundle/vim-hybrid"]
 	path = vim/.vim/bundle/vim-hybrid
 	url = https://github.com/w0ng/vim-hybrid
+[submodule "utils/powerline-shell"]
+	path = utils/powerline-shell
+	url = https://github.com/banga/powerline-shell
