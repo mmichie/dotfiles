@@ -9,6 +9,7 @@ if [ -f /etc/bashrc ]; then
 fi
 
 
+
 # User specific environment and startup programs
 
 if [ -z "$SHELL_PLATFORM" ]; then
@@ -21,10 +22,16 @@ if [ -z "$SHELL_PLATFORM" ]; then
     esac
 fi
 
+
+function _update_ps1() {
+    PS1="$(~/bin/powerline-shell.py $? 2> /dev/null)"
+}
+
+
 unset USERNAME
 case $TERM in
     (xterm*)
-        PROMPT_COMMAND='echo -ne "\033]0;${HOSTNAME}: ${PWD}\007"' ;;
+        PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND" ;;
 esac
 
 export UBER_HOME="$HOME/Uber"
