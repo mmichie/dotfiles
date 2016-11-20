@@ -61,3 +61,6 @@
 [submodule "utils/powerline-shell"]
 	path = utils/powerline-shell
 	url = https://github.com/banga/powerline-shell
+[submodule "utils/fasd"]
+	path = utils/fasd
+	url = https://github.com/clvv/fasd
