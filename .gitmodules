@@ -64,3 +64,6 @@
 [submodule "utils/fasd"]
 	path = utils/fasd
 	url = https://github.com/clvv/fasd
+[submodule "utils/diff-so-fancy"]
+	path = utils/diff-so-fancy
+	url = https://github.com/so-fancy/diff-so-fancy
