@@ -48,7 +48,6 @@ set dictionary=/usr/share/dict/words
 " Make Vim able to edit crontab files again.
 set backupskip=/tmp/*,/private/tmp/*" 
 
-
 " Enable the list of buffers
 let g:airline#extensions#tabline#enabled = 1
 
