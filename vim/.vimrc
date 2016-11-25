@@ -367,12 +367,17 @@ inoremap <c-f> <c-x><c-f>
 " }}}
 " Plugin settings --------------------------------------------------------- {{{
 
+nnoremap <silent><C-p> :CtrlSpace O<CR>
+
 " Ctrl-P {{{
 
-let g:ctrlp_map = '<leader>,'
-let g:ctrlp_working_path_mode = 0
-let g:ctrlp_match_window_reversed = 1
-let g:ctrlp_split_window = 0
+"let g:ctrlp_map = '<C-p>' 
+"let g:ctrlp_cmd = 'CtrlP'
+
+"let g:ctrlp_map = '<leader>,'
+"let g:ctrlp_working_path_mode = 0
+"let g:ctrlp_match_window_reversed = 1
+"let g:ctrlp_split_window = 0
 
 " }}}
 " Easymotion {{{
