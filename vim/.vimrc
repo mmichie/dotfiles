@@ -44,6 +44,7 @@ set title
 set titleold="" 
 set titlestring=VIM:\ %F 
 set dictionary=/usr/share/dict/words
+set viminfo='100,n$HOME/.vim/viminfo
 
 " Make Vim able to edit crontab files again.
 set backupskip=/tmp/*,/private/tmp/*" 

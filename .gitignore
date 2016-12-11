@@ -3,6 +3,7 @@
 [._]s[a-w][a-z]
 # session
 Session.vim
+vim/.vim/viminfo
 # temporary
 .netrwhist
 *~
