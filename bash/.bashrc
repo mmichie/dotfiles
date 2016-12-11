@@ -14,8 +14,6 @@ if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
 
-
-
 # User specific environment and startup programs
 
 if [ -z "$SHELL_PLATFORM" ]; then
@@ -28,21 +26,15 @@ if [ -z "$SHELL_PLATFORM" ]; then
     esac
 fi
 
-
 function _update_ps1() {
     PS1="$(~/bin/powerline-shell.py $? 2> /dev/null)"
 }
-
 
 unset USERNAME
 case $TERM in
     (xterm*)
         PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND" ;;
 esac
-
-export UBER_HOME="$HOME/Uber"
-export UBER_OWNER="mattm@uber.com"
-export UBER_LDAP_UID="mattm"
 
 export PATH=$PATH:~/bin
 export P4CONFIG=.p4config
@@ -53,26 +45,11 @@ export LANG=en_US.UTF-8
 
 export VAGRANT_DEFAULT_PROVIDER=aws
 
-[ -s "/usr/local/bin/virtualenvwrapper.sh" ] && . /usr/local/bin/virtualenvwrapper.sh
-[ -s "$HOME/.nvm/nvm.sh" ] && . $HOME/.nvm/nvm.sh
-if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
-
 if [ -z "$GOPATH" ]; then
-  export GOPATH="$UBER_HOME/go"
+  export GOPATH="$HOME/workplace/go"
   mkdir -p "$GOPATH"
   export PATH=$PATH:$GOPATH/bin
 fi
-
-cdsync () {
-    cd $(boxer sync_dir $@)
-}
-editsync () {
-    $EDITOR $(boxer sync_dir $@)
-}
-opensync () {
-    open $(boxer sync_dir $@)
-}
-
 
 # Aliases
 if [ "$SHELL_PLATFORM" == "OSX" ]; then
@@ -103,7 +80,6 @@ if [ "$SHELL_PLATFORM" == "LINUX" ]; then
     export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 
 fi
-
 
 man() {
 	env \
