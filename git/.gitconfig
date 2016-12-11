@@ -1,3 +1,11 @@
+# This is Git's per-user configuration file.
+[user]
+	name = Matt Michie
+	email = mmichie@gmail.com
+[credential]
+    helper = osxkeychain
+
+
 [alias]
     graph = log --branches --pretty=short --decorate --graph
 
@@ -9,6 +17,10 @@
 
 [diff]
     external = git_diff_wrapper
+	tool = vimdiff
+
+[difftool]
+	prompt = false
 
 [pager]
     diff =
