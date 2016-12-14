@@ -22,6 +22,8 @@ brew update
 brew upgrade
 
 brew install stow
+brew install cmake
+brew install go
 
 # Install GNU core utilities (those that come with OS X are outdated).
 # Don’t forget to add `$(brew --prefix coreutils)/libexec/gnubin` to `$PATH`.
