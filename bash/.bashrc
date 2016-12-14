@@ -46,7 +46,7 @@ export LANG=en_US.UTF-8
 export VAGRANT_DEFAULT_PROVIDER=aws
 
 if [ -z "$GOPATH" ]; then
-  export GOPATH="$HOME/workplace/go"
+  export GOPATH="$HOME/workspace/go"
   mkdir -p "$GOPATH"
   export PATH=$PATH:$GOPATH/bin
 fi
