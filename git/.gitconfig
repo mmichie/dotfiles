@@ -1,7 +1,6 @@
 # This is Git's per-user configuration file.
 [user]
-	name = Matt Michie
-	email = mmichie@gmail.com
+    useConfigOnly = true
 [credential]
     helper = osxkeychain
 
@@ -21,6 +20,9 @@
 
 [difftool]
 	prompt = false
+
+[alias]
+    history = log --stat --patch --
 
 [pager]
     diff =
