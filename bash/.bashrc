@@ -36,7 +36,7 @@ case $TERM in
         PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND" ;;
 esac
 
-export PATH=$PATH:~/bin
+export PATH=$PATH:~/bin:/usr/local/bin
 export P4CONFIG=.p4config
 export P4EDITOR="vim -f"
 export EDITOR="vim -f"
