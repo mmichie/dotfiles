@@ -26,6 +26,8 @@ brew install cmake
 brew install go
 brew install python3
 
+brew install ripgrep
+
 # Install GNU core utilities (those that come with OS X are outdated).
 # Don’t forget to add `$(brew --prefix coreutils)/libexec/gnubin` to `$PATH`.
 brew install coreutils
