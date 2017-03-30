@@ -50,7 +50,7 @@ set viminfo='100,n$HOME/.vim/viminfo
 set backupskip=/tmp/*,/private/tmp/*" 
 
 " Enable the list of buffers
-let g:airline#extensions#tabline#enabled = 1
+"let g:airline#extensions#tabline#enabled = 1
 
 " Show just the filename
 let g:airline#extensions#tabline#fnamemod = ':t'
@@ -114,6 +114,7 @@ syntax on
 "set background=light
 set background=dark
 colorscheme hemisu
+"colorscheme badwolf
 "colorscheme pyte
 
 " Highlight VCS conflict markers
@@ -689,12 +690,10 @@ let g:airline_powerline_fonts = 1
 if has('gui_running')
     "set guifont=Consolas:h14
     "set guifont=ConsolasForPowerline:h14
-    set guifont=InconsolataForPowerline:h14
-
-    
+    set guifont=Inconsolata\ for\ Powerline\ Medium\ 12
 
     " Remove all the UI cruft
-    "set go-=T
+    set go-=T
     "set go-=l
     "set go-=L
     "set go-=r
