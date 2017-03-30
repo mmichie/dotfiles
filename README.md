@@ -29,3 +29,4 @@ See Also
   * https://github.com/benbernard/HomeDir
   * https://github.com/ninrod/dotfiles
   * https://github.com/aaronbieber/dotfiles
+  * https://github.com/sectioneight/dotfiles
