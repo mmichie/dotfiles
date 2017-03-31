@@ -63,6 +63,9 @@ if [ "$SHELL_PLATFORM" == "OSX" ]; then
 fi
 
 if [ "$SHELL_PLATFORM" == "LINUX" ]; then
+    # http://unix.stackexchange.com/questions/230238/starting-x-applications-from-the-terminal-and-the-warnings-that-follow
+    export NO_AT_BRIDGE=1
+
 	alias ls="ls --color=auto"
     # enable color support of ls and also add handy aliases
     if [ -x /usr/bin/dircolors ]; then
