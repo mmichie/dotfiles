@@ -216,3 +216,5 @@ complete -A file -A directory -A group chgrp
 complete -o default -W 'Makefile' -P '-o ' qmake
 complete -A command man which whatis whereis sudo info apropos
 complete -A file {,z}cat pico nano vi {,{,r}g,e,r}vi{m,ew} vimdiff elvis emacs {,r}ed e{,x} joe jstar jmacs rjoe jpico {,z}less {,z}more p{,g}
+
+source ~/.bash-work.sh
