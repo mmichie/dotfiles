@@ -67,3 +67,6 @@
 [submodule "utils/diff-so-fancy"]
 	path = utils/diff-so-fancy
 	url = https://github.com/so-fancy/diff-so-fancy
+[submodule "vim/.vim/bundle/vim-ruby"]
+	path = vim/.vim/bundle/vim-ruby
+	url = https://github.com/vim-ruby/vim-ruby
