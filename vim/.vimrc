@@ -49,6 +49,13 @@ set viminfo='100,n$HOME/.vim/viminfo
 " Make Vim able to edit crontab files again.
 set backupskip=/tmp/*,/private/tmp/*" 
 
+
+augroup ft_rb
+    au!
+    " fix the SLOOOW syntax highlighting
+    au FileType ruby setlocal re=1 foldmethod=manual
+augroup END
+
 " Enable the list of buffers
 "let g:airline#extensions#tabline#enabled = 1
 

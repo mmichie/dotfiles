@@ -30,3 +30,4 @@ See Also
   * https://github.com/ninrod/dotfiles
   * https://github.com/aaronbieber/dotfiles
   * https://github.com/sectioneight/dotfiles
+  * https://bitbucket.org/jasonwryan/shiv/src
