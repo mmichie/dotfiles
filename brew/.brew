@@ -17,10 +17,6 @@ brew install bash
 # Install wget with IRI support
 brew install wget --enable-iri
 
-# Install more recent versions of some OS X tools
-brew tap homebrew/dupes
-brew install homebrew/dupes/grep
-
 # Install everything else
 brew install ack
 brew install git
@@ -43,7 +39,9 @@ brew install screen
 brew install watch
 brew install wdiff --with-gettext
 brew install wget
-brew install vim --override-system-vi
+
+# Pick one, they both install a vim
+#brew install vim --override-system-vi
 brew install macvim --override-system-vim --custom-system-icons
 
 
