@@ -16,6 +16,7 @@ fi
 
 # User specific environment and startup programs
 
+
 if [ -z "$SHELL_PLATFORM" ]; then
     SHELL_PLATFORM='OTHER'
     case "$OSTYPE" in
@@ -25,6 +26,26 @@ if [ -z "$SHELL_PLATFORM" ]; then
       *'cygwin'*  ) SHELL_PLATFORM='CYGWIN' ;;
     esac
 fi
+
+AGENT_SOCKET=$HOME/.ssh/.ssh-agent-socket
+AGENT_INFO=$HOME/.ssh/.ssh-agent-info
+if [[ -s "$AGENT_INFO" ]]
+then
+    source $AGENT_INFO
+fi
+
+if [[ -z "$SSH_AGENT_PID" || "$SSH_AGENT_PID" != `pgrep -u $USER ssh-agent` ]]
+then
+    echo "Re-starting Agent for $USER"
+    pkill -15 -u $USER ssh-agent
+    eval `ssh-agent -s -a $AGENT_SOCKET`
+    echo "export SSH_AGENT_PID=$SSH_AGENT_PID" > $AGENT_INFO
+    echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $AGENT_INFO
+    ssh-add ~/.ssh/*.pem
+else
+    echo "Agent Already Running"
+fi
+
 
 function _update_ps1() {
     PS1="$(~/bin/powerline-shell.py $? 2> /dev/null)"
@@ -43,6 +64,7 @@ export P4EDITOR="vim -f"
 export EDITOR="vim -f"
 export LC_ALL=en_US.UTF-8  
 export LANG=en_US.UTF-8
+export TZ='US/Pacific'
 
 export VAGRANT_DEFAULT_PROVIDER=aws
 
@@ -67,6 +89,7 @@ if [ "$SHELL_PLATFORM" == "LINUX" ]; then
     # http://unix.stackexchange.com/questions/230238/starting-x-applications-from-the-terminal-and-the-warnings-that-follow
     export NO_AT_BRIDGE=1
 
+    alias open="xdg-open"
 	alias ls="ls --color=auto"
     # enable color support of ls and also add handy aliases
     if [ -x /usr/bin/dircolors ]; then
@@ -219,3 +242,6 @@ complete -A command man which whatis whereis sudo info apropos
 complete -A file {,z}cat pico nano vi {,{,r}g,e,r}vi{m,ew} vimdiff elvis emacs {,r}ed e{,x} joe jstar jmacs rjoe jpico {,z}less {,z}more p{,g}
 
 source ~/.bash-work.sh
+dig +short txt istheinternetonfire.com
+# Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
+export PATH="$PATH:$HOME/.rvm/bin"
