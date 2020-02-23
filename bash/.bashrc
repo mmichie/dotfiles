@@ -28,6 +28,7 @@ fi
 
 function _update_ps1() {
     PS1="$(~/bin/powerline-shell.py $? 2> /dev/null)"
+    history -a; history -c; history -r;
 }
 
 unset USERNAME
@@ -130,8 +131,8 @@ sshtunnel() {
 }
 
 # Shell Options
-shopt -s histappend
 shopt -s cmdhist
+shopt -s histappend                      # append to history, don't overwrite it
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
