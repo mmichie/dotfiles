@@ -25,6 +25,7 @@ set history=1000
 set undofile
 set undoreload=10000
 set cpoptions+=J
+"set mouse=a
 "set list
 "set listchars=tab:▸\ ,eol:¬,extends:❯,precedes:❮
 set shell=/bin/bash
@@ -45,10 +46,13 @@ set titleold=""
 set titlestring=VIM:\ %F 
 set dictionary=/usr/share/dict/words
 set viminfo='100,n$HOME/.vim/viminfo
+"use system clipboard
+set clipboard=unnamedplus
 
 " Make Vim able to edit crontab files again.
 set backupskip=/tmp/*,/private/tmp/*" 
 
+"set shortmess+=c
 
 augroup ft_rb
     au!
@@ -268,6 +272,10 @@ set foldtext=MyFoldText()
 
 augroup ft_python
     au!
+
+
+    autocmd BufNewFile,BufRead *.cinc set syntax=python
+    autocmd BufNewFile,BufRead *.mcconf set syntax=python
 
     au Filetype python noremap  <buffer> <localleader>rr :RopeRename<CR>
     au Filetype python vnoremap <buffer> <localleader>rm :RopeExtractMethod<CR>
