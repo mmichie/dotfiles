@@ -73,3 +73,6 @@
 [submodule "vim/.vim/bundle/vim-material-theme"]
 	path = vim/.vim/bundle/vim-material-theme
 	url = https://github.com/jdkanani/vim-material-theme
+[submodule "bin/bin/diff-so-fancy"]
+	path = bin/bin/diff-so-fancy
+	url = https://github.com/so-fancy/diff-so-fancy
