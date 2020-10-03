@@ -54,7 +54,7 @@ function _update_ps1() {
 
 unset USERNAME
 case $TERM in
-    (xterm*)
+    (xterm*|screen*)
         PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND" ;;
 esac
 
