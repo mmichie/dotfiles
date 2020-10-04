@@ -27,25 +27,27 @@ if [ -z "$SHELL_PLATFORM" ]; then
     esac
 fi
 
-AGENT_SOCKET=$HOME/.ssh/.ssh-agent-socket
-AGENT_INFO=$HOME/.ssh/.ssh-agent-info
-if [[ -s "$AGENT_INFO" ]]
+if [[ `hostname` ==  "mattmichie-mbp" ]]
 then
-    source $AGENT_INFO
-fi
+    AGENT_SOCKET=$HOME/.ssh/.ssh-agent-socket
+    AGENT_INFO=$HOME/.ssh/.ssh-agent-info
+    if [[ -s "$AGENT_INFO" ]]
+    then
+        source $AGENT_INFO
+    fi
 
-if [[ -z "$SSH_AGENT_PID" || "$SSH_AGENT_PID" != `pgrep -u $USER ssh-agent` ]]
-then
-    echo "Re-starting Agent for $USER"
-    pkill -15 -u $USER ssh-agent
-    eval `ssh-agent -s -a $AGENT_SOCKET`
-    echo "export SSH_AGENT_PID=$SSH_AGENT_PID" > $AGENT_INFO
-    echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $AGENT_INFO
-    ssh-add ~/.ssh/*.pem
-else
-    echo "Agent Already Running"
+    if [[ -z "$SSH_AGENT_PID" || "$SSH_AGENT_PID" != `pgrep -u $USER ssh-agent` ]]
+    then
+        echo "Re-starting Agent for $USER"
+        pkill -15 -u $USER ssh-agent
+        eval `ssh-agent -s -a $AGENT_SOCKET`
+        echo "export SSH_AGENT_PID=$SSH_AGENT_PID" > $AGENT_INFO
+        echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $AGENT_INFO
+        ssh-add
+    else
+        echo "Agent Already Running"
+    fi
 fi
-
 
 function _update_ps1() {
     PS1="$(~/bin/powerline-shell.py $? 2> /dev/null)"
