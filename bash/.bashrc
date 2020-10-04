@@ -50,7 +50,12 @@ then
 fi
 
 function _update_ps1() {
-    PS1="$(~/bin/powerline-shell.py $? 2> /dev/null)"
+    if [[ -e ~/bin/powerline-shell.py ]]
+    then
+        PS1="$(~/bin/powerline-shell.py $? 2> /dev/null)"
+    else
+        PS1="$ "
+    fi
     history -a; history -c; history -r;
 }
 
