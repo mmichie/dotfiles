@@ -50,7 +50,10 @@ then
 fi
 
 function _update_ps1() {
-    if [[ -e ~/bin/powerline-shell.py ]]
+    if [ "$SHELL_PLATFORM" == "OSX" ] && [[ -e ~/bin/powerline-go-darwin ]];
+    then
+        PS1="$(~/bin/powerline-go-darwin $? 2> /dev/null)"
+    elif [[ -e ~/bin/powerline-shell.py ]]
     then
         PS1="$(~/bin/powerline-shell.py $? 2> /dev/null)"
     else
