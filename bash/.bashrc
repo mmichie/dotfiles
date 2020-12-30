@@ -36,6 +36,11 @@ then
         source $AGENT_INFO
     fi
 
+    if [[ -e $AGENT_SOCKET ]] && ! cat $AGENT_SOCKET; then
+        echo "Agent socket stale, removing it!"
+        rm $AGENT_SOCKET
+    fi
+
     if [[ -z "$SSH_AGENT_PID" || "$SSH_AGENT_PID" != `pgrep -u $USER ssh-agent` ]]
     then
         echo "Re-starting Agent for $USER"
