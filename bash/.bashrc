@@ -92,6 +92,7 @@ fi
 # Aliases
 if [ "$SHELL_PLATFORM" == "OSX" ]; then
     alias slock='pmset displaysleepnow && ssh 172.17.122.15 '\''DISPLAY=:0 slock'\'''
+    alias brew="/opt/homebrew/bin/brew"
     type "brew" &>/dev/null && [ -s "$(brew --prefix)/etc/bash_completion" ] && . $(brew --prefix)/etc/bash_completion
     export PATH=$HOME/bin:$(brew --prefix)/sbin:$(brew --prefix)/bin:$PATH
 	alias ls="gls --color=auto"
