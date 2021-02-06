@@ -27,7 +27,7 @@ if [ -z "$SHELL_PLATFORM" ]; then
     esac
 fi
 
-if [[ `hostname` ==  "mattmichie-mbp" ]]
+if [[ `hostname` ==  "mattmichie-mbp" || `hostname` == "matt-pc" ]]
 then
     AGENT_SOCKET=$HOME/.ssh/.ssh-agent-socket
     AGENT_INFO=$HOME/.ssh/.ssh-agent-info
