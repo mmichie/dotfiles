@@ -36,7 +36,7 @@ then
         source $AGENT_INFO
     fi
 
-    if [[ -e $AGENT_SOCKET ]] && ! cat $AGENT_SOCKET; then
+    if [[ -e $AGENT_SOCKET ]] && ! ssh-add -l; then
         echo "Agent socket stale, removing it!"
         rm $AGENT_SOCKET
     fi
@@ -258,6 +258,6 @@ complete -A command man which whatis whereis sudo info apropos
 complete -A file {,z}cat pico nano vi {,{,r}g,e,r}vi{m,ew} vimdiff elvis emacs {,r}ed e{,x} joe jstar jmacs rjoe jpico {,z}less {,z}more p{,g}
 
 test -e "${HOME}/.bash_work_profile" && source "${HOME}/.bash_work_profile"
-dig +short txt istheinternetonfire.com
+#dig +short txt istheinternetonfire.com&
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
