@@ -31,17 +31,21 @@ if [[ `hostname` ==  "mattmichie-mbp" || `hostname` == "matt-pc" ]]
 then
     AGENT_SOCKET=$HOME/.ssh/.ssh-agent-socket
     AGENT_INFO=$HOME/.ssh/.ssh-agent-info
+
+    ssh-add -l
+    status=$?
+
     if [[ -s "$AGENT_INFO" ]]
     then
         source $AGENT_INFO
     fi
 
-    if [[ -e $AGENT_SOCKET ]] && ! ssh-add -l; then
+    if [[ -e $AGENT_SOCKET ]] && [ $status -ne 0 ]; then
         echo "Agent socket stale, removing it!"
         rm $AGENT_SOCKET
     fi
 
-    if [[ -z "$SSH_AGENT_PID" || "$SSH_AGENT_PID" != `pgrep -u $USER ssh-agent` ]]
+    if [[ -z "$SSH_AGENT_PID" || "$SSH_AGENT_PID" != `pgrep -u $USER ssh-agent` || $status -eq 2 ]]
     then
         echo "Re-starting Agent for $USER"
         pkill -15 -u $USER ssh-agent
