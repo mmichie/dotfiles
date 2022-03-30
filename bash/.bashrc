@@ -32,13 +32,13 @@ then
     AGENT_SOCKET=$HOME/.ssh/.ssh-agent-socket
     AGENT_INFO=$HOME/.ssh/.ssh-agent-info
 
-    ssh-add -l
-    status=$?
-
     if [[ -s "$AGENT_INFO" ]]
     then
         source $AGENT_INFO
     fi
+
+    ssh-add -l
+    status=$?
 
     if [[ -e $AGENT_SOCKET ]] && [ $status -ne 0 ]; then
         echo "Agent socket stale, removing it!"
