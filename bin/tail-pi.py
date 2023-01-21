@@ -1,10 +1,47 @@
 #!/usr/bin/env python3
 
+import argparse
+import requests
 import sqlite3
 import time
-from typing import List, Tuple
-import argparse
+import dns.resolver
+
 from datetime import datetime
+from typing import List, Tuple
+
+
+def get_ip_address(domain: str, resolver: str) -> str:
+    """
+    Get the IP address of a domain
+    :param domain: The domain to get the IP address for
+    :param resolver: The IP address of the DNS resolver
+    :return: The IP address of the domain
+    """
+    dns_resolver = dns.resolver.Resolver()
+    dns_resolver.nameservers = [resolver]
+    try:
+        answers = dns_resolver.query(domain, "A")
+        return str(answers[0])
+    except dns.resolver.NXDOMAIN:
+        return "NXDOMAIN"
+    except dns.resolver.NoAnswer:
+        return "NoAnswer"
+    except dns.resolver.NoNameservers:
+        return "NoNameservers"
+
+
+def check_domain(domain: str, resolver: str):
+    """
+    Check if a domain is blocked by OpenDNS Family Shield
+    :param domain: The domain to check
+    :param resolver: The IP address of the OpenDNS resolver
+    :return: True if the domain is blocked, False otherwise
+    """
+    result = get_ip_address(domain, resolver)
+    if result == "146.112.61.106":
+        return True
+    else:
+        return False
 
 
 def get_new_queries(
@@ -42,8 +79,11 @@ def print_queries(queries: List[Tuple[str, str, str]], highlight_domains: List[s
         domain = query[0]
         query_type = query[2]
         highlighted = any(hd in domain for hd in highlight_domains)
+        blocked = check_domain(domain, "208.67.222.123")
 
         if highlighted:
+            print(f"\033[91m{timestamp} {domain}\033[0m")
+        elif blocked:
             print(f"\033[91m{timestamp} {domain}\033[0m")
         elif query_type == "block":
             print(f"\033[93m{timestamp} {domain}\033[0m")
