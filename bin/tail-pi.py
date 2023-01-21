@@ -14,15 +14,14 @@ def get_new_queries(
     Get new queries from the Pi-hole query log
     :param conn: The connection to the Pi-hole SQLite database
     :param initial_rows: The initial number of rows in the query log
-    :param ipaddress: IP Address to query
-    :return: A list of new queries, each represented as a tuple (domain, timestamp)
+    :return: A list of new queries, each represented as a tuple (domain, timestamp, type)
     """
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM queries WHERE client = ?", (ip_address,))
     current_rows = cursor.fetchone()[0]
     if current_rows > initial_rows:
         cursor.execute(
-            "SELECT domain, timestamp FROM queries WHERE client = ? ORDER BY id DESC LIMIT {}".format(
+            "SELECT domain, timestamp, type FROM queries WHERE client = ? ORDER BY id DESC LIMIT {}".format(
                 current_rows - initial_rows
             ),
             (ip_address,),
@@ -32,22 +31,24 @@ def get_new_queries(
     return []
 
 
-def print_queries(queries: List[Tuple[str, str]], highlight_domains: List[str]):
+def print_queries(queries: List[Tuple[str, str, str]], highlight_domains: List[str]):
     """
     Print new queries
-    :param queries: A list of new queries, each represented as a tuple (domain, timestamp)
+    :param queries: A list of new queries, each represented as a tuple (domain, timestamp, type)
     :param highlight_domains: A list of domains to highlight
     """
     for query in queries:
         timestamp = datetime.fromtimestamp(query[1]).strftime("%Y-%m-%d %H:%M:%S")
         domain = query[0]
+        query_type = query[2]
+        highlighted = any(hd in domain for hd in highlight_domains)
 
-        for highlight in highlight_domains:
-            if highlight in domain:
-                print(f"\033[91m{timestamp} {domain}\033[0m")
-                return
-
-        print("{} {}".format(timestamp, domain))
+        if highlighted:
+            print(f"\033[91m{timestamp} {domain}\033[0m")
+        elif query_type == "block":
+            print(f"\033[93m{timestamp} {domain}\033[0m")
+        else:
+            print("{} {}".format(timestamp, domain))
 
 
 def tail_queries(database_path: str, ip_address: str, highlight_domains: List[str]):
