@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import asyncio
 import argparse
 import requests
 import sqlite3
@@ -10,7 +11,7 @@ from datetime import datetime
 from typing import List, Tuple
 
 
-def get_ip_address(domain: str, resolver: str) -> str:
+async def get_ip_address(domain: str, resolver: str) -> str:
     """
     Get the IP address of a domain
     :param domain: The domain to get the IP address for
@@ -20,7 +21,7 @@ def get_ip_address(domain: str, resolver: str) -> str:
     dns_resolver = dns.resolver.Resolver()
     dns_resolver.nameservers = [resolver]
     try:
-        answers = dns_resolver.query(domain, "A")
+        answers = await asyncio.get_event_loop().run_in_executor(None, dns_resolver.query, domain, "A")
         return str(answers[0])
     except dns.resolver.NXDOMAIN:
         return "NXDOMAIN"
@@ -30,14 +31,14 @@ def get_ip_address(domain: str, resolver: str) -> str:
         return "NoNameservers"
 
 
-def check_domain(domain: str, resolver: str):
+async def check_domain(domain: str, resolver: str):
     """
     Check if a domain is blocked by OpenDNS Family Shield
     :param domain: The domain to check
     :param resolver: The IP address of the OpenDNS resolver
     :return: True if the domain is blocked, False otherwise
     """
-    result = get_ip_address(domain, resolver)
+    result = await get_ip_address(domain, resolver)
     if result == "146.112.61.106":
         return True
     else:
@@ -68,7 +69,7 @@ def get_new_queries(
     return []
 
 
-def print_queries(queries: List[Tuple[str, str, str]], highlight_domains: List[str]):
+async def print_queries(queries: List[Tuple[str, str, str]], highlight_domains: List[str]):
     """
     Print new queries
     :param queries: A list of new queries, each represented as a tuple (domain, timestamp, type)
@@ -79,7 +80,7 @@ def print_queries(queries: List[Tuple[str, str, str]], highlight_domains: List[s
         domain = query[0]
         query_type = query[2]
         highlighted = any(hd in domain for hd in highlight_domains)
-        blocked = check_domain(domain, "208.67.222.123")
+        blocked = await check_domain(domain, "208.67.222.123")
 
         if highlighted:
             print(f"\033[91m{timestamp} {domain}\033[0m")
@@ -91,7 +92,7 @@ def print_queries(queries: List[Tuple[str, str, str]], highlight_domains: List[s
             print("{} {}".format(timestamp, domain))
 
 
-def tail_queries(database_path: str, ip_address: str, highlight_domains: List[str]):
+async def tail_queries(database_path: str, ip_address: str, highlight_domains: List[str]):
     """
     Tails the Pi-hole query log
     :param database_path: The path to the Pi-hole SQLite database
@@ -107,10 +108,10 @@ def tail_queries(database_path: str, ip_address: str, highlight_domains: List[st
 
     while True:
         new_queries = get_new_queries(conn, initial_rows, ip_address)
-        print_queries(new_queries, highlight_domains)
+        await print_queries(new_queries, highlight_domains)
         initial_rows += len(new_queries)
         # Wait for a second before polling the database again
-        time.sleep(1)
+        await asyncio.sleep(5)
 
 
 if __name__ == "__main__":
@@ -126,4 +127,4 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    tail_queries(args.database_path, args.ip_address, args.domains)
+    asyncio.run(tail_queries(args.database_path, args.ip_address, args.domains))
