@@ -9,6 +9,7 @@ import dns.resolver
 
 from datetime import datetime
 from typing import List, Tuple
+from colorama import Fore, Back, Style
 
 
 async def get_ip_address(domain: str, resolver: str) -> str:
@@ -21,7 +22,9 @@ async def get_ip_address(domain: str, resolver: str) -> str:
     dns_resolver = dns.resolver.Resolver()
     dns_resolver.nameservers = [resolver]
     try:
-        answers = await asyncio.get_event_loop().run_in_executor(None, dns_resolver.query, domain, "A")
+        answers = await asyncio.get_event_loop().run_in_executor(
+            None, dns_resolver.query, domain, "A"
+        )
         return str(answers[0])
     except dns.resolver.NXDOMAIN:
         return "NXDOMAIN"
@@ -52,14 +55,14 @@ def get_new_queries(
     Get new queries from the Pi-hole query log
     :param conn: The connection to the Pi-hole SQLite database
     :param initial_rows: The initial number of rows in the query log
-    :return: A list of new queries, each represented as a tuple (domain, timestamp, type)
+    :return: A list of new queries, each represented as a tuple (domain, timestamp, status)
     """
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM queries WHERE client = ?", (ip_address,))
     current_rows = cursor.fetchone()[0]
     if current_rows > initial_rows:
         cursor.execute(
-            "SELECT domain, timestamp, type FROM queries WHERE client = ? ORDER BY id DESC LIMIT {}".format(
+            "SELECT domain, timestamp, status FROM queries WHERE client = ? ORDER BY id DESC LIMIT {}".format(
                 current_rows - initial_rows
             ),
             (ip_address,),
@@ -69,7 +72,9 @@ def get_new_queries(
     return []
 
 
-async def print_queries(queries: List[Tuple[str, str, str]], highlight_domains: List[str]):
+async def print_queries(
+    queries: List[Tuple[str, str, str]], highlight_domains: List[str]
+):
     """
     Print new queries
     :param queries: A list of new queries, each represented as a tuple (domain, timestamp, type)
@@ -78,21 +83,23 @@ async def print_queries(queries: List[Tuple[str, str, str]], highlight_domains: 
     for query in queries:
         timestamp = datetime.fromtimestamp(query[1]).strftime("%Y-%m-%d %H:%M:%S")
         domain = query[0]
-        query_type = query[2]
+        query_status = query[2]
         highlighted = any(hd in domain for hd in highlight_domains)
         blocked = await check_domain(domain, "208.67.222.123")
 
         if highlighted:
-            print(f"\033[91m{timestamp} {domain}\033[0m")
+            print(f"{timestamp}" + Fore.BLUE + f" {domain}" + Style.RESET_ALL)
         elif blocked:
-            print(f"\033[91m{timestamp} {domain}\033[0m")
-        elif query_type == "block":
-            print(f"\033[93m{timestamp} {domain}\033[0m")
+            print(f"{timestamp}" + Fore.RED + f" {domain}" + Style.RESET_ALL)
+        elif query_status != 2 and query_status != 3:
+            print(f"{timestamp}" + Fore.YELLOW + f" {domain}" + Style.RESET_ALL)
         else:
             print("{} {}".format(timestamp, domain))
 
 
-async def tail_queries(database_path: str, ip_address: str, highlight_domains: List[str]):
+async def tail_queries(
+    database_path: str, ip_address: str, highlight_domains: List[str]
+):
     """
     Tails the Pi-hole query log
     :param database_path: The path to the Pi-hole SQLite database
@@ -127,4 +134,8 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    asyncio.run(tail_queries(args.database_path, args.ip_address, args.domains))
+
+    try:
+        asyncio.run(tail_queries(args.database_path, args.ip_address, args.domains))
+    except KeyboardInterrupt:
+        print("\nExiting gracefully on keyboard interrupt...")
