@@ -47,7 +47,7 @@ set titlestring=VIM:\ %F
 set dictionary=/usr/share/dict/words
 set viminfo='100,n$HOME/.vim/viminfo
 "use system clipboard
-set clipboard=unnamedplus
+"set clipboard=unnamedplus
 
 " Make Vim able to edit crontab files again.
 set backupskip=/tmp/*,/private/tmp/*" 
