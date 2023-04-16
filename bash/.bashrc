@@ -45,7 +45,7 @@ then
         rm $AGENT_SOCKET
     fi
 
-    if [[ -z "$SSH_AGENT_PID" || "$SSH_AGENT_PID" != `pgrep -u $USER ssh-agent` || $status -eq 2 ]]
+    if [[ -z "$SSH_AGENT_PID" || "$SSH_AGENT_PID" != `pgrep -u $USER ssh-agent` || $status -ne 0 ]]
     then
         echo "Re-starting Agent for $USER"
         pkill -15 -u $USER ssh-agent
@@ -105,7 +105,6 @@ if [ "$SHELL_PLATFORM" == "OSX" ]; then
 	alias ls="gls --color=auto"
     test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
     #alias ls="ls -G"
-    alias ignas='echo -ne "@\xd1\x96gnas" | pbcopy'
 fi
 
 if [ "$SHELL_PLATFORM" == "LINUX" ]; then
