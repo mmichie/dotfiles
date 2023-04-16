@@ -61,10 +61,10 @@ fi
 function _update_ps1() {
     if [ "$SHELL_PLATFORM" == "OSX" ] && [[ -e ~/bin/powerline-go-darwin ]];
     then
-        PS1="$(~/bin/powerline-go-darwin $? 2> /dev/null)"
+        PS1="$(~/bin/powerline-go-darwin -error $? -jobs $(jobs -p | wc -l))"
     elif [[ -e ~/bin/powerline-go-linux-amd64 ]]
     then
-        PS1="$(~/bin/powerline-go-linux-amd64)"
+        PS1="$(~/bin/powerline-go-linux-amd64 -error $? -jobs $(jobs -p | wc -l)))"
     elif [[ -e ~/bin/powerline-shell.py ]]
     then
         PS1="$(~/bin/powerline-shell.py $? 2> /dev/null)"
