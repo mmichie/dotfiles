@@ -15,6 +15,7 @@ if [ -f /etc/bashrc ]; then
 fi
 
 # User specific environment and startup programs
+export HOMEBREW_NO_ANALYTICS=1
 
 
 if [ -z "$SHELL_PLATFORM" ]; then
