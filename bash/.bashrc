@@ -3,6 +3,12 @@
 # invocation of "bash".  In other words, any time you run bash in
 # sub-shell, this gets run.
 
+if [ "$BASHRC_LOADED" = "true" ]; then
+    return
+fi
+BASHRC_LOADED=true
+
+
 # If not running interactively, don't do anything
 case $- in
     *i*) ;;
