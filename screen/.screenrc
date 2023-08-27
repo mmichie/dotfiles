@@ -1,38 +1,46 @@
+# Update the status line (always at the bottom)
 hardstatus alwayslastline "%{= bw} %{= bc}[%{-}%0c%{= bc}]%{-} [%-Lw%{= bW}%{+b}%50>%n%f* %t%{-b}%{= bw}%+Lw]%<"
+
+# Define the escape sequence
 escape ^Oo
+
+# Disable the startup message when screen starts
 startup_message off
+
+# Define the scrollback buffer size
 defscrollback 10000
+
+# Enable auto-detaching of sessions on hangup
 autodetach on
 
 # vi key bindings
 bind j next
-bind l next
 bind k prev
+bind l next
 bind h prev
 bind p paste .
 
-# From http://www4.informatik.uni-erlangen.de/~jnweiger/screen-faq.html
-# Q: My xterm scrollbar does not work with screen.
-# A: The problem is that xterm will not allow scrolling if the alternate text buffer
-# is selected. The standard definitions of the termcap initialize capabilities ti
-# and te switch to and from the alternate text buffer. (The scrollbar also does not
-# work when you start e.g. ?vi?). You can tell screen not to use these
-# initialisations by adding the line ?termcapinfo xterm ti@:te@? to your ~/.screenrc
-# file. 
+# Fix for xterm scrollbar issue with screen
 termcapinfo xterm ti@:te@
 
-# F8 to turn the status bar off
-bindkey -k k7 hardstatus alwayslastline
-# F9 to turn the status bar on 
-bindkey -k k8 hardstatus alwaysignore
-# F5 and F6 to move one screen forward or backward
-bindkey -k k5 prev
-bindkey -k k6 next
+# Key bindings for function keys
+bindkey -k k7 hardstatus alwayslastline   # F7 to turn the status bar on
+bindkey -k k8 hardstatus alwaysignore     # F8 to turn the status bar off
+bindkey -k k5 prev                        # F5 to move one screen backward
+bindkey -k k6 next                        # F6 to move one screen forward
 
+# Configure the visual bell
 vbell_msg "[[[ ding ]]]"
 vbell off
+
+# Enable nethack mode
 nethack on
+
+# Set the terminal type
 term xterm-256color
+
+# Define the behavior when a screen window is killed (zombie mode)
 zombie ko
 
+# Define the default shell
 defshell -bash
