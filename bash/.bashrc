@@ -101,6 +101,7 @@ if [ -z "$GOPATH" ]; then
   export GOPATH="$HOME/workspace/go"
   mkdir -p "$GOPATH"
   export PATH=$PATH:$GOPATH/bin
+  export GOPROXY=https://proxy.golang.org,direct
 fi
 
 # Aliases
