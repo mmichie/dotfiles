@@ -54,6 +54,12 @@ set backupskip=/tmp/*,/private/tmp/*"
 
 "set shortmess+=c
 
+
+augroup gitcommit_settings
+    autocmd!
+    autocmd FileType gitcommit setlocal textwidth=100
+augroup END
+
 augroup ft_rb
     au!
     " fix the SLOOOW syntax highlighting
