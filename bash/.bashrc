@@ -35,7 +35,12 @@ if [ -z "$SHELL_PLATFORM" ]; then
 fi
 
 HOSTNAME=$(hostname)
-if [[ $HOSTNAME ==  "mattmichie-mbp" || $HOSTNAME == "matt-pc" || $HOSTNAME == "miley" ]]
+declare -a SSH_HOSTNAMES=("mattmichie-mbp" "matt-pc" "miley")
+
+# Get current hostname
+HOSTNAME=$(hostname)
+
+if [[ " ${SSH_HOSTNAMES[@]} " =~ " $HOSTNAME " ]];
 then
     AGENT_SOCKET=$HOME/.ssh/.ssh-agent-socket
     AGENT_INFO=$HOME/.ssh/.ssh-agent-info
