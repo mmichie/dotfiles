@@ -11,14 +11,9 @@ Install Instructions
 ===================
 
 These are intended to be used with GNU Stow.  Once you clone the dotfiles repo,
-don't forget to run:
+run:
 
-```git submodule update --init --recursive```
-
-To initialize all the submodules.  Then for example to install the vim dotfiles
-do:
-
-```stow vim -t ~```
+```./install_dotfiles.sh```
 
 See Also
 ========
