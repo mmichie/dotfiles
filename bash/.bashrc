@@ -157,6 +157,7 @@ man() {
 
 alias grep='grep --color=auto -d skip'
 alias grpe='grep --color=auto -d skip'
+alias screen="tmux"
 alias ssh="ssh -A -C -o StrictHostKeyChecking=no"
 alias nsr='netstat -rn '
 alias nsa='netstat -an | sed -n "1,/Active UNIX domain sockets/ p"'
