@@ -37,9 +37,6 @@ fi
 HOSTNAME=$(hostname)
 declare -a SSH_HOSTNAMES=("mattmichie-mbp" "matt-pc" "miley")
 
-# Get current hostname
-HOSTNAME=$(hostname)
-
 if [[ " ${SSH_HOSTNAMES[@]} " =~ " $HOSTNAME " ]];
 then
     AGENT_SOCKET=$HOME/.ssh/.ssh-agent-socket
