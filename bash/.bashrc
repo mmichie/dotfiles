@@ -155,7 +155,7 @@ man() {
 alias grep='grep --color=auto -d skip'
 alias grpe='grep --color=auto -d skip'
 alias screen="tmux"
-alias ssh="ssh -A -C"
+alias ssh="ssh -A -o StrictHostKeyChecking=accept-new"
 alias nsr='netstat -rn '
 alias nsa='netstat -an | sed -n "1,/Active UNIX domain sockets/ p"'
 # lsock: to display open sockets (the -P option to lsof disables port names)
