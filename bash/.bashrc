@@ -17,7 +17,7 @@ esac
 
 # Source global definitions
 if [ -f /etc/bashrc ]; then
-	. /etc/bashrc
+    . /etc/bashrc
 fi
 
 # User specific environment and startup programs
@@ -35,7 +35,7 @@ if [ -z "$SHELL_PLATFORM" ]; then
 fi
 
 HOSTNAME=$(hostname)
-declare -a SSH_HOSTNAMES=("mattmichie-mbp" "matt-pc" "miley")
+declare -a SSH_HOSTNAMES=("mattmichie-mbp" "matt-pc" "miley" "matt-pc-wsl")
 
 if [[ " ${SSH_HOSTNAMES[@]} " =~ " $HOSTNAME " ]];
 then
@@ -90,7 +90,7 @@ case $TERM in
         PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND" ;;
 esac
 
-export PATH=$PATH:~/bin:/usr/local/bin:~/.local/bin
+export PATH=$PATH:~/bin:/usr/local/bin:~/.local/bin:/usr/local/go/bin
 export P4CONFIG=.p4config
 export P4EDITOR="vim -f"
 export EDITOR="vim -f"
@@ -113,7 +113,7 @@ if [ "$SHELL_PLATFORM" == "OSX" ]; then
     alias brew="/opt/homebrew/bin/brew"
     type "brew" &>/dev/null && [ -s "$(brew --prefix)/etc/bash_completion" ] && . $(brew --prefix)/etc/bash_completion
     export PATH=$HOME/bin:$(brew --prefix)/sbin:$(brew --prefix)/bin:$PATH
-	alias ls="gls --color=auto"
+    alias ls="gls --color=auto"
     test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
     #alias ls="ls -G"
 fi
@@ -123,7 +123,7 @@ if [ "$SHELL_PLATFORM" == "LINUX" ]; then
     export NO_AT_BRIDGE=1
 
     alias open="xdg-open"
-	alias ls="ls --color=auto"
+    alias ls="ls --color=auto"
     # enable color support of ls and also add handy aliases
     if [ -x /usr/bin/dircolors ]; then
         test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
@@ -142,14 +142,14 @@ if [ "$SHELL_PLATFORM" == "LINUX" ]; then
 fi
 
 man() {
-	env \
-		LESS_TERMCAP_md=$'\e[1;36m' \
-		LESS_TERMCAP_me=$'\e[0m' \
-		LESS_TERMCAP_se=$'\e[0m' \
-		LESS_TERMCAP_so=$'\e[1;40;92m' \
-		LESS_TERMCAP_ue=$'\e[0m' \
-		LESS_TERMCAP_us=$'\e[1;32m' \
-			man "$@"
+    env \
+        LESS_TERMCAP_md=$'\e[1;36m' \
+        LESS_TERMCAP_me=$'\e[0m' \
+        LESS_TERMCAP_se=$'\e[0m' \
+        LESS_TERMCAP_so=$'\e[1;40;92m' \
+        LESS_TERMCAP_ue=$'\e[0m' \
+        LESS_TERMCAP_us=$'\e[1;32m' \
+            man "$@"
 }
 
 alias grep='grep --color=auto -d skip'
@@ -205,8 +205,8 @@ export HISTIGNORE="&:ls:[bf]g:exit"
 if [ "$TERM" != "dumb" ]; then
     [ -e "$HOME/.dircolors" ] && DIR_COLORS="$HOME/.dircolors"
     [ -e "$DIR_COLORS" ] || DIR_COLORS=""
-	if hash dircolors 2>/dev/null; then
-    	eval "`dircolors -b $DIR_COLORS`"
+    if hash dircolors 2>/dev/null; then
+        eval "`dircolors -b $DIR_COLORS`"
     fi
 fi
 
@@ -281,7 +281,8 @@ test -e "${HOME}/.bash_work_profile" && source "${HOME}/.bash_work_profile"
 export PATH="$PATH:$HOME/.rvm/bin"
 
 export PYENV_ROOT="$HOME/.pyenv"
-if [[ -d $PYENV_ROOT/bin ]] && command -v pyenv >/dev/null 2>&1; then
+if [[ -d $PYENV_ROOT/bin ]] && [[ -x $PYENV_ROOT/bin/pyenv ]]; then
     export PATH="$PYENV_ROOT/bin:$PATH"
     eval "$(pyenv init -)"
 fi
+
