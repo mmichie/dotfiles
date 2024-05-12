@@ -1,37 +1,38 @@
+#!/bin/bash
+
+# Constants
+readonly AGENT_SOCKET="$HOME/.ssh/.ssh-agent-socket"
+readonly AGENT_INFO="$HOME/.ssh/.ssh-agent-info"
+
 # Detect shell platform
 detect_shell_platform() {
     case "$OSTYPE" in
-        *'linux'*) echo 'LINUX' ;;
-        *'darwin'*) echo 'OSX' ;;
-        *'freebsd'*) echo 'BSD' ;;
-        *'cygwin'*) echo 'CYGWIN' ;;
+        linux*) echo 'LINUX' ;;
+        darwin*) echo 'OSX' ;;
+        freebsd*) echo 'BSD' ;;
+        cygwin*) echo 'CYGWIN' ;;
         *) echo 'OTHER' ;;
     esac
 }
 
 # SSH agent handling
 handle_ssh_agent() {
-    local AGENT_SOCKET=$HOME/.ssh/.ssh-agent-socket
-    local AGENT_INFO=$HOME/.ssh/.ssh-agent-info
-
     if [[ -s "$AGENT_INFO" ]]; then
-        source $AGENT_INFO
+        source "$AGENT_INFO"
     fi
 
-    ssh-add -l
+    ssh-add -l &>/dev/null
     local status=$?
 
-    if [[ -e $AGENT_SOCKET ]] && [ $status -ne 0 ]; then
+    if [[ -S "$AGENT_SOCKET" ]] && [[ $status -ne 0 ]]; then
         echo "Agent socket stale, removing it!"
-        rm $AGENT_SOCKET
+        rm "$AGENT_SOCKET"
     fi
 
-    if [[ -z "$SSH_AGENT_PID" || "$SSH_AGENT_PID" != $(pgrep -u $USER ssh-agent) || $status -ne 0 ]]; then
+    if [[ -z "$SSH_AGENT_PID" ]] || ! ps -p "$SSH_AGENT_PID" &>/dev/null || [[ $status -ne 0 ]]; then
         echo "Re-starting Agent for $USER"
-        pkill -15 -u $USER ssh-agent
-        eval $(ssh-agent -s -a $AGENT_SOCKET)
-        echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >$AGENT_INFO
-        echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >>$AGENT_INFO
+        ssh-agent -a "$AGENT_SOCKET" >"$AGENT_INFO"
+        source "$AGENT_INFO"
         ssh-add
     else
         echo "Agent Already Running"
@@ -40,15 +41,21 @@ handle_ssh_agent() {
 
 # Update PS1 prompt
 update_ps1() {
-    if [ "$SHELL_PLATFORM" == "OSX" ] && [[ -e ~/bin/powerline-go-darwin ]]; then
-        PS1="$(~/bin/powerline-go-darwin -error $? -jobs $(jobs -p | wc -l))"
-    elif [[ -e ~/bin/powerline-go-linux-amd64 ]]; then
-        PS1="$(~/bin/powerline-go-linux-amd64 -error $? -jobs $(jobs -p | wc -l))"
-    elif [[ -e ~/bin/powerline-shell.py ]]; then
-        PS1="$(~/bin/powerline-shell.py $? 2>/dev/null)"
+    local powerline_cmd
+    if [[ "$SHELL_PLATFORM" == "OSX" ]] && [[ -x "$HOME/bin/powerline-go-darwin" ]]; then
+        powerline_cmd="$HOME/bin/powerline-go-darwin"
+    elif [[ -x "$HOME/bin/powerline-go-linux-amd64" ]]; then
+        powerline_cmd="$HOME/bin/powerline-go-linux-amd64"
+    elif [[ -x "$HOME/bin/powerline-shell.py" ]]; then
+        powerline_cmd="$HOME/bin/powerline-shell.py"
+    fi
+
+    if [[ -n "$powerline_cmd" ]]; then
+        PS1="$($powerline_cmd -error $? -jobs $(jobs -p | wc -l))"
     else
         PS1="$ "
     fi
+
     history -a
     history -c
     history -r
@@ -56,66 +63,77 @@ update_ps1() {
 
 # Environment setup
 setup_environment() {
-    export PATH=$PATH:~/bin:/usr/local/bin:~/.local/bin:/usr/local/go/bin
-    export P4CONFIG=.p4config
+    export PATH="$PATH:$HOME/bin:/usr/local/bin:$HOME/.local/bin:/usr/local/go/bin"
+    export P4CONFIG=".p4config"
     export P4EDITOR="vim -f"
     export EDITOR="vim -f"
-    export LC_ALL=en_US.UTF-8
-    export LANG=en_US.UTF-8
-    export TZ='US/Pacific'
-    export VAGRANT_DEFAULT_PROVIDER=aws
+    export LC_ALL="en_US.UTF-8"
+    export LANG="en_US.UTF-8"
+    export TZ="US/Pacific"
+    export VAGRANT_DEFAULT_PROVIDER="aws"
 }
 
 # GOPATH setup
 setup_gopath() {
-    if [ -z "$GOPATH" ]; then
+    if [[ -z "$GOPATH" ]]; then
         export GOPATH="$HOME/workspace/go"
         mkdir -p "$GOPATH"
-        export PATH=$PATH:$GOPATH/bin
-        export GOPROXY=https://proxy.golang.org,direct
+        export PATH="$PATH:$GOPATH/bin"
+        export GOPROXY="https://proxy.golang.org,direct"
     fi
 }
 
 # Platform-specific aliases and setup
 setup_platform_specific() {
-    if [ "$SHELL_PLATFORM" == "OSX" ]; then
-        alias slock='pmset displaysleepnow && ssh 172.17.122.15 '\''DISPLAY=:0 slock'\'''
-        alias brew="/opt/homebrew/bin/brew"
-        type "brew" &>/dev/null && [ -s "$(brew --prefix)/etc/bash_completion" ] && . $(brew --prefix)/etc/bash_completion
-        export PATH=$HOME/bin:$(brew --prefix)/sbin:$(brew --prefix)/bin:$PATH
-        alias ls="gls --color=auto"
-        test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
-    elif [ "$SHELL_PLATFORM" == "LINUX" ]; then
-        export NO_AT_BRIDGE=1
-        alias open="xdg-open"
-        alias ls="ls --color=auto"
-        if [ -x /usr/bin/dircolors ]; then
-            test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-            alias ls='ls --color=auto'
-            alias grep='grep --color=auto'
-            alias fgrep='fgrep --color=auto'
-            alias egrep='egrep --color=auto'
-        fi
-        export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
-    fi
+    case "$SHELL_PLATFORM" in
+        OSX)
+            alias slock='pmset displaysleepnow && ssh 172.17.122.15 "DISPLAY=:0 slock"'
+            alias brew="/opt/homebrew/bin/brew"
+            if type brew &>/dev/null && [[ -r "$(brew --prefix)/etc/bash_completion" ]]; then
+                source "$(brew --prefix)/etc/bash_completion"
+            fi
+            export PATH="$HOME/bin:$(brew --prefix)/sbin:$(brew --prefix)/bin:$PATH"
+            alias ls="gls --color=auto"
+            if [[ -r "$HOME/.iterm2_shell_integration.bash" ]]; then
+                source "$HOME/.iterm2_shell_integration.bash"
+            fi
+            ;;
+        LINUX)
+            export NO_AT_BRIDGE=1
+            alias open="xdg-open"
+            alias ls="ls --color=auto"
+            if [[ -x "/usr/bin/dircolors" ]]; then
+                if [[ -r "$HOME/.dircolors" ]]; then
+                    eval "$(dircolors -b "$HOME/.dircolors")"
+                else
+                    eval "$(dircolors -b)"
+                fi
+                alias ls="ls --color=auto"
+                alias grep="grep --color=auto"
+                alias fgrep="fgrep --color=auto"
+                alias egrep="egrep --color=auto"
+            fi
+            export GCC_COLORS="error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01"
+            ;;
+    esac
 }
 
 # Aliases
 setup_aliases() {
-    alias grep='grep --color=auto -d skip'
-    alias grpe='grep --color=auto -d skip'
+    alias grep="grep --color=auto -d skip"
+    alias grpe="grep --color=auto -d skip"
     alias screen="tmux"
     alias ssh="ssh -A -o StrictHostKeyChecking=accept-new"
-    alias nsr='netstat -rn'
-    alias nsa='netstat -an | sed -n "1,/Active UNIX domain sockets/ p"'
-    alias lsock='sudo /usr/sbin/lsof -i -P'
-    alias keypress='read -s -n1 keypress; echo $keypress'
-    alias :='cd ..'
-    alias ::='cd ../..'
-    alias :::='cd ../../..'
-    alias ::::='cd ../../../..'
-    alias :::::='cd ../../../../..'
-    alias ::::::='cd ../../../../../..'
+    alias nsr="netstat -rn"
+    alias nsa="netstat -an | sed -n '1,/Active UNIX domain sockets/p'"
+    alias lsock="sudo /usr/sbin/lsof -i -P"
+    alias keypress="read -s -n1 keypress; echo \$keypress"
+    alias :="cd .."
+    alias ::="cd ../.."
+    alias :::="cd ../../.."
+    alias ::::="cd ../../../.."
+    alias :::::="cd ../../../../.."
+    alias ::::::="cd ../../../../../.."
 }
 
 # Functions
@@ -127,7 +145,7 @@ man() {
         LESS_TERMCAP_so=$'\e[1;40;92m' \
         LESS_TERMCAP_ue=$'\e[0m' \
         LESS_TERMCAP_us=$'\e[1;32m' \
-        man "$@"
+        command man "$@"
 }
 
 http_headers() {
@@ -135,11 +153,19 @@ http_headers() {
 }
 
 sshtunnel() {
-    if [ $# -ne 3 ]; then
+    if [[ $# -ne 3 ]]; then
         echo "usage: sshtunnel host remote-port local-port"
     else
         /usr/bin/ssh "$1" -L "$3":localhost:"$2"
     fi
+}
+
+catfiles() {
+    local file
+    for file in "$@"; do
+        echo "filename: $file"
+        cat "$file"
+    done
 }
 
 # Shell options
@@ -152,18 +178,20 @@ setup_shell_options() {
 
 # History
 setup_history() {
-    export HISTCONTROL=ignoreboth
+    export HISTCONTROL="ignoreboth"
     export HISTSIZE=100000
     export HISTIGNORE="&:ls:[bf]g:exit"
 }
 
 # Dircolors setup
 setup_dircolors() {
-    if [ "$TERM" != "dumb" ]; then
-        [ -e "$HOME/.dircolors" ] && DIR_COLORS="$HOME/.dircolors"
-        [ -e "$DIR_COLORS" ] || DIR_COLORS=""
-        if hash dircolors 2>/dev/null; then
-            eval "$(dircolors -b "$DIR_COLORS")"
+    if [[ "$TERM" != "dumb" ]]; then
+        local dir_colors
+        dir_colors="$HOME/.dircolors"
+        if [[ -r "$dir_colors" ]]; then
+            eval "$(dircolors -b "$dir_colors")"
+        else
+            eval "$(dircolors -b)"
         fi
     fi
 }
@@ -211,15 +239,8 @@ setup_completions() {
 # pyenv setup
 setup_pyenv() {
     export PYENV_ROOT="$HOME/.pyenv"
-    if [[ -d $PYENV_ROOT/bin ]] && [[ -x $PYENV_ROOT/bin/pyenv ]]; then
+    if [[ -d "$PYENV_ROOT/bin" ]] && [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
         export PATH="$PYENV_ROOT/bin:$PATH"
         eval "$(pyenv init -)"
     fi
-}
-
-catfiles() {
-    for file in "$@"; do
-        echo "filename: $file"
-        cat "$file"
-    done
 }

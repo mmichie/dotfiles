@@ -1,29 +1,39 @@
 #!/bin/bash
 
+# Constants
+readonly BASHRC_LOADED="bashrc_loaded"
+readonly SSH_HOSTNAMES=("mattmichie-mbp" "matt-pc" "miley" "matt-pc-wsl")
+readonly SSH_ENV="$HOME/.ssh/environment"
+
 # Prevent multiple sourcing
-[[ "$BASHRC_LOADED" == "true" ]] && return
-BASHRC_LOADED=true
+[[ "${!BASHRC_LOADED}" == "true" ]] && return
+export "$BASHRC_LOADED=true"
 
 # Exit if not running interactively
-[[ $- != *i* ]] && return
+case $- in
+    *i*) ;;
+    *) return ;;
+esac
 
 # Source global definitions if available
-[[ -f /etc/bashrc ]] && source /etc/bashrc
+if [[ -f /etc/bashrc ]]; then
+    source /etc/bashrc
+fi
 
 # User specific environment and startup programs
 export HOMEBREW_NO_ANALYTICS=1
 
 # Load shell functions
-source "$HOME/.bash_functions"
+if [[ -f "$HOME/.bash_functions" ]]; then
+    source "$HOME/.bash_functions"
+fi
 
 # Detect shell platform
 SHELL_PLATFORM=$(detect_shell_platform)
+export SHELL_PLATFORM
 
 # SSH agent handling
-HOSTNAME=$(hostname)
-declare -a SSH_HOSTNAMES=("mattmichie-mbp" "matt-pc" "miley" "matt-pc-wsl")
-
-if [[ " ${SSH_HOSTNAMES[@]} " =~ " $HOSTNAME " ]]; then
+if [[ " ${SSH_HOSTNAMES[*]} " =~ $(hostname) ]]; then
     handle_ssh_agent
 fi
 
@@ -56,18 +66,16 @@ setup_history
 # Dircolors setup
 setup_dircolors
 
-SSH_ENV="$HOME/.ssh/environment"
-
 # Readline setup
 setup_readline
 
 # Completions
 setup_completions
 
-test -e "${HOME}/.bash_work_profile" && source "${HOME}/.bash_work_profile"
-
-# Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
-export PATH="$PATH:$HOME/.rvm/bin"
+# Load work-specific profile if available
+if [[ -f "$HOME/.bash_work_profile" ]]; then
+    source "$HOME/.bash_work_profile"
+fi
 
 # pyenv setup
 setup_pyenv
