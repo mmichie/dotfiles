@@ -216,3 +216,10 @@ setup_pyenv() {
         eval "$(pyenv init -)"
     fi
 }
+
+catfiles() {
+    for file in "$@"; do
+        echo "filename: $file"
+        cat "$file"
+    done
+}
