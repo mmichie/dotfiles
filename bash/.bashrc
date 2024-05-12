@@ -1,28 +1,17 @@
-# .bashrc
-# The shell sources this file during any interactive, non-login
-# invocation of "bash".  In other words, any time you run bash in
-# sub-shell, this gets run.
+# Loaded for interactive, non-login shells. Sources /etc/bashrc if exists.
 
-if [ "$BASHRC_LOADED" = "true" ]; then
-    return
-fi
+# Prevent multiple sourcing
+[[ "$BASHRC_LOADED" == "true" ]] && return
 BASHRC_LOADED=true
 
+# Exit if not running interactively
+[[ $- != *i* ]] && return
 
-# If not running interactively, don't do anything
-case $- in
-    *i*) ;;
-      *) return;;
-esac
-
-# Source global definitions
-if [ -f /etc/bashrc ]; then
-    . /etc/bashrc
-fi
+# Source global definitions if available
+[[ -f /etc/bashrc ]] && source /etc/bashrc
 
 # User specific environment and startup programs
 export HOMEBREW_NO_ANALYTICS=1
-
 
 if [ -z "$SHELL_PLATFORM" ]; then
     SHELL_PLATFORM='OTHER'
