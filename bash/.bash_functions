@@ -187,13 +187,19 @@ setup_history() {
 # Dircolors setup
 setup_dircolors() {
     if [[ "$TERM" != "dumb" ]]; then
-        local dir_colors
-        dir_colors="$HOME/.dircolors"
-        if [[ -r "$dir_colors" ]]; then
-            eval "$(dircolors -b "$dir_colors")"
-        else
-            eval "$(dircolors -b)"
+        if [[ -x "/usr/bin/dircolors" ]]; then
+            local dir_colors
+            dir_colors="$HOME/.dircolors"
+            if [[ -r "$dir_colors" ]]; then
+                eval "$(dircolors -b "$dir_colors")"
+            else
+                eval "$(dircolors -b)"
+            fi
         fi
+        alias ls="ls --color=auto"
+        alias grep="grep --color=auto"
+        alias fgrep="fgrep --color=auto"
+        alias egrep="egrep --color=auto"
     fi
 }
 
