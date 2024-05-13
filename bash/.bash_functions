@@ -87,7 +87,8 @@ setup_gopath() {
 setup_platform_specific() {
     case "$SHELL_PLATFORM" in
         OSX)
-            alias slock='pmset displaysleepnow && ssh 172.17.122.15 "DISPLAY=:0 slock"'
+            export HOMEBREW_NO_ANALYTICS=1
+            #alias slock='pmset displaysleepnow && ssh 172.17.122.15 "DISPLAY=:0 slock"'
             alias brew="/opt/homebrew/bin/brew"
             if type brew &>/dev/null && [[ -r "$(brew --prefix)/etc/bash_completion" ]]; then
                 source "$(brew --prefix)/etc/bash_completion"
