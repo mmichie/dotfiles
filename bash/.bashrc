@@ -20,9 +20,6 @@ if [[ -f /etc/bashrc ]]; then
     source /etc/bashrc
 fi
 
-# User specific environment and startup programs
-export HOMEBREW_NO_ANALYTICS=1
-
 # Load shell functions
 if [[ -f "$HOME/.bash_functions" ]]; then
     source "$HOME/.bash_functions"
