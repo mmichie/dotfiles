@@ -59,14 +59,11 @@
 	path = vim/.vim/bundle/vim-hybrid
 	url = https://github.com/w0ng/vim-hybrid
 [submodule "utils/powerline-shell"]
-	path = utils/powerline-shell
+	path = bin/bin/powerline-shell
 	url = https://github.com/banga/powerline-shell
 [submodule "utils/fasd"]
-	path = utils/fasd
+	path = bin/bin/fasd
 	url = https://github.com/clvv/fasd
-[submodule "utils/diff-so-fancy"]
-	path = utils/diff-so-fancy
-	url = https://github.com/so-fancy/diff-so-fancy
 [submodule "vim/.vim/bundle/vim-ruby"]
 	path = vim/.vim/bundle/vim-ruby
 	url = https://github.com/vim-ruby/vim-ruby
