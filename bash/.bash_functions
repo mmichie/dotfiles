@@ -15,6 +15,11 @@ detect_shell_platform() {
         *) os_type='OTHER' ;;
     esac
     arch_type=$(uname -m)
+    case "$arch_type" in
+        x86_64) arch_type='x86_64' ;;
+        aarch64|arm64) arch_type='arm64' ;;  # Handle both identifiers for ARM64
+        *) ;;
+    esac
     echo "$os_type-$arch_type"
 }
 
@@ -50,15 +55,16 @@ update_ps1() {
     case "$platform_cmd" in
         OSX-x86_64) powerline_cmd="$HOME/bin/powerline-go-darwin-amd64" ;;
         OSX-arm64) powerline_cmd="$HOME/bin/powerline-go-darwin-arm64" ;;
-        LINUX-x86_64) powerline_cmd="$HOME/bin/powerline-go-linux-amd64" ;;
         LINUX-arm64) powerline_cmd="$HOME/bin/powerline-go-linux-arm64" ;;
-        *) powerline_cmd="$HOME/bin/powerline-shell.py" ;; # Default fallback
+        LINUX-x86_64) powerline_cmd="$HOME/bin/powerline-go-linux-amd64" ;;
     esac
 
+    # Check if the powerline_cmd is executable
     if [[ -n "$powerline_cmd" ]] && [[ -x "$powerline_cmd" ]]; then
         PS1="$($powerline_cmd -error $? -jobs $(jobs -p | wc -l))"
     else
-        PS1="$ "
+        echo "Error: powerline-go command not found or not executable at $powerline_cmd"
+        PS1="[\u@\h \W]\$ "  # Setting a default prompt if powerline-go is not found
     fi
 
     history -a
