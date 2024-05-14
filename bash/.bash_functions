@@ -4,23 +4,25 @@
 readonly AGENT_SOCKET="$HOME/.ssh/.ssh-agent-socket"
 readonly AGENT_INFO="$HOME/.ssh/.ssh-agent-info"
 
-# Detect shell platform and architecture
+# Detect only the architecture
+detect_architecture() {
+    local arch=$(uname -m)
+    case "$arch" in
+        x86_64) echo 'x86_64' ;;
+        aarch64|arm64) echo 'arm64' ;;  # Handle both identifiers for ARM64
+        *) echo 'unknown' ;;
+    esac
+}
+
+# Detect shell platform
 detect_shell_platform() {
-    local os_type arch_type
     case "$OSTYPE" in
-        linux*) os_type='LINUX' ;;
-        darwin*) os_type='OSX' ;;
-        freebsd*) os_type='BSD' ;;
-        cygwin*) os_type='CYGWIN' ;;
-        *) os_type='OTHER' ;;
+        linux*) echo 'LINUX' ;;
+        darwin*) echo 'OSX' ;;
+        freebsd*) echo 'BSD' ;;
+        cygwin*) echo 'CYGWIN' ;;
+        *) echo 'OTHER' ;;
     esac
-    arch_type=$(uname -m)
-    case "$arch_type" in
-        x86_64) arch_type='x86_64' ;;
-        aarch64|arm64) arch_type='arm64' ;;  # Handle both identifiers for ARM64
-        *) ;;
-    esac
-    echo "$os_type-$arch_type"
 }
 
 # SSH agent handling
@@ -49,7 +51,9 @@ handle_ssh_agent() {
 
 # Update PS1 prompt
 update_ps1() {
-    local platform_cmd=$(detect_shell_platform)
+    local os_type=$(detect_shell_platform)
+    local arch_type=$(detect_architecture)
+    local platform_cmd="${os_type}-${arch_type}"
     local powerline_cmd
 
     case "$platform_cmd" in
@@ -96,7 +100,8 @@ setup_gopath() {
 
 # Platform-specific aliases and setup
 setup_platform_specific() {
-    case "$SHELL_PLATFORM" in
+    local os_type=$(detect_shell_platform)
+    case "$os_type" in
         OSX)
             export HOMEBREW_NO_ANALYTICS=1
             #alias slock='pmset displaysleepnow && ssh 172.17.122.15 "DISPLAY=:0 slock"'
