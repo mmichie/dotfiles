@@ -4,15 +4,18 @@
 readonly AGENT_SOCKET="$HOME/.ssh/.ssh-agent-socket"
 readonly AGENT_INFO="$HOME/.ssh/.ssh-agent-info"
 
-# Detect shell platform
+# Detect shell platform and architecture
 detect_shell_platform() {
+    local os_type arch_type
     case "$OSTYPE" in
-        linux*) echo 'LINUX' ;;
-        darwin*) echo 'OSX' ;;
-        freebsd*) echo 'BSD' ;;
-        cygwin*) echo 'CYGWIN' ;;
-        *) echo 'OTHER' ;;
+        linux*) os_type='LINUX' ;;
+        darwin*) os_type='OSX' ;;
+        freebsd*) os_type='BSD' ;;
+        cygwin*) os_type='CYGWIN' ;;
+        *) os_type='OTHER' ;;
     esac
+    arch_type=$(uname -m)
+    echo "$os_type-$arch_type"
 }
 
 # SSH agent handling
@@ -41,16 +44,18 @@ handle_ssh_agent() {
 
 # Update PS1 prompt
 update_ps1() {
+    local platform_cmd=$(detect_shell_platform)
     local powerline_cmd
-    if [[ "$SHELL_PLATFORM" == "OSX" ]] && [[ -x "$HOME/bin/powerline-go-darwin" ]]; then
-        powerline_cmd="$HOME/bin/powerline-go-darwin"
-    elif [[ -x "$HOME/bin/powerline-go-linux-amd64" ]]; then
-        powerline_cmd="$HOME/bin/powerline-go-linux-amd64"
-    elif [[ -x "$HOME/bin/powerline-shell.py" ]]; then
-        powerline_cmd="$HOME/bin/powerline-shell.py"
-    fi
 
-    if [[ -n "$powerline_cmd" ]]; then
+    case "$platform_cmd" in
+        OSX-x86_64) powerline_cmd="$HOME/bin/powerline-go-darwin-amd64" ;;
+        OSX-arm64) powerline_cmd="$HOME/bin/powerline-go-darwin-arm64" ;;
+        LINUX-x86_64) powerline_cmd="$HOME/bin/powerline-go-linux-amd64" ;;
+        LINUX-arm64) powerline_cmd="$HOME/bin/powerline-go-linux-arm64" ;;
+        *) powerline_cmd="$HOME/bin/powerline-shell.py" ;; # Default fallback
+    esac
+
+    if [[ -n "$powerline_cmd" ]] && [[ -x "$powerline_cmd" ]]; then
         PS1="$($powerline_cmd -error $? -jobs $(jobs -p | wc -l))"
     else
         PS1="$ "
