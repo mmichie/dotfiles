@@ -101,6 +101,7 @@ setup_gopath() {
 # Platform-specific aliases and setup
 setup_platform_specific() {
     local os_type=$(detect_shell_platform)
+
     case "$os_type" in
         OSX)
             export HOMEBREW_NO_ANALYTICS=1
@@ -203,16 +204,15 @@ setup_history() {
 # Dircolors setup
 setup_dircolors() {
     if [[ "$TERM" != "dumb" ]]; then
-        if [[ -x "/usr/bin/dircolors" ]]; then
-            local dir_colors
-            dir_colors="$HOME/.dircolors"
-            if [[ -r "$dir_colors" ]]; then
-                eval "$(dircolors -b "$dir_colors")"
-            else
-                eval "$(dircolors -b)"
-            fi
+        local dircolors_cmd="$(which gdircolors 2>/dev/null || which dircolors 2>/dev/null)"
+        local dir_colors="$HOME/.dircolors"
+        if [[ -x "$dircolors_cmd" ]] && [[ -r "$dir_colors" ]]; then
+            eval "$($dircolors_cmd -b "$dir_colors")"
+        elif [[ -x "$dircolors_cmd" ]]; then
+            eval "$($dircolors_cmd -b)"
+        else
+            echo "No dircolors command found, using default LS_COLORS"
         fi
-        alias ls="ls --color=auto"
         alias grep="grep --color=auto"
         alias fgrep="fgrep --color=auto"
         alias egrep="egrep --color=auto"
