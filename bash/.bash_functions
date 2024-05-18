@@ -141,7 +141,7 @@ setup_aliases() {
     alias grep="grep --color=auto -d skip"
     alias grpe="grep --color=auto -d skip"
     alias screen="tmux"
-    alias ssh="ssh -A -o StrictHostKeyChecking=accept-new"
+    alias ssh="ssh -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -o VisualHostKey=yes -o IdentitiesOnly=yes"
     alias nsr="netstat -rn"
     alias nsa="netstat -an | sed -n '1,/Active UNIX domain sockets/p'"
     alias lsock="sudo /usr/sbin/lsof -i -P"
