@@ -267,3 +267,22 @@ setup_pyenv() {
         eval "$(pyenv init -)"
     fi
 }
+
+# Check and add cron job for backing up shell history
+ensure_cron_job_exists() {
+    local cron_job="0 0 * * 0 . $HOME/.bashrc; backup_shell_history"
+    if ! crontab -l | grep -Fq "$cron_job"; then
+        (crontab -l 2>/dev/null; echo "$cron_job") | crontab -
+        echo "Cron job added for backing up shell history."
+    else
+        echo "Cron job already exists."
+    fi
+}
+
+# Backup shell history
+backup_shell_history() {
+    local backup_dir="$HOME/.shell_history_backups"
+    mkdir -p "$backup_dir"
+    local timestamp=$(date +"%Y%m%d%H%M%S")
+    tar -czf "$backup_dir/bash_history_$timestamp.tar.gz" -C "$HOME" .bash_history
+}
