@@ -1,0 +1,306 @@
+#!/bin/zsh
+
+# Constants
+readonly AGENT_SOCKET="$HOME/.ssh/.ssh-agent-socket"
+readonly AGENT_INFO="$HOME/.ssh/.ssh-agent-info"
+
+# Detect only the architecture
+detect_architecture() {
+    local arch=$(uname -m)
+    case "$arch" in
+        x86_64) echo 'x86_64' ;;
+        aarch64|arm64) echo 'arm64' ;;  # Handle both identifiers for ARM64
+        *) echo 'unknown' ;;
+    esac
+}
+
+# Detect shell platform
+detect_shell_platform() {
+    case "$OSTYPE" in
+        linux*) echo 'LINUX' ;;
+        darwin*) echo 'OSX' ;;
+        freebsd*) echo 'BSD' ;;
+        cygwin*) echo 'CYGWIN' ;;
+        *) echo 'OTHER' ;;
+    esac
+}
+
+# History management
+setup_history() {
+    # Path to the history file
+    export HISTFILE="$HOME/.zsh_history"
+
+    # Number of commands to save in the history file
+    export HISTSIZE=10000
+    export SAVEHIST=10000
+
+    # Options to manage how history is stored and shared
+    setopt SHARE_HISTORY          # Share history between all sessions
+    setopt INC_APPEND_HISTORY_TIME
+    setopt HIST_EXPIRE_DUPS_FIRST # Expire duplicate entries first when trimming history
+    setopt HIST_REDUCE_BLANKS     # Remove superfluous blanks before saving entry
+    setopt HIST_IGNORE_ALL_DUPS   # Ignore duplicated entries
+    setopt HIST_IGNORE_SPACE      # Don't record an entry starting with a space
+    setopt HIST_FIND_NO_DUPS      # Do not display duplicates in history search
+    setopt HIST_VERIFY            # Show command with history expansion to user before running it
+}
+
+
+# SSH agent handling
+handle_ssh_agent() {
+    if [[ -s "$AGENT_INFO" ]]; then
+        source "$AGENT_INFO"
+    fi
+
+    ssh-add -l &>/dev/null
+    local ssh_status=$?
+
+    if [[ -S "$AGENT_SOCKET" ]] && [[ $ssh_status -ne 0 ]]; then
+        echo "Agent socket stale, removing it!"
+        rm "$AGENT_SOCKET"
+    fi
+
+    if [[ -z "$SSH_AGENT_PID" ]] || ! ps -p "$SSH_AGENT_PID" &>/dev/null || [[ $ssh_status -ne 0 ]]; then
+        echo "Re-starting Agent for $USER"
+        ssh-agent -a "$AGENT_SOCKET" >"$AGENT_INFO"
+        source "$AGENT_INFO"
+        ssh-add
+    else
+        echo "Agent Already Running"
+    fi
+}
+
+# Update PS1 prompt
+update_ps1() {
+    local os_type=$(detect_shell_platform)
+    local arch_type=$(detect_architecture)
+    local platform_cmd="${os_type}-${arch_type}"
+    local powerline_cmd
+
+    case "$platform_cmd" in
+        OSX-x86_64) powerline_cmd="$HOME/bin/powerline-go-darwin-amd64" ;;
+        OSX-arm64) powerline_cmd="$HOME/bin/powerline-go-darwin-arm64" ;;
+        LINUX-arm64) powerline_cmd="$HOME/bin/powerline-go-linux-arm64" ;;
+        LINUX-x86_64) powerline_cmd="$HOME/bin/powerline-go-linux-amd64" ;;
+    esac
+
+    # Check if the powerline_cmd is executable
+    if [[ -n "$powerline_cmd" ]] && [[ -x "$powerline_cmd" ]]; then
+        PS1="$($powerline_cmd -error $? -jobs $(jobs -p | wc -l))"
+    else
+        echo "Error: powerline-go command not found or not executable at $powerline_cmd"
+        PS1="[%n@%m %~]%# "
+    fi
+
+#    fc -W  # Writes out the history file
+#    fc -p  # Reloads the history from file
+}
+
+# Environment setup
+setup_environment() {
+    path=($path $HOME/bin /usr/local/bin $HOME/.local/bin /usr/local/go/bin)
+    export P4CONFIG=".p4config"
+    export P4EDITOR="vim -f"
+    export EDITOR="vim -f"
+    export LC_ALL="en_US.UTF-8"
+    export LANG="en_US.UTF-8"
+    export TZ="US/Pacific"
+    export VAGRANT_DEFAULT_PROVIDER="aws"
+}
+
+# GOPATH setup
+setup_gopath() {
+    if [[ -z "$GOPATH" ]]; then
+        export GOPATH="$HOME/workspace/go"
+        mkdir -p "$GOPATH"
+        path=($path $GOPATH/bin)
+        export GOPROXY="https://proxy.golang.org,direct"
+    fi
+}
+
+# Platform-specific aliases and setup
+setup_platform_specific() {
+    local os_type=$(detect_shell_platform)
+
+    case "$os_type" in
+        OSX)
+            export HOMEBREW_NO_ANALYTICS=1
+            #alias slock='pmset displaysleepnow && ssh 172.17.122.15 "DISPLAY=:0 slock"'
+            alias brew="/opt/homebrew/bin/brew"
+            if (( $+commands[brew] )) && [[ -r "$(brew --prefix)/share/zsh/site-functions/_brew" ]]; then
+                fpath=($fpath $(brew --prefix)/share/zsh/site-functions)
+                autoload -Uz compinit && compinit
+            fi
+            path=($path $(brew --prefix)/sbin $(brew --prefix)/bin $HOME/bin)
+            alias ls="gls --color=auto"
+            if [[ -r "$HOME/.iterm2_shell_integration.zsh" ]]; then
+                source "$HOME/.iterm2_shell_integration.zsh"
+            fi
+            ;;
+        LINUX)
+            export NO_AT_BRIDGE=1
+            alias open="xdg-open"
+            alias ls="ls --color=auto"
+            if [[ -x "/usr/bin/dircolors" ]]; then
+                if [[ -r "$HOME/.dircolors" ]]; then
+                    eval "$(dircolors -b "$HOME/.dircolors")"
+                else
+                    eval "$(dircolors -b)"
+                fi
+                alias ls="ls --color=auto"
+                alias grep="grep --color=auto"
+                alias fgrep="fgrep --color=auto"
+                alias egrep="egrep --color=auto"
+            fi
+            export GCC_COLORS="error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01"
+            ;;
+    esac
+}
+
+# Aliases
+setup_aliases() {
+    alias grep="grep --color=auto -d skip"
+    alias grpe="grep --color=auto -d skip"
+    alias screen="tmux"
+    alias ssh="ssh -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -o VisualHostKey=yes -o IdentitiesOnly=yes"
+    alias nsr="netstat -rn"
+    alias nsa="netstat -an | sed -n '1,/Active UNIX domain sockets/p'"
+    alias lsock="sudo /usr/sbin/lsof -i -P"
+    alias keypress="read -s -n1 keypress; echo \$keypress"
+    alias :="cd .."
+    alias ::="cd ../.."
+    alias :::="cd ../../.."
+    alias ::::="cd ../../../.."
+    alias :::::="cd ../../../../.."
+    alias ::::::="cd ../../../../../.."
+}
+
+# Functions
+man() {
+    env \
+        LESS_TERMCAP_md=$'\e[1;36m' \
+        LESS_TERMCAP_me=$'\e[0m' \
+        LESS_TERMCAP_se=$'\e[0m' \
+        LESS_TERMCAP_so=$'\e[1;40;92m' \
+        LESS_TERMCAP_ue=$'\e[0m' \
+        LESS_TERMCAP_us=$'\e[1;32m' \
+        command man "$@"
+}
+
+http_headers() {
+    /usr/bin/curl -I -L "$@"
+}
+
+sshtunnel() {
+    if [[ $# -ne 3 ]]; then
+        echo "usage: sshtunnel host remote-port local_port"
+    else
+        /usr/bin/ssh "$1" -L "$3":localhost:"$2"
+    fi
+}
+
+catfiles() {
+    local file
+    for file in "$@"; do
+        echo "filename: $file"
+        cat "$file"
+    done
+}
+
+# Shell options
+setup_shell_options() {
+    setopt hist_ignore_dups
+    setopt hist_reduce_blanks
+    setopt hist_verify
+    setopt interactive_comments
+    setopt long_list_jobs
+    setopt prompt_subst
+    setopt rm_star_silent
+}
+
+
+# Dircolors setup
+setup_dircolors() {
+    if [[ "$TERM" != "dumb" ]]; then
+        local dircolors_cmd="$(whence gdircolors 2>/dev/null || whence dircolors 2>/dev/null)"
+        local dir_colors="$HOME/.dircolors"
+        if [[ -x "$dircolors_cmd" ]] && [[ -r "$dir_colors" ]]; then
+            eval "$($dircolors_cmd -b "$dir_colors")"
+        elif [[ -x "$dircolors_cmd" ]]; then
+            eval "$($dircolors_cmd -b)"
+        else
+            echo "No dircolors command found, using default LS_COLORS"
+        fi
+        alias grep="grep --color=auto"
+        alias fgrep="fgrep --color=auto"
+        alias egrep="egrep --color=auto"
+    fi
+}
+
+# Readline setup
+setup_readline() {
+    # Enable vi command mode
+    bindkey -v
+
+    # Basic navigation bindings
+    bindkey '^A' beginning-of-line
+    bindkey '^E' end-of-line
+    bindkey '^D' delete-char
+    bindkey '^L' clear-screen
+
+    # History search bindings
+    bindkey '^R' history-incremental-search-backward
+    bindkey '\e[A' history-beginning-search-backward
+    bindkey '\e[B' history-beginning-search-forward
+}
+
+# Completions
+setup_completions() {
+    autoload -Uz compinit
+    compinit
+    
+    # Command specific completions
+    compdef _command command
+    compdef _signal kill
+    compdef _user finger pinky
+    
+    # Directory handling completions
+    compdef _directories cd
+    compdef _directories pushd
+    compdef _directories mkdir
+    compdef _directories rmdir
+    
+    # File and job handling completions
+    compdef _files ln chmod chown chgrp
+    compdef _jobs fg bg disown jobs
+}
+
+
+# pyenv setup
+setup_pyenv() {
+    export PYENV_ROOT="$HOME/.pyenv"
+    if [[ -d "$PYENV_ROOT/bin" ]] && [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
+        path=($PYENV_ROOT/bin $path)
+        eval "$(pyenv init -)"
+    fi
+}
+
+# Check and add cron job for backing up shell history
+ensure_cron_job_exists() {
+    local cron_job="0 0 * * 0 . $HOME/.zshrc; backup_shell_history"
+    if ! crontab -l | grep -Fq "$cron_job"; then
+        (crontab -l 2>/dev/null; echo "$cron_job") | crontab -
+        echo "Cron job added for backing up shell history."
+    else
+        echo "Cron job already exists."
+    fi
+}
+
+# Backup shell history
+backup_shell_history() {
+    local backup_dir="$HOME/.shell_history_backups"
+    mkdir -p "$backup_dir"
+    local timestamp=$(date +"%Y%m%d%H%M%S")
+    tar -czf "$backup_dir/zsh_history_$timestamp.tar.gz" -C "$HOME" .zsh_history
+}
+
