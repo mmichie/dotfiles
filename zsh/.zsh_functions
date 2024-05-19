@@ -46,28 +46,38 @@ setup_history() {
 }
 
 
-# SSH agent handling
+# Handles the initialization and maintenance of an SSH agent to manage SSH keys.
 handle_ssh_agent() {
-    if [[ -s "$AGENT_INFO" ]]; then
-        source "$AGENT_INFO"
+    local ssh_agent_info="$HOME/.ssh/.ssh-agent-info"
+    local agent_socket="$HOME/.ssh/.ssh-agent-socket"
+
+    # Load existing agent configuration if available
+    if [[ -s "$ssh_agent_info" ]]; then
+        source "$ssh_agent_info"
     fi
 
-    ssh-add -l &>/dev/null
-    local ssh_status=$?
-
-    if [[ -S "$AGENT_SOCKET" ]] && [[ $ssh_status -ne 0 ]]; then
-        echo "Agent socket stale, removing it!"
-        rm "$AGENT_SOCKET"
-    fi
-
-    if [[ -z "$SSH_AGENT_PID" ]] || ! ps -p "$SSH_AGENT_PID" &>/dev/null || [[ $ssh_status -ne 0 ]]; then
-        echo "Re-starting Agent for $USER"
-        ssh-agent -a "$AGENT_SOCKET" >"$AGENT_INFO"
-        source "$AGENT_INFO"
-        ssh-add
+    # Check if SSH agent needs restarting
+    if ! ssh-add -l &>/dev/null || [[ ! -S "$agent_socket" ]]; then
+        echo "SSH Agent not running or socket not found, restarting agent..."
+        restart_ssh_agent "$agent_socket" "$ssh_agent_info"
     else
-        echo "Agent Already Running"
+        echo "SSH Agent already running."
     fi
+}
+
+# Restarts the SSH agent and updates the agent information files
+restart_ssh_agent() {
+    local agent_socket=$1
+    local agent_info_file=$2
+
+    # Ensure old sockets are removed for security
+    [[ -S "$agent_socket" ]] && rm "$agent_socket"
+
+    # Start new SSH agent and save its configuration
+    echo "Starting new SSH agent..."
+    ssh-agent -a "$agent_socket" > "$agent_info_file"
+    source "$agent_info_file"
+    ssh-add
 }
 
 # Update PS1 prompt
@@ -162,7 +172,7 @@ setup_aliases() {
     alias grep="grep --color=auto -d skip"
     alias grpe="grep --color=auto -d skip"
     alias screen="tmux"
-    alias ssh="ssh -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -o VisualHostKey=yes -o IdentitiesOnly=yes"
+    alias ssh="ssh -A -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -o VisualHostKey=yes -o IdentitiesOnly=yes"
     alias nsr="netstat -rn"
     alias nsa="netstat -an | sed -n '1,/Active UNIX domain sockets/p'"
     alias lsock="sudo /usr/sbin/lsof -i -P"
