@@ -69,6 +69,9 @@ setup_readline
 # Completions
 setup_completions
 
+# Check and ensure the cron job for history backup is present
+ensure_cron_job_exists
+
 # Load work-specific profile if available
 if [[ -f "$HOME/.bash_work_profile" ]]; then
     source "$HOME/.bash_work_profile"
