@@ -106,16 +106,40 @@ update_ps1() {
 #    fc -p  # Reloads the history from file
 }
 
-# Environment setup
+
+# Sets up the general environment variables and configurations.
 setup_environment() {
+    setup_path
+    setup_locale
+    setup_editors
+    setup_misc
+}
+
+# Configures system and user paths.
+setup_path() {
+    local system_paths=("/usr/local/bin" "/usr/local/go/bin")
+    local user_paths=("$HOME/bin" "$HOME/.local/bin")
     path=($path $HOME/bin /usr/local/bin $HOME/.local/bin /usr/local/go/bin)
-    export P4CONFIG=".p4config"
-    export P4EDITOR="vim -f"
-    export EDITOR="vim -f"
+}
+
+# Sets up locale and timezone settings.
+setup_locale() {
     export LC_ALL="en_US.UTF-8"
     export LANG="en_US.UTF-8"
     export TZ="US/Pacific"
+}
+
+# Configures default editors and related settings.
+setup_editors() {
+    export EDITOR="vim -f"
+    export P4EDITOR="$EDITOR"
+    export VISUAL="$EDITOR"
+}
+
+# Miscellaneous environment settings.
+setup_misc() {
     export VAGRANT_DEFAULT_PROVIDER="aws"
+    export GCC_COLORS="error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01"
 }
 
 # GOPATH setup
