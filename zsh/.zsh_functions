@@ -230,12 +230,54 @@ sshtunnel() {
     fi
 }
 
+# Function to cat files and conditionally copy content to the clipboard based on the OS
 catfiles() {
+    local os_type=$(detect_shell_platform)
     local file
+    local clip_cmd
+    local all_contents=""
+
+    # Determine the appropriate clipboard command based on the platform
+    case "$os_type" in
+        OSX)
+            clip_cmd="pbcopy"
+            ;;
+        LINUX)
+            # Check if running under WSL to use clip.exe
+            if command -v clip.exe &>/dev/null; then
+                clip_cmd="clip.exe"
+            # Otherwise, use xclip or xsel if available
+            elif command -v xclip &>/dev/null; then
+                clip_cmd="xclip -selection clipboard"
+            elif command -v xsel &>/dev/null; then
+                clip_cmd="xsel --clipboard --input"
+            else
+                clip_cmd=""
+            fi
+            ;;
+        *)
+            clip_cmd=""
+            ;;
+    esac
+
+    # Accumulate the contents of each file with filename headers
     for file in "$@"; do
-        echo "filename: $file"
-        cat "$file"
+        if [[ -f "$file" ]]; then
+            all_contents+="Filename: $file\n"
+            all_contents+=$(cat "$file" && echo "\n\n")
+            echo "filename: $file added to clipboard content."
+        else
+            echo "Error: File $file does not exist."
+        fi
     done
+
+    # Pipe accumulated content to clipboard command or print to terminal
+    if [[ -n $clip_cmd ]]; then
+        echo "$all_contents" | $clip_cmd
+        echo "All file contents copied to clipboard."
+    else
+        echo "$all_contents"
+    fi
 }
 
 # Shell options
