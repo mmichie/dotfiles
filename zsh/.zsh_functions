@@ -101,9 +101,6 @@ update_ps1() {
         echo "Error: powerline-go command not found or not executable at $powerline_cmd"
         PS1="[%n@%m %~]%# "
     fi
-
-#    fc -W  # Writes out the history file
-#    fc -p  # Reloads the history from file
 }
 
 
@@ -243,15 +240,11 @@ catfiles() {
 
 # Shell options
 setup_shell_options() {
-    setopt hist_ignore_dups
-    setopt hist_reduce_blanks
-    setopt hist_verify
     setopt interactive_comments
     setopt long_list_jobs
     setopt prompt_subst
     setopt rm_star_silent
 }
-
 
 # Dircolors setup
 setup_dircolors() {
