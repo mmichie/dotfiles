@@ -116,7 +116,13 @@ setup_environment() {
 setup_path() {
     local system_paths=("/usr/local/bin" "/usr/local/go/bin")
     local user_paths=("$HOME/bin" "$HOME/.local/bin")
-    path=($path $HOME/bin /usr/local/bin $HOME/.local/bin /usr/local/go/bin)
+    local os_type=$(detect_shell_platform)
+
+    if [[ "$os_type" == "OSX" ]]; then
+        path=($(/opt/homebrew/bin/brew --prefix)/bin $(/opt/homebrew/bin/brew --prefix)/sbin $path)
+    else
+        path=($path $HOME/bin /usr/local/bin $HOME/.local/bin /usr/local/go/bin)
+    fi
 }
 
 # Sets up locale and timezone settings.
