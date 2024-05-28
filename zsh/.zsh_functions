@@ -143,8 +143,14 @@ setup_editors() {
 setup_misc() {
     export VAGRANT_DEFAULT_PROVIDER="aws"
     export GCC_COLORS="error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01"
-    # Set up fzf key bindings and fuzzy completion
-    source <(fzf --zsh)
+
+    if command -v fzf > /dev/null 2>&1; then
+        # If fzf is installed, source the key bindings and completion
+        source <(fzf --zsh)
+    else
+        # If fzf is not installed, print a warning message
+        echo "Warning: fzf is not installed. Please install it to enable fuzzy finding features."
+    fi
 }
 
 # GOPATH setup
