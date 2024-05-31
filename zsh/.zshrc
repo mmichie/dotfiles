@@ -72,3 +72,5 @@ ensure_cron_job_exists
 
 # pyenv setup
 setup_pyenv
+
+[[ -x "$HOME/bin/fzf" ]] && source <("$HOME/bin/fzf" --zsh)
