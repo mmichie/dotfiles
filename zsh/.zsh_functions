@@ -110,6 +110,7 @@ setup_environment() {
     setup_locale
     setup_editors
     setup_misc
+    setup_fzf
 }
 
 # Configures system and user paths.
@@ -143,15 +144,42 @@ setup_editors() {
 setup_misc() {
     export VAGRANT_DEFAULT_PROVIDER="aws"
     export GCC_COLORS="error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01"
+}
 
-    if command -v fzf > /dev/null 2>&1; then
-        # If fzf is installed, source the key bindings and completion
-        source <(fzf --zsh)
+setup_fzf() {
+    local os_type=$(detect_shell_platform)
+    local arch_type=$(detect_architecture)
+    local platform_cmd="${os_type}-${arch_type}"
+    local fzf_cmd
+    local common_fzf_link="$HOME/bin/fzf"
+
+    case "$platform_cmd" in
+        OSX-x86_64) fzf_cmd="$HOME/bin/fzf-darwin-amd64" ;;
+        OSX-arm64) fzf_cmd="$HOME/bin/fzf-darwin-arm64" ;;
+        LINUX-arm64) fzf_cmd="$HOME/bin/fzf-linux-arm64" ;;
+        LINUX-x86_64) fzf_cmd="$HOME/bin/fzf-linux-amd64" ;;
+    esac
+
+    # Check if the specific binary exists and is executable
+    if [[ -n "$fzf_cmd" ]] && [[ -x "$fzf_cmd" ]]; then
+        # Only create symlink if it does not already exist or points to a different target
+        if [[ ! -L "$common_fzf_link" ]] || [[ "$(readlink -- "$common_fzf_link")" != "$fzf_cmd" ]]; then
+            ln -sf "$fzf_cmd" "$common_fzf_link"
+            echo "fzf symlink created at $common_fzf_link"
+        else
+            echo "fzf symlink already exists and is correctly set."
+        fi
+        # Check the symlink itself if it's executable
+        if [[ -x "$common_fzf_link" ]]; then
+            echo "fzf properly setup"
+        else
+            echo "Error: Symlink at $common_fzf_link is not executable. Check permissions or target validity."
+        fi
     else
-        # If fzf is not installed, print a warning message
-        echo "Warning: fzf is not installed. Please install it to enable fuzzy finding features."
+        echo "Warning: fzf binary not found or not executable at $fzf_cmd. Please ensure the appropriate binary is available."
     fi
 }
+
 
 # GOPATH setup
 setup_gopath() {
