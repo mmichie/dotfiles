@@ -427,3 +427,37 @@ backup_shell_history() {
     tar -czf "$backup_dir/zsh_history_$timestamp.tar.gz" -C "$HOME" .zsh_history
 }
 
+notify_mac() {
+    local title="$1"
+    local message="$2"
+    osascript -e "display notification \"$message\" with title \"$title\""
+}
+
+notify_linux() {
+    local title="$1"
+    local message="$2"
+    notify-send "$title" "$message"
+}
+
+notify_windows() {
+    local title="$1"
+    local message="$2"
+    powershell -Command "& {Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('$message', '$title')}"
+}
+
+notify_cross_platform() {
+    local title="$1"
+    local message="$2"
+    if command -v zenity &> /dev/null; then
+        zenity --info --title="$title" --text="$message"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        osascript -e "display notification \"$message\" with title \"$title\""
+    elif command -v notify-send &> /dev/null; then
+        notify-send "$title" "$message"
+    elif command -v powershell &> /dev/null; then
+        powershell -Command "& {Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('$message', '$title')}"
+    else
+        echo "Notification not supported on this OS."
+    fi
+}
+
