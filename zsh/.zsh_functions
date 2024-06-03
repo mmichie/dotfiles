@@ -230,8 +230,20 @@ setup_platform_specific() {
     esac
 }
 
+git_cleanup() {
+    git fetch --prune
+    git branch --merged | grep -v "\*" | xargs -n 1 git branch -d
+}
+
+docker_cleanup() {
+    docker system prune -af
+    docker volume prune -f
+}
+
 # Aliases
 setup_aliases() {
+    alias gclean="git_cleanup"
+    alias dclean="docker_cleanup"
     alias grep="grep --color=auto -d skip"
     alias grpe="grep --color=auto -d skip"
     alias screen="tmux"
