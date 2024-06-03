@@ -11,3 +11,4 @@ vim/.vim/viminfo
 tags
 undo*
 .DS_Store
+bin/bin/fzf
