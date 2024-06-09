@@ -451,31 +451,30 @@ notify_shell_status() {
 
     # Check for new mail
     if [[ -n "$(find /var/mail -type f -newer ~/.last_mail_check 2>/dev/null)" ]]; then
-        message+="You have new mail.\n"
+        message+="You have new mail."
     fi
 
     # Check SSH agent status
     if [[ -n "$SSH_AGENT_PID" ]]; then
-        message+="SSH Agent (PID: $SSH_AGENT_PID) is running.\n"
+        message+="SSH Agent (PID: $SSH_AGENT_PID) is running."
     else
-        message+="SSH Agent is not running.\n"
+        message+="SSH Agent is not running."
     fi
 
     # Check fzf setup status
     if [[ -x "$HOME/bin/fzf" ]]; then
-        message+="fzf is properly set up.\n"
+        message+="fzf is properly set up."
     else
-        message+="fzf is not set up.\n"
+        message+="fzf is not set up."
     fi
 
     # Check cron job status
     if crontab -l | grep -Fq "backup_shell_history"; then
-        message+="Cron job for backing up shell history exists.\n"
+        message+="Cron job for backing up shell history exists."
     else
-        message+="Cron job for backing up shell history does not exist.\n"
+        message+="Cron job for backing up shell history does not exist."
     fi
 
-    # ANSI color codes
     local reset="\033[0m"
     local bold="\033[1m"
     local red="\033[31m"
@@ -505,42 +504,42 @@ notify_shell_status() {
     echo -e "${bold}${green}System Information:${reset}"
     echo -e "  ${yellow}System Load:${reset} $(uptime | awk -F'[a-z]:' '{ print $2 }')"
 
+    # Run the slower parts in background jobs
     case "$os_type" in
         OSX)
-            echo -e "  ${yellow}Memory Usage:${reset} $(top -l 1 | grep PhysMem | awk '{print $2}')"
-            echo -e "  ${yellow}Disk Usage:${reset} $(df -h / | awk '/\// {print $(NF-1)}')"
-            echo -e "  ${yellow}IP Address:${reset} $(ipconfig getifaddr en0)"
+            memory_usage_job="$(vm_stat | awk '/Pages active:/ { printf "%.2f GB", $3 * 4096 / 1024 / 1024 / 1024 }')"
+            disk_usage_job="$(df -h / | awk '/\// {print $(NF-1)}')"
+            ip_address_job="$(ipconfig getifaddr en0)"
+            last_login_job="$(last -1 $USER | awk 'NR==1 { print $3, $4, $5, $6 }')"
+            uptime_job="$(sysctl -n kern.boottime | awk '{print $4}' | sed 's/,//g')"
             ;;
         LINUX)
-            echo -e "  ${yellow}Memory Usage:${reset} $(free -h | awk '/^Mem:/ { print $3 "/" $2 }')"
-            echo -e "  ${yellow}Disk Usage:${reset} $(df -h / | awk '/\// {print $(NF-1)}')"
-            echo -e "  ${yellow}IP Address:${reset} $(ip -4 addr show | awk '/inet/ { print $2 }' | cut -d/ -f1 | head -n1)"
+            memory_usage_job="$(free -h | awk '/^Mem:/ { print $3 "/" $2 }')"
+            disk_usage_job="$(df -h / | awk '/\// {print $(NF-1)}')"
+            ip_address_job="$(ip -4 addr show | awk '/inet/ { print $2 }' | cut -d/ -f1 | head -n1)"
+            last_login_job="$(last -1 $USER | awk 'NR==2 { print $3, $4, $5, $6 }')"
+            uptime_job="$(uptime -p)"
             ;;
     esac
 
-    case "$os_type" in
-        OSX)
-            local last_login=$(last -1 $USER | awk 'NR==1 { print $3, $4, $5, $6 }')
-            if [[ -n "$last_login" ]]; then
-                echo -e "  ${yellow}Last Login:${reset} $last_login"
-            else
-                echo -e "  ${yellow}Last Login:${reset} Not available"
-            fi
-            ;;
-        LINUX)
-            local last_login=$(last -1 $USER | awk 'NR==2 { print $3, $4, $5, $6 }')
-            if [[ -n "$last_login" ]]; then
-                echo -e "  ${yellow}Last Login:${reset} $last_login"
-            else
-                echo -e "  ${yellow}Last Login:${reset} Not available"
-            fi
-            ;;
-    esac
+    # Wait for all background jobs to complete
+    wait
+
+    # Display the collected information
+    echo -e "  ${yellow}Memory Usage:${reset} $memory_usage_job"
+    echo -e "  ${yellow}Disk Usage:${reset} $disk_usage_job"
+    echo -e "  ${yellow}IP Address:${reset} $ip_address_job"
+
+    if [[ -n "$last_login_job" ]]; then
+        echo -e "  ${yellow}Last Login:${reset} $last_login_job"
+    else
+        echo -e "  ${yellow}Last Login:${reset} Not available"
+    fi
 
     case "$os_type" in
         OSX)
-            local boot_time=$(sysctl -n kern.boottime | awk '{print $4}' | sed 's/,//g')
             local current_time=$(date +%s)
+            local boot_time=$uptime_job
             local uptime=$((current_time - boot_time))
             local days=$((uptime / 86400))
             local hours=$(((uptime % 86400) / 3600))
@@ -548,8 +547,9 @@ notify_shell_status() {
             echo -e "  ${yellow}System Uptime:${reset} ${days} days, ${hours} hours, ${minutes} minutes"
             ;;
         LINUX)
-            echo -e "  ${yellow}System Uptime:${reset} $(uptime -p)"
+            echo -e "  ${yellow}System Uptime:${reset} $uptime_job"
             ;;
     esac
+
     echo
 }
