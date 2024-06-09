@@ -58,10 +58,7 @@ handle_ssh_agent() {
 
     # Check if SSH agent needs restarting
     if ! ssh-add -l &>/dev/null || [[ ! -S "$agent_socket" ]]; then
-        echo "SSH Agent not running or socket not found, restarting agent..."
         restart_ssh_agent "$agent_socket" "$ssh_agent_info"
-    else
-        echo "SSH Agent already running."
     fi
 }
 
@@ -165,18 +162,7 @@ setup_fzf() {
         # Only create symlink if it does not already exist or points to a different target
         if [[ ! -L "$common_fzf_link" ]] || [[ "$(readlink -- "$common_fzf_link")" != "$fzf_cmd" ]]; then
             ln -sf "$fzf_cmd" "$common_fzf_link"
-            echo "fzf symlink created at $common_fzf_link"
-        else
-            echo "fzf symlink already exists and is correctly set."
         fi
-        # Check the symlink itself if it's executable
-        if [[ -x "$common_fzf_link" ]]; then
-            echo "fzf properly setup"
-        else
-            echo "Error: Symlink at $common_fzf_link is not executable. Check permissions or target validity."
-        fi
-    else
-        echo "Warning: fzf binary not found or not executable at $fzf_cmd. Please ensure the appropriate binary is available."
     fi
 }
 
@@ -413,9 +399,6 @@ ensure_cron_job_exists() {
     local cron_job="0 0 * * 0 . $HOME/.zshrc; backup_shell_history"
     if ! crontab -l | grep -Fq "$cron_job"; then
         (crontab -l 2>/dev/null; echo "$cron_job") | crontab -
-        echo "Cron job added for backing up shell history."
-    else
-        echo "Cron job already exists."
     fi
 }
 
@@ -461,3 +444,112 @@ notify_cross_platform() {
     fi
 }
 
+
+notify_shell_status() {
+    local title="Shell Status"
+    local message=""
+
+    # Check for new mail
+    if [[ -n "$(find /var/mail -type f -newer ~/.last_mail_check 2>/dev/null)" ]]; then
+        message+="You have new mail.\n"
+    fi
+
+    # Check SSH agent status
+    if [[ -n "$SSH_AGENT_PID" ]]; then
+        message+="SSH Agent (PID: $SSH_AGENT_PID) is running.\n"
+    else
+        message+="SSH Agent is not running.\n"
+    fi
+
+    # Check fzf setup status
+    if [[ -x "$HOME/bin/fzf" ]]; then
+        message+="fzf is properly set up.\n"
+    else
+        message+="fzf is not set up.\n"
+    fi
+
+    # Check cron job status
+    if crontab -l | grep -Fq "backup_shell_history"; then
+        message+="Cron job for backing up shell history exists.\n"
+    else
+        message+="Cron job for backing up shell history does not exist.\n"
+    fi
+
+    # ANSI color codes
+    local reset="\033[0m"
+    local bold="\033[1m"
+    local red="\033[31m"
+    local green="\033[32m"
+    local yellow="\033[33m"
+    local blue="\033[34m"
+
+    # Display the ANSI BBS-style welcome message
+    clear
+    echo -e "${bold}${blue}+----------------------------------+${reset}"
+    echo -e "${bold}${blue}|                                  |${reset}"
+    echo -e "${bold}${blue}|        ${yellow}Welcome to My Shell${reset}${bold}${blue}       |${reset}"
+    echo -e "${bold}${blue}|                                  |${reset}"
+    echo -e "${bold}${blue}+----------------------------------+${reset}"
+    echo
+
+    # Display the shell status information
+    echo -e "${bold}${green}Shell Status:${reset}"
+    echo -e "  ${yellow}New Mail:${reset} $(if [[ -n "$(find /var/mail -type f -newer ~/.last_mail_check 2>/dev/null)" ]]; then echo "Yes"; else echo "No"; fi)"
+    echo -e "  ${yellow}SSH Agent:${reset} $(if [[ -n "$SSH_AGENT_PID" ]]; then echo "Running (PID: $SSH_AGENT_PID)"; else echo "Not Running"; fi)"
+    echo -e "  ${yellow}fzf Setup:${reset} $(if [[ -x "$HOME/bin/fzf" ]]; then echo "Properly Set Up"; else echo "Not Set Up"; fi)"
+    echo -e "  ${yellow}Cron Job:${reset} $(if crontab -l | grep -Fq "backup_shell_history"; then echo "Exists"; else echo "Not Found"; fi)"
+    echo
+
+    # Display additional system information based on the platform
+    local os_type=$(detect_shell_platform)
+    echo -e "${bold}${green}System Information:${reset}"
+    echo -e "  ${yellow}System Load:${reset} $(uptime | awk -F'[a-z]:' '{ print $2 }')"
+
+    case "$os_type" in
+        OSX)
+            echo -e "  ${yellow}Memory Usage:${reset} $(top -l 1 | grep PhysMem | awk '{print $2}')"
+            echo -e "  ${yellow}Disk Usage:${reset} $(df -h / | awk '/\// {print $(NF-1)}')"
+            echo -e "  ${yellow}IP Address:${reset} $(ipconfig getifaddr en0)"
+            ;;
+        LINUX)
+            echo -e "  ${yellow}Memory Usage:${reset} $(free -h | awk '/^Mem:/ { print $3 "/" $2 }')"
+            echo -e "  ${yellow}Disk Usage:${reset} $(df -h / | awk '/\// {print $(NF-1)}')"
+            echo -e "  ${yellow}IP Address:${reset} $(ip -4 addr show | awk '/inet/ { print $2 }' | cut -d/ -f1 | head -n1)"
+            ;;
+    esac
+
+    case "$os_type" in
+        OSX)
+            local last_login=$(last -1 $USER | awk 'NR==1 { print $3, $4, $5, $6 }')
+            if [[ -n "$last_login" ]]; then
+                echo -e "  ${yellow}Last Login:${reset} $last_login"
+            else
+                echo -e "  ${yellow}Last Login:${reset} Not available"
+            fi
+            ;;
+        LINUX)
+            local last_login=$(last -1 $USER | awk 'NR==2 { print $3, $4, $5, $6 }')
+            if [[ -n "$last_login" ]]; then
+                echo -e "  ${yellow}Last Login:${reset} $last_login"
+            else
+                echo -e "  ${yellow}Last Login:${reset} Not available"
+            fi
+            ;;
+    esac
+
+    case "$os_type" in
+        OSX)
+            local boot_time=$(sysctl -n kern.boottime | awk '{print $4}' | sed 's/,//g')
+            local current_time=$(date +%s)
+            local uptime=$((current_time - boot_time))
+            local days=$((uptime / 86400))
+            local hours=$(((uptime % 86400) / 3600))
+            local minutes=$(((uptime % 3600) / 60))
+            echo -e "  ${yellow}System Uptime:${reset} ${days} days, ${hours} hours, ${minutes} minutes"
+            ;;
+        LINUX)
+            echo -e "  ${yellow}System Uptime:${reset} $(uptime -p)"
+            ;;
+    esac
+    echo
+}
