@@ -359,8 +359,8 @@ setup_readline() {
 
     # History search bindings
     bindkey '^R' history-incremental-search-backward
-    bindkey '\e[A' history-beginning-search-backward
-    bindkey '\e[B' history-beginning-search-forward
+    bindkey '^\e[A' up-line-or-search
+    bindkey '^\e[B' down-line-or-search
 }
 
 # Completions
