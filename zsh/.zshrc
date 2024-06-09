@@ -74,3 +74,5 @@ ensure_cron_job_exists
 setup_pyenv
 
 [[ -x "$HOME/bin/fzf" ]] && source <("$HOME/bin/fzf" --zsh)
+
+notify_shell_status
