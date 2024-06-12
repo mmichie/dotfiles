@@ -394,6 +394,23 @@ setup_pyenv() {
     fi
 }
 
+# Function to load environment variables from a .env file and print their names
+loadenv() {
+    if [ -f ".env" ]; then
+        echo "Loading environment variables:"
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            if [[ ! "$line" =~ ^# && "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
+                varname=${line%%=*}
+                export "$line"
+                echo "Loaded: $varname"
+            fi
+        done < .env
+        echo "All environment variables loaded successfully."
+    else
+        echo "Error: .env file does not exist in the current directory."
+    fi
+}
+
 # Check and add cron job for backing up shell history
 ensure_cron_job_exists() {
     local cron_job="0 0 * * 0 . $HOME/.zshrc; backup_shell_history"
@@ -443,7 +460,6 @@ notify_cross_platform() {
         echo "Notification not supported on this OS."
     fi
 }
-
 
 notify_shell_status() {
     local title="Shell Status"
