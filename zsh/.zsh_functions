@@ -273,9 +273,9 @@ sshtunnel() {
 # Function to cat files and conditionally copy content to the clipboard based on the OS
 catfiles() {
     local os_type=$(detect_shell_platform)
-    local file
     local clip_cmd
     local all_contents=""
+    local recursive=false
 
     # Determine the appropriate clipboard command based on the platform
     case "$os_type" in
@@ -300,16 +300,58 @@ catfiles() {
             ;;
     esac
 
-    # Accumulate the contents of each file with filename headers
-    for file in "$@"; do
+    # Parse options
+    while getopts ":r" opt; do
+        case ${opt} in
+            r )
+                recursive=true
+                ;;
+            \? )
+                echo "Invalid option: -$OPTARG" 1>&2
+                return 1
+                ;;
+        esac
+    done
+    shift $((OPTIND -1))
+
+    # Function to process a single file
+    process_file() {
+        local file="$1"
         if [[ -f "$file" ]]; then
-            all_contents+="Filename: $file\n"
-            all_contents+=$(cat "$file" && echo "\n\n")
+            all_contents+="Filename: $file
+"
+            all_contents+=$(cat "$file" && echo "
+
+")
             echo "filename: $file added to clipboard content."
         else
             echo "Error: File $file does not exist."
         fi
-    done
+    }
+
+    # Function to recursively process files
+    process_recursive() {
+        local pattern="$1"
+        local dir="${2:-.}"
+        for item in "$dir"/*; do
+            if [[ -d "$item" ]]; then
+                process_recursive "$pattern" "$item"
+            elif [[ -f "$item" && "$item" == $~pattern ]]; then
+                process_file "$item"
+            fi
+        done
+    }
+
+    # Process files based on recursive flag
+    if $recursive; then
+        for pattern in "$@"; do
+            process_recursive "$pattern"
+        done
+    else
+        for file in "$@"; do
+            process_file "$file"
+        done
+    fi
 
     # Pipe accumulated content to clipboard command or print to terminal
     if [[ -n $clip_cmd ]]; then
