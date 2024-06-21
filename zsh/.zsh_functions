@@ -520,7 +520,7 @@ notify_shell_status() {
 
     echo -e "${bold}${blue}+------------------------------------------+${reset}"
     echo -e "${bold}${blue}|                                          |${reset}"
-    echo -e "${bold}${blue}|        ${yellow}Welcome to My Enhanced Shell${reset}${bold}${blue}     |${reset}"
+    echo -e "${bold}${blue}|        ${yellow}Welcome to My Enhanced Shell${reset}${bold}${blue}      |${reset}"
     echo -e "${bold}${blue}|                                          |${reset}"
     echo -e "${bold}${blue}+------------------------------------------+${reset}"
     echo
