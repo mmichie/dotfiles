@@ -4,6 +4,14 @@
 readonly AGENT_SOCKET="$HOME/.ssh/.ssh-agent-socket"
 readonly AGENT_INFO="$HOME/.ssh/.ssh-agent-info"
 
+# Color definitions
+reset="\033[0m"
+bold="\033[1m"
+red="\033[31m"
+green="\033[32m"
+yellow="\033[33m"
+blue="\033[34m"
+
 # Detect only the architecture
 detect_architecture() {
     local arch=$(uname -m)
@@ -504,110 +512,235 @@ notify_cross_platform() {
 }
 
 notify_shell_status() {
-    local title="Shell Status"
-    local message=""
-
-    # Check for new mail
-    if [[ -n "$(find /var/mail -type f -newer ~/.last_mail_check 2>/dev/null)" ]]; then
-        message+="You have new mail."
-    fi
-
-    # Check SSH agent status
-    if [[ -n "$SSH_AGENT_PID" ]]; then
-        message+="SSH Agent (PID: $SSH_AGENT_PID) is running."
-    else
-        message+="SSH Agent is not running."
-    fi
-
-    # Check fzf setup status
-    if [[ -x "$HOME/bin/fzf" ]]; then
-        message+="fzf is properly set up."
-    else
-        message+="fzf is not set up."
-    fi
-
-    # Check cron job status
-    if crontab -l | grep -Fq "backup_shell_history"; then
-        message+="Cron job for backing up shell history exists."
-    else
-        message+="Cron job for backing up shell history does not exist."
-    fi
-
-    local reset="\033[0m"
-    local bold="\033[1m"
-    local red="\033[31m"
-    local green="\033[32m"
-    local yellow="\033[33m"
-    local blue="\033[34m"
-
-    # Display the ANSI BBS-style welcome message
-    clear
-    echo -e "${bold}${blue}+----------------------------------+${reset}"
-    echo -e "${bold}${blue}|                                  |${reset}"
-    echo -e "${bold}${blue}|        ${yellow}Welcome to My Shell${reset}${bold}${blue}       |${reset}"
-    echo -e "${bold}${blue}|                                  |${reset}"
-    echo -e "${bold}${blue}+----------------------------------+${reset}"
-    echo
-
-    # Display the shell status information
-    echo -e "${bold}${green}Shell Status:${reset}"
-    echo -e "  ${yellow}New Mail:${reset} $(if [[ -n "$(find /var/mail -type f -newer ~/.last_mail_check 2>/dev/null)" ]]; then echo "Yes"; else echo "No"; fi)"
-    echo -e "  ${yellow}SSH Agent:${reset} $(if [[ -n "$SSH_AGENT_PID" ]]; then echo "Running (PID: $SSH_AGENT_PID)"; else echo "Not Running"; fi)"
-    echo -e "  ${yellow}fzf Setup:${reset} $(if [[ -x "$HOME/bin/fzf" ]]; then echo "Properly Set Up"; else echo "Not Set Up"; fi)"
-    echo -e "  ${yellow}Cron Job:${reset} $(if crontab -l | grep -Fq "backup_shell_history"; then echo "Exists"; else echo "Not Found"; fi)"
-    echo
-
-    # Display additional system information based on the platform
+    local title="Shell and System Status"
     local os_type=$(detect_shell_platform)
-    echo -e "${bold}${green}System Information:${reset}"
-    echo -e "  ${yellow}System Load:${reset} $(uptime | awk -F'[a-z]:' '{ print $2 }')"
 
-    # Run the slower parts in background jobs
-    case "$os_type" in
-        OSX)
-            memory_usage_job="$(vm_stat | awk '/Pages active:/ { printf "%.2f GB", $3 * 4096 / 1024 / 1024 / 1024 }')"
-            disk_usage_job="$(df -h / | awk '/\// {print $(NF-1)}')"
-            ip_address_job="$(ipconfig getifaddr en0)"
-            last_login_job="$(last -1 $USER | awk 'NR==1 { print $3, $4, $5, $6 }')"
-            uptime_job="$(sysctl -n kern.boottime | awk '{print $4}' | sed 's/,//g')"
-            ;;
-        LINUX)
-            memory_usage_job="$(free -h | awk '/^Mem:/ { print $3 "/" $2 }')"
-            disk_usage_job="$(df -h / | awk '/\// {print $(NF-1)}')"
-            ip_address_job="$(ip -4 addr show | awk '/inet/ { print $2 }' | cut -d/ -f1 | head -n1)"
-            last_login_job="$(last -1 $USER | awk 'NR==2 { print $3, $4, $5, $6 }')"
-            uptime_job="$(uptime -p)"
-            ;;
-    esac
+    # Temporarily disable job control messages
+    set +m
 
-    # Wait for all background jobs to complete
+    echo -e "${bold}${blue}+------------------------------------------+${reset}"
+    echo -e "${bold}${blue}|                                          |${reset}"
+    echo -e "${bold}${blue}|        ${yellow}Welcome to My Enhanced Shell${reset}${bold}${blue}     |${reset}"
+    echo -e "${bold}${blue}|                                          |${reset}"
+    echo -e "${bold}${blue}+------------------------------------------+${reset}"
+    echo
+
+    # Run checks in parallel
+    check_new_mail &>/dev/null &
+    check_ssh_agent &>/dev/null &
+    check_fzf_setup &>/dev/null &
+    check_cron_job &>/dev/null &
+    check_system_load &>/dev/null &
+    check_memory_usage &>/dev/null &
+    check_disk_usage &>/dev/null &
+    check_ip_address &>/dev/null &
+    check_last_login &>/dev/null &
+    check_uptime &>/dev/null &
+    check_cpu_temperature &>/dev/null &
+    #check_disk_health &>/dev/null &
+    #check_network_status &>/dev/null &
+    #check_system_updates &>/dev/null &
+    #check_security &>/dev/null &
+
+    # Wait for all background jobs to finish
     wait
 
-    # Display the collected information
-    echo -e "  ${yellow}Memory Usage:${reset} $memory_usage_job"
-    echo -e "  ${yellow}Disk Usage:${reset} $disk_usage_job"
-    echo -e "  ${yellow}IP Address:${reset} $ip_address_job"
+    # Display results
+    echo -e "${bold}${green}Shell Status:${reset}"
+    cat /tmp/shell_status_* 2>/dev/null
+    echo
 
-    if [[ -n "$last_login_job" ]]; then
-        echo -e "  ${yellow}Last Login:${reset} $last_login_job"
+    echo -e "${bold}${green}System Information:${reset}"
+    cat /tmp/system_info_* 2>/dev/null
+    echo
+
+    echo -e "${bold}${green}System Health Checks:${reset}"
+    cat /tmp/health_check_* 2>/dev/null
+    echo
+
+    # Recommendations
+    echo -e "${bold}${green}Recommendations:${reset}"
+    provide_recommendations
+
+    # Clean up temporary files
+    rm /tmp/shell_status_* /tmp/system_info_* /tmp/health_check_* 2>/dev/null
+
+    # Re-enable job control messages
+    set -m
+}
+
+check_new_mail() {
+    if [[ -n "$(find /var/mail -type f -newer ~/.last_mail_check 2>/dev/null)" ]]; then
+        echo -e "  ${yellow}New Mail:${reset} Yes ${red}(Action: Check your mail)${reset}" > /tmp/shell_status_mail
     else
-        echo -e "  ${yellow}Last Login:${reset} Not available"
+        echo -e "  ${yellow}New Mail:${reset} No" > /tmp/shell_status_mail
+    fi
+}
+
+check_ssh_agent() {
+    if [[ -n "$SSH_AGENT_PID" ]]; then
+        echo -e "  ${yellow}SSH Agent:${reset} Running (PID: $SSH_AGENT_PID)" > /tmp/shell_status_ssh
+    else
+        echo -e "  ${yellow}SSH Agent:${reset} Not Running ${red}(Action: Start SSH agent)${reset}" > /tmp/shell_status_ssh
+    fi
+}
+
+check_fzf_setup() {
+    if [[ -x "$HOME/bin/fzf" ]]; then
+        echo -e "  ${yellow}fzf Setup:${reset} Properly Set Up" > /tmp/shell_status_fzf
+    else
+        echo -e "  ${yellow}fzf Setup:${reset} Not Set Up ${red}(Action: Install fzf)${reset}" > /tmp/shell_status_fzf
+    fi
+}
+
+check_cron_job() {
+    if crontab -l 2>/dev/null | grep -Fq "backup_shell_history"; then
+        echo -e "  ${yellow}History Backup Cron:${reset} Exists" > /tmp/shell_status_cron
+    else
+        echo -e "  ${yellow}History Backup Cron:${reset} Not Found ${red}(Action: Set up backup cron job)${reset}" > /tmp/shell_status_cron
+    fi
+}
+
+check_system_load() {
+    local load=$(uptime | awk -F'[a-z]:' '{ print $2 }' | awk -F',' '{print $1}' | tr -d ' ')
+    local cores=$(sysctl -n hw.ncpu 2>/dev/null || echo 1)
+    local load_per_core=$(echo "scale=2; $load / $cores" | bc -l 2>/dev/null)
+    if (( $(echo "$load_per_core > 1" | bc -l 2>/dev/null) )); then
+        echo -e "  ${yellow}System Load:${reset} $load ${red}(High load, investigate)${reset}" > /tmp/system_info_load
+    else
+        echo -e "  ${yellow}System Load:${reset} $load" > /tmp/system_info_load
+    fi
+}
+
+check_memory_usage() {
+    local memory_usage
+    local total_memory
+    if [[ "$os_type" == "OSX" ]]; then
+        memory_usage=$(vm_stat | awk '/Pages active/ {print $3}' | sed 's/\.//')
+        total_memory=$(sysctl hw.memsize | awk '{print $2}')
+        memory_usage=$(echo "scale=2; $memory_usage * 4096 / $total_memory * 100" | bc -l 2>/dev/null)
+    else
+        memory_usage=$(free | awk '/Mem:/ {printf("%.2f", $3/$2 * 100.0)}')
+    fi
+    if (( $(echo "$memory_usage > 90" | bc -l 2>/dev/null) )); then
+        echo -e "  ${yellow}Memory Usage:${reset} ${memory_usage}% ${red}(High usage, consider freeing up memory)${reset}" > /tmp/system_info_memory
+    else
+        echo -e "  ${yellow}Memory Usage:${reset} ${memory_usage}%" > /tmp/system_info_memory
+    fi
+}
+
+check_disk_usage() {
+    local disk_usage=$(df -h / | awk '/\// {print $(NF-1)}' | sed 's/%//')
+    if (( disk_usage > 90 )); then
+        echo -e "  ${yellow}Disk Usage:${reset} ${disk_usage}% ${red}(Low disk space, clean up files)${reset}" > /tmp/system_info_disk
+    else
+        echo -e "  ${yellow}Disk Usage:${reset} ${disk_usage}%" > /tmp/system_info_disk
+    fi
+}
+
+check_ip_address() {
+    local ip_address=$(ipconfig getifaddr en0)
+    echo -e "  ${yellow}IP Address:${reset} $ip_address" > /tmp/system_info_ip
+}
+
+check_last_login() {
+    local last_login=$(last -1 $USER | awk 'NR==1 { print $3, $4, $5, $6 }')
+    echo -e "  ${yellow}Last Login:${reset} $last_login" > /tmp/system_info_login
+}
+
+check_uptime() {
+    local uptime=$(sysctl -n kern.boottime | awk '{print $4}' | sed 's/,//g')
+    local current_time=$(date +%s)
+    local boot_time=$uptime
+    local uptime=$((current_time - boot_time))
+    local days=$((uptime / 86400))
+    local hours=$(((uptime % 86400) / 3600))
+    local minutes=$(((uptime % 3600) / 60))
+    echo -e "  ${yellow}System Uptime:${reset} ${days} days, ${hours} hours, ${minutes} minutes" > /tmp/system_info_uptime
+}
+
+check_cpu_temperature() {
+    local temp
+    if command -v osx-cpu-temp &> /dev/null; then
+        temp=$(osx-cpu-temp | awk '{print $1}')
+    else
+        temp="N/A (install osx-cpu-temp)"
+    fi
+    if (( $(echo "$temp > 80" | bc -l 2>/dev/null) )); then
+        echo -e "  ${yellow}CPU Temperature:${reset} ${temp}°C ${red}(High temperature, check cooling)${reset}" > /tmp/health_check_cpu
+    else
+        echo -e "  ${yellow}CPU Temperature:${reset} ${temp}°C" > /tmp/health_check_cpu
+    fi
+}
+
+check_disk_health() {
+    local disk_health=$(diskutil info disk0 | awk '/SMART Status/ {print $3}')
+    if [[ "$disk_health" != "Verified" ]]; then
+        echo -e "  ${yellow}Disk Health:${reset} $disk_health ${red}(Potential disk issues, backup data)${reset}" > /tmp/health_check_disk
+    else
+        echo -e "  ${yellow}Disk Health:${reset} $disk_health" > /tmp/health_check_disk
+    fi
+}
+
+check_network_status() {
+    local ping_result=$(ping -c 1 8.8.8.8 2>&1 | awk '/time=/ {print $7}' | cut -d'=' -f2)
+    if [[ -n "$ping_result" ]]; then
+        echo -e "  ${yellow}Network Status:${reset} Connected (Ping: ${ping_result}ms)" > /tmp/health_check_network
+    else
+        echo -e "  ${yellow}Network Status:${reset} ${red}Disconnected (Check network connection)${reset}" > /tmp/health_check_network
+    fi
+}
+
+check_system_updates() {
+    local updates=$(softwareupdate -l 2>&1 | grep -c "No new software available.")
+    if [[ "$updates" -eq 0 ]]; then
+        echo -e "  ${yellow}System Updates:${reset} ${red}Updates available (Run softwareupdate)${reset}" > /tmp/health_check_updates
+    else
+        echo -e "  ${yellow}System Updates:${reset} Up to date" > /tmp/health_check_updates
+    fi
+}
+
+check_security() {
+    local firewall_status=$(/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate | awk '{print $7}')
+    if [[ "$firewall_status" == "disabled" ]]; then
+        echo -e "  ${yellow}Firewall Status:${reset} ${red}Disabled (Enable firewall for better security)${reset}" > /tmp/health_check_firewall
+    else
+        echo -e "  ${yellow}Firewall Status:${reset} Enabled" > /tmp/health_check_firewall
+    fi
+}
+
+provide_recommendations() {
+    local recommendations=()
+
+    # Check for high memory usage
+    local memory_usage=$(cat /tmp/system_info_memory 2>/dev/null | awk '{print $3}' | sed 's/%//')
+    if [[ -n "$memory_usage" ]] && (( $(echo "$memory_usage > 90" | bc -l 2>/dev/null) )); then
+        recommendations+=("- Consider closing unnecessary applications to free up memory.")
     fi
 
-    case "$os_type" in
-        OSX)
-            local current_time=$(date +%s)
-            local boot_time=$uptime_job
-            local uptime=$((current_time - boot_time))
-            local days=$((uptime / 86400))
-            local hours=$(((uptime % 86400) / 3600))
-            local minutes=$(((uptime % 3600) / 60))
-            echo -e "  ${yellow}System Uptime:${reset} ${days} days, ${hours} hours, ${minutes} minutes"
-            ;;
-        LINUX)
-            echo -e "  ${yellow}System Uptime:${reset} $uptime_job"
-            ;;
-    esac
+    # Check for high disk usage
+    local disk_usage=$(cat /tmp/system_info_disk 2>/dev/null | awk '{print $3}' | sed 's/%//')
+    if [[ -n "$disk_usage" ]] && (( disk_usage > 90 )); then
+        recommendations+=("- Clean up unnecessary files or consider upgrading disk space.")
+    fi
 
-    echo
+    # Check for system updates
+    if grep -q "Updates available" /tmp/health_check_updates 2>/dev/null; then
+        recommendations+=("- Install available system updates to improve security and performance.")
+    fi
+
+    # Check for disabled firewall
+    if grep -q "Disabled" /tmp/health_check_firewall 2>/dev/null; then
+        recommendations+=("- Enable the system firewall to enhance security.")
+    fi
+
+    # Display recommendations
+    if [[ ${#recommendations[@]} -gt 0 ]]; then
+        echo "Based on the health checks, here are some recommendations:"
+        for rec in "${recommendations[@]}"; do
+            echo -e "  ${green}$rec${reset}"
+        done
+    else
+        echo -e "  ${green}Your system appears to be in good health. No specific recommendations at this time.${reset}"
+    fi
 }
