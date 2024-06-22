@@ -283,7 +283,19 @@ catfiles() {
     local os_type=$(detect_shell_platform)
     local clip_cmd
     local all_contents=""
+    local pattern="*"
     local recursive=false
+    local use_find=false
+
+    # Parse options
+    while getopts "rp:" opt; do
+        case ${opt} in
+            r ) recursive=true; use_find=true ;;
+            p ) pattern=$OPTARG; use_find=true ;;
+            \? ) echo "Usage: catfiles [-r] [-p pattern] [directory or files...]"; return 1 ;;
+        esac
+    done
+    shift $((OPTIND -1))
 
     # Determine the appropriate clipboard command based on the platform
     case "$os_type" in
@@ -291,10 +303,8 @@ catfiles() {
             clip_cmd="pbcopy"
             ;;
         LINUX)
-            # Check if running under WSL to use clip.exe
             if command -v clip.exe &>/dev/null; then
                 clip_cmd="clip.exe"
-            # Otherwise, use xclip or xsel if available
             elif command -v xclip &>/dev/null; then
                 clip_cmd="xclip -selection clipboard"
             elif command -v xsel &>/dev/null; then
@@ -308,65 +318,51 @@ catfiles() {
             ;;
     esac
 
-    # Parse options
-    while getopts ":r" opt; do
-        case ${opt} in
-            r )
-                recursive=true
-                ;;
-            \? )
-                echo "Invalid option: -$OPTARG" 1>&2
-                return 1
-                ;;
-        esac
-    done
-    shift $((OPTIND -1))
-
     # Function to process a single file
     process_file() {
         local file="$1"
         if [[ -f "$file" ]]; then
-            all_contents+="Filename: $file
-"
-            all_contents+=$(cat "$file" && echo "
-
-")
-            echo "filename: $file added to clipboard content."
+            all_contents+="\nFilename: $file\n"
+            all_contents+=$(cat "$file" 2>/dev/null && echo "\n\n")
+            echo "Filename: $file added to clipboard content."
         else
-            echo "Error: File $file does not exist."
+            echo "Error: File $file does not exist or is a directory."
         fi
     }
 
-    # Function to recursively process files
-    process_recursive() {
-        local pattern="$1"
-        local dir="${2:-.}"
-        for item in "$dir"/*; do
-            if [[ -d "$item" ]]; then
-                process_recursive "$pattern" "$item"
-            elif [[ -f "$item" && "$item" == $~pattern ]]; then
-                process_file "$item"
-            fi
-        done
-    }
+    # Use find if recursive or pattern is specified, otherwise process arguments as files
+    if $use_find; then
+        local search_dir="${1:-.}"
+        local find_cmd="find \"$search_dir\""
+        if ! $recursive; then
+            find_cmd+=" -maxdepth 1"
+        fi
+        find_cmd+=" -type f -name \"$pattern\""
 
-    # Process files based on recursive flag
-    if $recursive; then
-        for pattern in "$@"; do
-            process_recursive "$pattern"
-        done
-    else
-        for file in "$@"; do
+        eval $find_cmd | while read -r file; do
             process_file "$file"
         done
+    else
+        # If no files specified, use current directory
+        if [[ $# -eq 0 ]]; then
+            for file in *(.); do  # This glob qualifier '(.)' ensures only regular files are matched
+                process_file "$file"
+            done
+        else
+            for file in "$@"; do
+                process_file "$file"
+            done
+        fi
     fi
 
     # Pipe accumulated content to clipboard command or print to terminal
-    if [[ -n $clip_cmd ]]; then
+    if [[ -n $clip_cmd && -n "$all_contents" ]]; then
         echo "$all_contents" | $clip_cmd
         echo "All file contents copied to clipboard."
-    else
+    elif [[ -n "$all_contents" ]]; then
         echo "$all_contents"
+    else
+        echo "No files were processed."
     fi
 }
 
