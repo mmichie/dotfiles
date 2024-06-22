@@ -286,13 +286,18 @@ catfiles() {
     local pattern="*"
     local recursive=false
     local use_find=false
+    local use_json=false
+    local json_output='{}'
+    local temp_file=$(mktemp)
+    local python_script=$(mktemp)
 
     # Parse options
-    while getopts "rp:" opt; do
+    while getopts "rp:j" opt; do
         case ${opt} in
             r ) recursive=true; use_find=true ;;
             p ) pattern=$OPTARG; use_find=true ;;
-            \? ) echo "Usage: catfiles [-r] [-p pattern] [directory or files...]"; return 1 ;;
+            j ) use_json=true ;;
+            \? ) echo "Usage: catfiles [-r] [-p pattern] [-j] [directory or files...]"; return 1 ;;
         esac
     done
     shift $((OPTIND -1))
@@ -318,13 +323,71 @@ catfiles() {
             ;;
     esac
 
+    # Create Python script
+    cat << 'EOF' > "$python_script"
+import json
+import sys
+
+def escape_string(s):
+    return s.encode("unicode_escape").decode("utf-8").replace('"', '\\"')
+
+try:
+    data = json.loads(sys.stdin.read())
+    file_content = sys.argv[1]
+    file_content = escape_string(file_content)
+    file_data = {
+        "filename": sys.argv[2],
+        "relative_path": sys.argv[3],
+        "file_size": sys.argv[4],
+        "last_modified": sys.argv[5],
+        "file_type": sys.argv[6],
+        "line_count": int(sys.argv[7]),
+        "file_extension": sys.argv[8],
+        "md5_checksum": sys.argv[9],
+        "content": file_content
+    }
+    data[sys.argv[3]] = file_data
+    print(json.dumps(data, indent=2))
+except Exception as e:
+    print(json.dumps({"error": str(e)}), file=sys.stderr)
+    sys.exit(1)
+EOF
+
     # Function to process a single file
     process_file() {
         local file="$1"
         if [[ -f "$file" ]]; then
-            all_contents+="\nFilename: $file\n"
-            all_contents+=$(cat "$file" 2>/dev/null && echo "\n\n")
-            echo "Filename: $file added to clipboard content."
+            local file_size=$(du -h "$file" | cut -f1)
+            local last_modified=$(date -r "$file" "+%Y-%m-%d %H:%M:%S")
+            local file_type=$(file -b "$file")
+            local line_count=$(wc -l < "$file")
+            local file_extension="${file##*.}"
+            local relative_path=$(realpath --relative-to="$PWD" "$file")
+            local checksum=$(md5sum "$file" | cut -d' ' -f1)
+            local file_content=$(<"$file")
+
+            if $use_json; then
+                python3 "$python_script" "$file_content" "$file" "$relative_path" "$file_size" "$last_modified" "$file_type" "$line_count" "$file_extension" "$checksum" <<< "$json_output" > "$temp_file"
+                if [ $? -eq 0 ]; then
+                    json_output=$(<"$temp_file")
+                else
+                    echo "Error processing file: $file" >&2
+                    cat "$temp_file" >&2
+                fi
+            else
+                all_contents+="\n--- File Metadata ---\n"
+                all_contents+="Filename: $file\n"
+                all_contents+="Relative Path: $relative_path\n"
+                all_contents+="File Size: $file_size\n"
+                all_contents+="Last Modified: $last_modified\n"
+                all_contents+="File Type: $file_type\n"
+                all_contents+="Line Count: $line_count\n"
+                all_contents+="File Extension: $file_extension\n"
+                all_contents+="MD5 Checksum: $checksum\n"
+                all_contents+="--- File Contents ---\n"
+                all_contents+="$file_content\n\n"
+            fi
+            echo "Filename: $file processed."
         else
             echo "Error: File $file does not exist or is a directory."
         fi
@@ -355,6 +418,11 @@ catfiles() {
         fi
     fi
 
+    # Finalize output
+    if $use_json; then
+        all_contents=$json_output
+    fi
+
     # Pipe accumulated content to clipboard command or print to terminal
     if [[ -n $clip_cmd && -n "$all_contents" ]]; then
         echo "$all_contents" | $clip_cmd
@@ -364,6 +432,9 @@ catfiles() {
     else
         echo "No files were processed."
     fi
+
+    # Clean up
+    rm -f "$temp_file" "$python_script"
 }
 
 # Shell options
