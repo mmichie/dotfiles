@@ -246,6 +246,7 @@ setup_aliases() {
     alias nsa="netstat -an | sed -n '1,/Active UNIX domain sockets/p'"
     alias lsock="sudo /usr/sbin/lsof -i -P"
     alias keypress="read -s -n1 keypress; echo \$keypress"
+    alias loadenv='export $(grep -v "^#" .env | xargs)'
     alias :="cd .."
     alias ::="cd ../.."
     alias :::="cd ../../.."
