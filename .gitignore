@@ -12,3 +12,4 @@ tags
 undo*
 .DS_Store
 bin/bin/fzf
+bin/bin/intu
