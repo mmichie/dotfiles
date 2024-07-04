@@ -116,6 +116,7 @@ setup_environment() {
     setup_editors
     setup_misc
     setup_fzf
+    setup_intu_alias
 }
 
 # Configures system and user paths.
@@ -174,6 +175,77 @@ setup_fzf() {
     fi
 }
 
+setup_intu_alias() {
+    local os_type=$(detect_shell_platform)
+    local arch_type=$(detect_architecture)
+    local platform_cmd="${os_type}-${arch_type}"
+    local intu_cmd
+    local common_intu_link="$HOME/bin/intu"
+
+    case "$platform_cmd" in
+        OSX-x86_64) intu_cmd="$HOME/bin/intu-darwin-amd64" ;;
+        OSX-arm64) intu_cmd="$HOME/bin/intu-darwin-arm64" ;;
+        LINUX-arm64) intu_cmd="$HOME/bin/intu-linux-arm64" ;;
+        LINUX-x86_64) intu_cmd="$HOME/bin/intu-linux-amd64" ;;
+        *) 
+            echo "Unsupported platform for intu: $platform_cmd"
+            return 1
+            ;;
+    esac
+
+    # Check if the specific binary exists and is executable
+    if [[ -n "$intu_cmd" ]] && [[ -x "$intu_cmd" ]]; then
+        # Only create symlink if it does not already exist or points to a different target
+        if [[ ! -L "$common_intu_link" ]] || [[ "$(readlink -- "$common_intu_link")" != "$intu_cmd" ]]; then
+            ln -sf "$intu_cmd" "$common_intu_link"
+        fi
+        alias intu="$common_intu_link"
+        echo "intu alias has been set to use $intu_cmd"
+    else
+        echo "intu binary not found or not executable at $intu_cmd"
+        return 1
+    fi
+}
+
+# Function to set up the clipboard alias
+setup_clipboard_alias() {
+    local os_type=$(detect_shell_platform)
+    local clip_cmd
+
+    case "$os_type" in
+        OSX)
+            clip_cmd="pbcopy"
+            ;;
+        LINUX)
+            if command -v xclip &>/dev/null; then
+                clip_cmd="xclip -selection clipboard"
+            elif command -v xsel &>/dev/null; then
+                clip_cmd="xsel --clipboard --input"
+            elif command -v clip.exe &>/dev/null; then
+                # This is for Windows Subsystem for Linux (WSL)
+                clip_cmd="clip.exe"
+            else
+                echo "No suitable clipboard command found. Please install xclip or xsel."
+                return 1
+            fi
+            ;;
+        CYGWIN)
+            clip_cmd="clip.exe"
+            ;;
+        *)
+            echo "Unsupported operating system for clipboard operations."
+            return 1
+            ;;
+    esac
+
+    if [[ -n "$clip_cmd" ]]; then
+        alias clip="$clip_cmd"
+        echo "Clipboard alias 'clip' has been set to use '$clip_cmd'"
+    else
+        echo "Failed to set clipboard alias."
+        return 1
+    fi
+}
 
 # GOPATH setup
 setup_gopath() {
