@@ -438,7 +438,15 @@ EOF
             local file_extension="${file##*.}"
             local full_path=$(realpath "$file")
             local relative_path=$(echo "$full_path" | sed "s|^$PWD/||")
-            local checksum=$(md5 -q "$file")
+            
+            # Cross-platform MD5 checksum calculation
+            local checksum
+            if [[ "$os_type" == "OSX" ]]; then
+                checksum=$(md5 -q "$file")
+            else
+                checksum=$(md5sum "$file" | cut -d' ' -f1)
+            fi
+            
             local file_content=$(<"$file")
 
             if $use_json; then
