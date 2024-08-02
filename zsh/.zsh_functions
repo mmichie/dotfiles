@@ -403,7 +403,7 @@ import json
 import sys
 
 def escape_string(s):
-    return s.encode("unicode_escape").decode("utf-8").replace('"', '\\"')
+    return s.encode("unicode_escape").decode("utf-8").replace('"', '\"')
 
 try:
     data = json.loads(sys.stdin.read())
@@ -436,8 +436,9 @@ EOF
             local file_type=$(file -b "$file")
             local line_count=$(wc -l < "$file")
             local file_extension="${file##*.}"
-            local relative_path=$(realpath --relative-to="$PWD" "$file")
-            local checksum=$(md5sum "$file" | cut -d' ' -f1)
+            local full_path=$(realpath "$file")
+            local relative_path=$(echo "$full_path" | sed "s|^$PWD/||")
+            local checksum=$(md5 -q "$file")
             local file_content=$(<"$file")
 
             if $use_json; then
@@ -449,17 +450,30 @@ EOF
                     cat "$temp_file" >&2
                 fi
             else
-                all_contents+="\n--- File Metadata ---\n"
-                all_contents+="Filename: $file\n"
-                all_contents+="Relative Path: $relative_path\n"
-                all_contents+="File Size: $file_size\n"
-                all_contents+="Last Modified: $last_modified\n"
-                all_contents+="File Type: $file_type\n"
-                all_contents+="Line Count: $line_count\n"
-                all_contents+="File Extension: $file_extension\n"
-                all_contents+="MD5 Checksum: $checksum\n"
-                all_contents+="--- File Contents ---\n"
-                all_contents+="$file_content\n\n"
+                all_contents+="
+--- File Metadata ---
+"
+                all_contents+="Filename: $file
+"
+                all_contents+="Relative Path: $relative_path
+"
+                all_contents+="File Size: $file_size
+"
+                all_contents+="Last Modified: $last_modified
+"
+                all_contents+="File Type: $file_type
+"
+                all_contents+="Line Count: $line_count
+"
+                all_contents+="File Extension: $file_extension
+"
+                all_contents+="MD5 Checksum: $checksum
+"
+                all_contents+="--- File Contents ---
+"
+                all_contents+="$file_content
+
+"
             fi
             echo "Filename: $file processed."
         else
