@@ -812,13 +812,29 @@ check_last_login() {
 }
 
 check_uptime() {
-    local uptime=$(sysctl -n kern.boottime | awk '{print $4}' | sed 's/,//g')
-    local current_time=$(date +%s)
-    local boot_time=$uptime
-    local uptime=$((current_time - boot_time))
+    local os_type=$(detect_shell_platform)
+    local uptime_str
+
+    case "$os_type" in
+        OSX)
+            local boot_time=$(sysctl -n kern.boottime | awk '{print $4}' | sed 's/,//g')
+            local current_time=$(date +%s)
+            local uptime=$((current_time - boot_time))
+            ;;
+        LINUX)
+            local uptime=$(cat /proc/uptime | awk '{print $1}')
+            uptime=${uptime%.*}  # Remove decimal part
+            ;;
+        *)
+            echo -e "  ${yellow}System Uptime:${reset} Unable to determine on this platform" > /tmp/system_info_uptime
+            return
+            ;;
+    esac
+
     local days=$((uptime / 86400))
     local hours=$(((uptime % 86400) / 3600))
     local minutes=$(((uptime % 3600) / 60))
+
     echo -e "  ${yellow}System Uptime:${reset} ${days} days, ${hours} hours, ${minutes} minutes" > /tmp/system_info_uptime
 }
 
