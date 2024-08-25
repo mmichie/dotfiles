@@ -833,16 +833,23 @@ check_last_login() {
     local last_login
 
     if [[ "$os_type" == "OSX" ]]; then
-        last_login=$(last -1 $USER | awk 'NR==1 { print $3, $4, $5, $6 }')
+        last_login=$(last -1 $USER | awk 'NR==1 { print $3, $4, $5, $6, $7 }')
     elif [[ "$os_type" == "LINUX" ]]; then
         last_login=$(last -1 $USER | awk 'NR==1 {
-            for (i=4; i<=NF; i++) {
-                if ($i ~ /:[0-9]+/) {
-                    print $3, $4, $5, $6, $7
+            for (i=1; i<=NF; i++) {
+                if ($i ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) {
+                    printf "%s ", $i  # Print IP address
+                    for (j=i+1; j<=NF; j++) {
+                        if ($j ~ /:[0-9]+/) {
+                            printf "%s %s %s %s", $(j-3), $(j-2), $(j-1), $j
+                            exit
+                        }
+                    }
+                    printf "%s %s %s", $(NF-2), $(NF-1), $NF
                     exit
                 }
             }
-            print $3, $4, $5, $6
+            print $3, $4, $5, $6, $7  # Fallback if no IP is found
         }')
     else
         last_login="Unable to determine on this platform"
