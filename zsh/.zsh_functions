@@ -765,13 +765,25 @@ check_cron_job() {
 }
 
 check_system_load() {
-    local load=$(uptime | awk -F'[a-z]:' '{ print $2 }' | awk -F',' '{print $1}' | tr -d ' ')
-    local cores=$(sysctl -n hw.ncpu 2>/dev/null || echo 1)
-    local load_per_core=$(echo "scale=2; $load / $cores" | bc -l 2>/dev/null)
-    if (( $(echo "$load_per_core > 1" | bc -l 2>/dev/null) )); then
-        echo -e "  ${yellow}System Load:${reset} $load ${red}(High load, investigate)${reset}" > /tmp/system_info_load
+    local os_type=$(detect_shell_platform)
+    local load
+    local cores
+    local load_per_core
+
+    if [[ "$os_type" == "OSX" ]]; then
+        load=$(sysctl -n vm.loadavg | awk '{print $2}')
+        cores=$(sysctl -n hw.ncpu)
     else
-        echo -e "  ${yellow}System Load:${reset} $load" > /tmp/system_info_load
+        load=$(uptime | awk -F'[a-z]:' '{ print $2 }' | awk -F',' '{print $1}' | tr -d ' ')
+        cores=$(nproc 2>/dev/null || echo 1)
+    fi
+
+    load_per_core=$(echo "scale=2; $load / $cores" | bc -l 2>/dev/null)
+
+    if (( $(echo "$load_per_core > 1" | bc -l 2>/dev/null) )); then
+        echo -e "  ${yellow}System Load:${reset} $load (${load_per_core} per core) ${red}(High load, investigate)${reset}" > /tmp/system_info_load
+    else
+        echo -e "  ${yellow}System Load:${reset} $load (${load_per_core} per core)" > /tmp/system_info_load
     fi
 }
 
