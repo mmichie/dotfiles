@@ -835,7 +835,15 @@ check_last_login() {
     if [[ "$os_type" == "OSX" ]]; then
         last_login=$(last -1 $USER | awk 'NR==1 { print $3, $4, $5, $6 }')
     elif [[ "$os_type" == "LINUX" ]]; then
-        last_login=$(last -1 $USER | awk 'NR==1 { print $3, $4, $5, $6, $7 }')
+        last_login=$(last -1 $USER | awk 'NR==1 {
+            for (i=4; i<=NF; i++) {
+                if ($i ~ /:[0-9]+/) {
+                    print $3, $4, $5, $6, $7
+                    exit
+                }
+            }
+            print $3, $4, $5, $6
+        }')
     else
         last_login="Unable to determine on this platform"
     fi
