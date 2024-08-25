@@ -814,12 +814,32 @@ check_disk_usage() {
 }
 
 check_ip_address() {
-    local ip_address=$(ipconfig getifaddr en0)
+    local os_type=$(detect_shell_platform)
+    local ip_address
+
+    if [[ "$os_type" == "OSX" ]]; then
+        ip_address=$(ipconfig getifaddr en0)
+    elif [[ "$os_type" == "LINUX" ]]; then
+        ip_address=$(ip route get 1 | awk '{print $7; exit}')
+    else
+        ip_address="Unable to determine on this platform"
+    fi
+
     echo -e "  ${yellow}IP Address:${reset} $ip_address" > /tmp/system_info_ip
 }
 
 check_last_login() {
-    local last_login=$(last -1 $USER | awk 'NR==1 { print $3, $4, $5, $6 }')
+    local os_type=$(detect_shell_platform)
+    local last_login
+
+    if [[ "$os_type" == "OSX" ]]; then
+        last_login=$(last -1 $USER | awk 'NR==1 { print $3, $4, $5, $6 }')
+    elif [[ "$os_type" == "LINUX" ]]; then
+        last_login=$(last -1 $USER | awk 'NR==1 { print $3, $4, $5, $6, $7 }')
+    else
+        last_login="Unable to determine on this platform"
+    fi
+
     echo -e "  ${yellow}Last Login:${reset} $last_login" > /tmp/system_info_login
 }
 
