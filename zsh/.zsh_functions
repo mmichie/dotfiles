@@ -276,6 +276,13 @@ setup_platform_specific() {
             if [[ -r "$HOME/.iterm2_shell_integration.zsh" ]]; then
                 source "$HOME/.iterm2_shell_integration.zsh"
             fi
+
+            # Set up JAVA_HOME for Homebrew-installed openjdk@17 on macOS
+            local brew_java_home="$(/opt/homebrew/bin/brew --prefix openjdk@17)"
+            if [[ -d "$brew_java_home" ]]; then
+                export JAVA_HOME="$brew_java_home"
+                path=($JAVA_HOME/bin $path)
+            fi
             ;;
         LINUX)
             export NO_AT_BRIDGE=1
