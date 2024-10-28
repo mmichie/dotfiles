@@ -316,6 +316,7 @@ docker_cleanup() {
 
 # Aliases
 setup_aliases() {
+    alias history="history 1" # behave more like bash
     alias gclean="git_cleanup"
     alias dclean="docker_cleanup"
     alias grep="grep --color=auto -d skip"
