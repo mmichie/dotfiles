@@ -689,14 +689,12 @@ notify_shell_status() {
     # Temporarily disable job control messages
     set +m
 
-    echo -e "${bold}${blue}+------------------------------------------+${reset}"
-    echo -e "${bold}${blue}|                                          |${reset}"
-    echo -e "${bold}${blue}|        ${yellow}Welcome to My Enhanced Shell${reset}${bold}${blue}      |${reset}"
-    echo -e "${bold}${blue}|                                          |${reset}"
-    echo -e "${bold}${blue}+------------------------------------------+${reset}"
-    echo
+    echo -e "${bold}${blue}═══════════════════════════════════════════════════════════════════${reset}"
+    echo -e "${bold}${yellow}                     -[ influx 2024 ]-                         ${reset}"
+    echo -e "${bold}${blue}═══════════════════════════════════════════════════════════════════${reset}"
 
-    # Run checks in parallel
+
+    # Rest of the function remains the same
     check_new_mail &>/dev/null &
     check_ssh_agent &>/dev/null &
     check_fzf_setup &>/dev/null &
@@ -708,10 +706,6 @@ notify_shell_status() {
     check_last_login &>/dev/null &
     check_uptime &>/dev/null &
     check_cpu_temperature &>/dev/null &
-    #check_disk_health &>/dev/null &
-    #check_network_status &>/dev/null &
-    #check_system_updates &>/dev/null &
-    #check_security &>/dev/null &
 
     # Wait for all background jobs to finish
     wait
