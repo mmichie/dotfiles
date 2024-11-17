@@ -689,10 +689,19 @@ notify_shell_status() {
     # Temporarily disable job control messages
     set +m
 
-    echo -e "${bold}${blue}═══════════════════════════════════════════════════════════════════${reset}"
-    echo -e "${bold}${yellow}                     -[ influx 2024 ]-                         ${reset}"
-    echo -e "${bold}${blue}═══════════════════════════════════════════════════════════════════${reset}"
-
+    # ASCII Art Banner with fixed spacing
+    echo -e "${bold}${blue}▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄${reset}"
+    echo -e "${bold}${blue}█                                                             █${reset}"
+    echo -e "${bold}${blue}█${reset}    ${yellow}██╗███╗   ██╗███████╗██╗     ██╗   ██╗██╗  ██╗           ${bold}${blue}█${reset}"
+    echo -e "${bold}${blue}█${reset}    ${yellow}██║████╗  ██║██╔════╝██║     ██║   ██║╚██╗██╔╝           ${bold}${blue}█${reset}"
+    echo -e "${bold}${blue}█${reset}    ${yellow}██║██╔██╗ ██║█████╗  ██║     ██║   ██║ ╚███╔╝            ${bold}${blue}█${reset}"
+    echo -e "${bold}${blue}█${reset}    ${yellow}██║██║╚██╗██║██╔══╝  ██║     ██║   ██║ ██╔██╗            ${bold}${blue}█${reset}"
+    echo -e "${bold}${blue}█${reset}    ${yellow}██║██║ ╚████║██║     ███████╗╚██████╔╝██╔╝ ██╗           ${bold}${blue}█${reset}"
+    echo -e "${bold}${blue}█${reset}    ${yellow}╚═╝╚═╝  ╚═══╝╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝           ${bold}${blue}█${reset}"
+    echo -e "${bold}${blue}█                                                             █${reset}"
+    echo -e "${bold}${blue}█${reset}                      [ 2 0 2 4 ]                            ${bold}${blue}█${reset}"
+    echo -e "${bold}${blue}█                                                             █${reset}"
+    echo -e "${bold}${blue}▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀${reset}"
 
     # Rest of the function remains the same
     check_new_mail &>/dev/null &
