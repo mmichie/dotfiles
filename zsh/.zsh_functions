@@ -682,65 +682,174 @@ notify_cross_platform() {
     fi
 }
 
+# Define shell status notification function
 notify_shell_status() {
-    local title="Shell and System Status"
+    # Check if gum is installed
+    if ! command -v gum &> /dev/null; then
+        echo "Error: gum is not installed. Please install it first:"
+        echo "brew install gum  # for macOS"
+        echo "sudo apt install gum  # for Ubuntu/Debian"
+        return 1
+    fi
+
+    # Enable null glob to prevent errors when no files match
+    setopt local_options null_glob
+
+    # Run all system checks in background using zsh
+    gum spin --spinner dot --title "Running system checks..." -- zsh -c '
+        # Enable required ZSH options
+        setopt LOCAL_OPTIONS NULL_GLOB NO_MONITOR
+
+        check_new_mail &>/dev/null &
+        check_ssh_agent &>/dev/null &
+        check_fzf_setup &>/dev/null &
+        check_cron_job &>/dev/null &
+        check_system_load &>/dev/null &
+        check_memory_usage &>/dev/null &
+        check_disk_usage &>/dev/null &
+        check_ip_address &>/dev/null &
+        check_last_login &>/dev/null &
+        check_uptime &>/dev/null &
+        check_cpu_temperature &>/dev/null &
+        check_disk_health &>/dev/null &
+        check_network_status &>/dev/null &
+        check_security &>/dev/null &
+        wait
+    '
+
+    # ASCII Logo using gum style
+    gum style \
+        --align center \
+        --width 70 \
+        --border double \
+        --margin "1" \
+        --padding "1" \
+        --foreground 212 \
+"██╗███╗   ██╗███████╗██╗     ██╗   ██╗██╗  ██╗
+██║████╗  ██║██╔════╝██║     ██║   ██║╚██╗██╔╝
+██║██╔██╗ ██║█████╗  ██║     ██║   ██║ ╚███╔╝ 
+██║██║╚██╗██║██╔══╝  ██║     ██║   ██║ ██╔██╗ 
+██║██║ ╚████║██║     ███████╗╚██████╔╝██╔╝ ██╗
+╚═╝╚═╝  ╚═══╝╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝" \
+        "$(gum style --foreground 99 '[ 2 0 2 4 ]')"
+
+    # Function to display a section with safe glob handling
+    display_section() {
+        local title="$1"
+        local pattern="$2"
+        local content=""
+        local files=()
+
+        # Safely collect matching files
+        files=($pattern(N))  # (N) modifier makes the glob return an empty list if no matches
+
+        # If we have matching files, process them
+        if (( ${#files} > 0 )); then
+            for file in $files; do
+                if [[ -f "$file" ]]; then
+                    content+="$(<"$file")"$'\n'
+                fi
+            done
+        fi
+
+        if [[ -n "$content" ]]; then
+            gum style \
+                --width 70 \
+                --border normal \
+                --margin "1 0" \
+                --padding "1" \
+                "$(gum style --bold --foreground 212 "$title")" \
+                "$content"
+        fi
+    }
+
+    # Display system information divider
+    gum style \
+        --align center \
+        --width 70 \
+        --foreground 99 \
+        "░█▀▄ Terminal Underground Division ▄▀█░" \
+        "────────────────────────────────────" \
+        "P.R.E.S.E.N.T.S $(date +%Y-%m-%d)" \
+        ""
+
+    # Get CPU and Memory Info based on platform
     local os_type=$(detect_shell_platform)
+    local arch_type=$(detect_architecture)
+    local cpu_info=""
+    local memory_info=""
+    local memory_usage=""
+    local cpu_cores=""
+    local cpu_load=""
 
-    # Temporarily disable job control messages
-    set +m
+    case "$os_type" in
+        OSX)
+            cpu_info=$(sysctl -n machdep.cpu.brand_string)
+            memory_info="$(($(sysctl -n hw.memsize) / 1024 / 1024))MB"
+            memory_usage=$(vm_stat | awk '
+                /Pages active/ {active=$3}
+                /Pages wired/ {wired=$3}
+                /Pages occupied/ {occupied=$3}
+                END {
+                    used=(active + wired + occupied) * 4096
+                    total='$(sysctl -n hw.memsize)'
+                    printf "%.1f%%", used/total*100
+                }' | sed 's/\.0%/%/')
+            cpu_cores=$(sysctl -n hw.ncpu)
+            cpu_load=$(sysctl -n vm.loadavg | awk '{printf "%.1f", $2}')
+            ;;
+        LINUX)
+            cpu_info=$(grep "model name" /proc/cpuinfo | head -1 | cut -d':' -f2 | sed 's/^[ \t]*//')
+            memory_info="$(($(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024))MB"
+            memory_usage=$(free | awk '/Mem:/ {printf "%.1f%%", $3/$2 * 100}')
+            cpu_cores=$(nproc)
+            cpu_load=$(uptime | awk -F'[a-z]:' '{print $2}' | awk -F',' '{printf "%.1f", $1}')
+            ;;
+        *)
+            cpu_info="Unknown CPU"
+            memory_info="Unknown Memory"
+            memory_usage="Unknown"
+            cpu_cores="Unknown"
+            cpu_load="Unknown"
+            ;;
+    esac
 
-    # ASCII Art Banner with fixed spacing
-    echo -e "${bold}${blue}▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄${reset}"
-    echo -e "${bold}${blue}█                                                             █${reset}"
-    echo -e "${bold}${blue}█${reset}    ${yellow}██╗███╗   ██╗███████╗██╗     ██╗   ██╗██╗  ██╗           ${bold}${blue}█${reset}"
-    echo -e "${bold}${blue}█${reset}    ${yellow}██║████╗  ██║██╔════╝██║     ██║   ██║╚██╗██╔╝           ${bold}${blue}█${reset}"
-    echo -e "${bold}${blue}█${reset}    ${yellow}██║██╔██╗ ██║█████╗  ██║     ██║   ██║ ╚███╔╝            ${bold}${blue}█${reset}"
-    echo -e "${bold}${blue}█${reset}    ${yellow}██║██║╚██╗██║██╔══╝  ██║     ██║   ██║ ██╔██╗            ${bold}${blue}█${reset}"
-    echo -e "${bold}${blue}█${reset}    ${yellow}██║██║ ╚████║██║     ███████╗╚██████╔╝██╔╝ ██╗           ${bold}${blue}█${reset}"
-    echo -e "${bold}${blue}█${reset}    ${yellow}╚═╝╚═╝  ╚═══╝╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝           ${bold}${blue}█${reset}"
-    echo -e "${bold}${blue}█                                                             █${reset}"
-    echo -e "${bold}${blue}█${reset}                      [ 2 0 2 4 ]                            ${bold}${blue}█${reset}"
-    echo -e "${bold}${blue}█                                                             █${reset}"
-    echo -e "${bold}${blue}▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀${reset}"
+    # System Information with CPU and Memory details
+    gum style \
+        --width 70 \
+        --border normal \
+        --margin "1 0" \
+        --padding "1" \
+        "$(gum style --bold --foreground 212 'SYSTEM INFO')" \
+        "$(gum style --foreground 99 "×þ System     [ $(uname -s) ]")" \
+        "$(gum style --foreground 99 "×þ Platform   [ $os_type ]")" \
+        "$(gum style --foreground 99 "×þ Arch       [ $arch_type ]")" \
+        "$(gum style --foreground 99 "×þ Release    [ $(date +%Y-%m-%d) ]")" \
+        "$(gum style --foreground 99 "×þ CPU        [ $cpu_info ]")" \
+        "$(gum style --foreground 99 "×þ Cores      [ $cpu_cores ]")" \
+        "$(gum style --foreground 99 "×þ Load       [ $cpu_load ]")" \
+        "$(gum style --foreground 99 "×þ Memory     [ $memory_info ]")" \
+        "$(gum style --foreground 99 "×þ Mem Usage  [ $memory_usage ]")"
 
-    # Rest of the function remains the same
-    check_new_mail &>/dev/null &
-    check_ssh_agent &>/dev/null &
-    check_fzf_setup &>/dev/null &
-    check_cron_job &>/dev/null &
-    check_system_load &>/dev/null &
-    check_memory_usage &>/dev/null &
-    check_disk_usage &>/dev/null &
-    check_ip_address &>/dev/null &
-    check_last_login &>/dev/null &
-    check_uptime &>/dev/null &
-    check_cpu_temperature &>/dev/null &
+    # Display sections using gum
+    display_section "SYSTEM STATUS" "/tmp/shell_status_*"
+    display_section "DIAGNOSTICS" "/tmp/system_info_*"
+    display_section "HEALTH CHECK" "/tmp/health_check_*"
 
-    # Wait for all background jobs to finish
-    wait
+    # Display recommendations if there are any critical issues
+    local recommendations="$(provide_recommendations)"
+    if [[ -n "$recommendations" ]]; then
+        gum style \
+            --width 70 \
+            --border normal \
+            --margin "1 0" \
+            --padding "1" \
+            "$(gum style --bold --foreground 212 'RECOMMENDATIONS')" \
+            "$recommendations"
+    fi
 
-    # Display results
-    echo -e "${bold}${green}Shell Status:${reset}"
-    cat /tmp/shell_status_* 2>/dev/null
-    echo
-
-    echo -e "${bold}${green}System Information:${reset}"
-    cat /tmp/system_info_* 2>/dev/null
-    echo
-
-    echo -e "${bold}${green}System Health Checks:${reset}"
-    cat /tmp/health_check_* 2>/dev/null
-    echo
-
-    # Recommendations
-    echo -e "${bold}${green}Recommendations:${reset}"
-    provide_recommendations
-
-    # Clean up temporary files
-    rm /tmp/shell_status_* /tmp/system_info_* /tmp/health_check_* 2>/dev/null
-
-    # Re-enable job control messages
-    set -m
+    # Safe cleanup of temporary files
+    rm -f /tmp/shell_status_* /tmp/system_info_* /tmp/health_check_* 2>/dev/null || true
 }
 
 check_new_mail() {
