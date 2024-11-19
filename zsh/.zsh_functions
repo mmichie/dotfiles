@@ -717,6 +717,7 @@ notify_shell_status() {
         wait
     '
 
+
     # ASCII Logo using gum style
     gum style \
         --align center \
@@ -725,13 +726,16 @@ notify_shell_status() {
         --margin "1" \
         --padding "1" \
         --foreground 212 \
-"██╗███╗   ██╗███████╗██╗     ██╗   ██╗██╗  ██╗
-██║████╗  ██║██╔════╝██║     ██║   ██║╚██╗██╔╝
-██║██╔██╗ ██║█████╗  ██║     ██║   ██║ ╚███╔╝ 
-██║██║╚██╗██║██╔══╝  ██║     ██║   ██║ ██╔██╗ 
-██║██║ ╚████║██║     ███████╗╚██████╔╝██╔╝ ██╗
-╚═╝╚═╝  ╚═══╝╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝" \
-        "$(gum style --foreground 99 '[ 2 0 2 4 ]')"
+"░▒▓█▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█▓▒░
+░▒▓█  ▄█ █▄  █ ▄▀▀▀▀█ █      █   █ ▀▄  ▄▀  █▓▒░
+░▒▓█   █ █ █ █ █▄▄▄▄  █      █   █  ▀▄▄▀   █▓▒░
+░▒▓█   █ █ █ █ █      █      █   █   ▄▀▄   █▓▒░
+░▒▓█  ▄█ █  ██ █      █▄▄▄▄  █▄▄▄█ ▄▀  ▀▄  █▓▒░
+░▒▓█▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█▓▒░
+  ╔═-» [ Terminal Underground Division ] «-═╗
+  ║    [×] proudly serving the scene [×]    ║
+  ╚════-» [ fido.net.scene.2024.MAIN ] «-═══╝" \
+      "$(gum style --foreground 99 'DISTRIBUTION NODE: 4:920/35')"
 
     # Function to display a section with safe glob handling
     display_section() {
