@@ -682,43 +682,54 @@ notify_cross_platform() {
     fi
 }
 
-# Define shell status notification function
 notify_shell_status() {
-    # Check if gum is installed
-    if ! command -v gum &> /dev/null; then
-        echo "Error: gum is not installed. Please install it first:"
-        echo "brew install gum  # for macOS"
-        echo "sudo apt install gum  # for Ubuntu/Debian"
-        return 1
-    fi
+    # Temporarily disable job notifications
+    setopt local_options NO_NOTIFY NO_MONITOR
 
-    # Enable null glob to prevent errors when no files match
-    setopt local_options null_glob
+    # Get platform info first since we need it immediately
+    local os_type=$(detect_shell_platform)
+    local arch_type=$(detect_architecture)
+    local cpu_info=""
+    local memory_info=""
+    local memory_usage=""
+    local cpu_cores=""
+    local cpu_load=""
 
-    # Run all system checks in background using zsh
-    gum spin --spinner dot --title "Running system checks..." -- zsh -c '
-        # Enable required ZSH options
-        setopt LOCAL_OPTIONS NULL_GLOB NO_MONITOR
+    # Start system info gathering in background with output redirection
+    {
+        case "$os_type" in
+            OSX)
+                cpu_info=$(sysctl -n machdep.cpu.brand_string)
+                memory_info=$(($(sysctl -n hw.memsize) / 1024 / 1024))"MB"
+                memory_usage=$(vm_stat | awk '
+                    /Pages active/ {active=$3}
+                    /Pages wired/ {wired=$3}
+                    /Pages occupied/ {occupied=$3}
+                    END {
+                        used=(active + wired + occupied) * 4096
+                        total='$(sysctl -n hw.memsize)'
+                        printf "%.1f%%", used/total*100
+                    }' | sed 's/\.0%/%/')
+                cpu_cores=$(sysctl -n hw.ncpu)
+                cpu_load=$(sysctl -n vm.loadavg | awk '{printf "%.1f", $2}')
+                ;;
+            LINUX)
+                cpu_info=$(grep "model name" /proc/cpuinfo | head -1 | cut -d':' -f2 | sed 's/^[ \t]*//')
+                memory_info=$(($(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024))"MB"
+                memory_usage=$(free | awk '/Mem:/ {printf "%.1f%%", $3/$2 * 100}')
+                cpu_cores=$(nproc)
+                cpu_load=$(uptime | awk -F'[a-z]:' '{print $2}' | awk -F',' '{printf "%.1f", $1}')
+                ;;
+        esac
+        # Store results in temporary files
+        echo "$cpu_info" > /tmp/cpu_info.$$
+        echo "$memory_info" > /tmp/memory_info.$$
+        echo "$memory_usage" > /tmp/memory_usage.$$
+        echo "$cpu_cores" > /tmp/cpu_cores.$$
+        echo "$cpu_load" > /tmp/cpu_load.$$
+    } >/dev/null 2>&1 &
 
-        check_new_mail &>/dev/null &
-        check_ssh_agent &>/dev/null &
-        check_fzf_setup &>/dev/null &
-        check_cron_job &>/dev/null &
-        check_system_load &>/dev/null &
-        check_memory_usage &>/dev/null &
-        check_disk_usage &>/dev/null &
-        check_ip_address &>/dev/null &
-        check_last_login &>/dev/null &
-        check_uptime &>/dev/null &
-        check_cpu_temperature &>/dev/null &
-        check_disk_health &>/dev/null &
-        check_network_status &>/dev/null &
-        check_security &>/dev/null &
-        wait
-    '
-
-
-    # ASCII Logo using gum style
+    # Display ASCII logo while gathering info
     gum style \
         --align center \
         --width 70 \
@@ -737,88 +748,20 @@ notify_shell_status() {
   ╚════-» [ fido.net.scene.2024.MAIN ] «-═══╝" \
       "$(gum style --foreground 99 'DISTRIBUTION NODE: 4:920/35')"
 
-    # Function to display a section with safe glob handling
-    display_section() {
-        local title="$1"
-        local pattern="$2"
-        local content=""
-        local files=()
+    # Wait for background process to complete
+    wait >/dev/null 2>&1
 
-        # Safely collect matching files
-        files=($pattern(N))  # (N) modifier makes the glob return an empty list if no matches
+    # Read the gathered information
+    cpu_info=$(cat /tmp/cpu_info.$$ 2>/dev/null)
+    memory_info=$(cat /tmp/memory_info.$$ 2>/dev/null)
+    memory_usage=$(cat /tmp/memory_usage.$$ 2>/dev/null)
+    cpu_cores=$(cat /tmp/cpu_cores.$$ 2>/dev/null)
+    cpu_load=$(cat /tmp/cpu_load.$$ 2>/dev/null)
 
-        # If we have matching files, process them
-        if (( ${#files} > 0 )); then
-            for file in $files; do
-                if [[ -f "$file" ]]; then
-                    content+="$(<"$file")"$'\n'
-                fi
-            done
-        fi
+    # Clean up temporary files
+    rm -f /tmp/cpu_info.$$ /tmp/memory_info.$$ /tmp/memory_usage.$$ /tmp/cpu_cores.$$ /tmp/cpu_load.$$ 2>/dev/null
 
-        if [[ -n "$content" ]]; then
-            gum style \
-                --width 70 \
-                --border normal \
-                --margin "1 0" \
-                --padding "1" \
-                "$(gum style --bold --foreground 212 "$title")" \
-                "$content"
-        fi
-    }
-
-    # Display system information divider
-    gum style \
-        --align center \
-        --width 70 \
-        --foreground 99 \
-        "░█▀▄ Terminal Underground Division ▄▀█░" \
-        "────────────────────────────────────" \
-        "P.R.E.S.E.N.T.S $(date +%Y-%m-%d)" \
-        ""
-
-    # Get CPU and Memory Info based on platform
-    local os_type=$(detect_shell_platform)
-    local arch_type=$(detect_architecture)
-    local cpu_info=""
-    local memory_info=""
-    local memory_usage=""
-    local cpu_cores=""
-    local cpu_load=""
-
-    case "$os_type" in
-        OSX)
-            cpu_info=$(sysctl -n machdep.cpu.brand_string)
-            memory_info="$(($(sysctl -n hw.memsize) / 1024 / 1024))MB"
-            memory_usage=$(vm_stat | awk '
-                /Pages active/ {active=$3}
-                /Pages wired/ {wired=$3}
-                /Pages occupied/ {occupied=$3}
-                END {
-                    used=(active + wired + occupied) * 4096
-                    total='$(sysctl -n hw.memsize)'
-                    printf "%.1f%%", used/total*100
-                }' | sed 's/\.0%/%/')
-            cpu_cores=$(sysctl -n hw.ncpu)
-            cpu_load=$(sysctl -n vm.loadavg | awk '{printf "%.1f", $2}')
-            ;;
-        LINUX)
-            cpu_info=$(grep "model name" /proc/cpuinfo | head -1 | cut -d':' -f2 | sed 's/^[ \t]*//')
-            memory_info="$(($(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024))MB"
-            memory_usage=$(free | awk '/Mem:/ {printf "%.1f%%", $3/$2 * 100}')
-            cpu_cores=$(nproc)
-            cpu_load=$(uptime | awk -F'[a-z]:' '{print $2}' | awk -F',' '{printf "%.1f", $1}')
-            ;;
-        *)
-            cpu_info="Unknown CPU"
-            memory_info="Unknown Memory"
-            memory_usage="Unknown"
-            cpu_cores="Unknown"
-            cpu_load="Unknown"
-            ;;
-    esac
-
-    # System Information with CPU and Memory details
+    # Display system information with gathered values
     gum style \
         --width 70 \
         --border normal \
@@ -835,25 +778,35 @@ notify_shell_status() {
         "$(gum style --foreground 99 "×þ Memory     [ $memory_info ]")" \
         "$(gum style --foreground 99 "×þ Mem Usage  [ $memory_usage ]")"
 
-    # Display sections using gum
-    display_section "SYSTEM STATUS" "/tmp/shell_status_*"
-    display_section "DIAGNOSTICS" "/tmp/system_info_*"
-    display_section "HEALTH CHECK" "/tmp/health_check_*"
-
-    # Display recommendations if there are any critical issues
-    local recommendations="$(provide_recommendations)"
-    if [[ -n "$recommendations" ]]; then
+    # Show recommendations for critical issues
+    if [[ "${memory_usage%\%}" -gt 90 || $(echo "$cpu_load > $cpu_cores" | bc -l) -eq 1 ]]; then
         gum style \
             --width 70 \
             --border normal \
             --margin "1 0" \
             --padding "1" \
             "$(gum style --bold --foreground 212 'RECOMMENDATIONS')" \
-            "$recommendations"
+            "$(provide_quick_recommendations)"
+    fi
+}
+
+# Recommendations function remains the same
+provide_quick_recommendations() {
+    local recommendations=()
+    
+    if [[ "${memory_usage%\%}" -gt 90 ]]; then
+        recommendations+=("- High memory usage detected. Consider closing unnecessary applications.")
+    fi
+    
+    if [[ $(echo "$cpu_load > $cpu_cores" | bc -l) -eq 1 ]]; then
+        recommendations+=("- High CPU load detected. Check for resource-intensive processes.")
     fi
 
-    # Safe cleanup of temporary files
-    rm -f /tmp/shell_status_* /tmp/system_info_* /tmp/health_check_* 2>/dev/null || true
+    if [[ ${#recommendations[@]} -gt 0 ]]; then
+        printf "%s\n" "${recommendations[@]}"
+    else
+        echo "  Your system appears to be in good health. No specific recommendations at this time."
+    fi
 }
 
 check_new_mail() {
