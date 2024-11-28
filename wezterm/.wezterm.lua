@@ -7,6 +7,14 @@ local c = wezterm.config_builder()
 c.font = wezterm.font("Inconsolata for Powerline", {weight="Medium", stretch="Normal", style="Normal"})
 c.font_size = 18
 
+wezterm.on("update-status", function(window, pane)
+  local status = wezterm.format({
+    { Foreground = { Color = "#94e2d5" }},
+    { Text = "  " .. wezterm.strftime("%H:%M") },
+  })
+  window:set_right_status(status)
+end)
+
 -- config.color_scheme = '3024 Night'
 -- config.color_scheme = 'Deep'
 -- config.color_scheme = 'CGA'
