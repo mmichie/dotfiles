@@ -15,6 +15,20 @@ wezterm.on("update-status", function(window, pane)
   window:set_right_status(status)
 end)
 
+-- Right status with time/date
+wezterm.on("update-status", function(window, pane)
+  local date = wezterm.strftime(" %R  %d %b ")
+  local status = {
+    { Background = { Color = "#1c1c1c" }},
+    { Foreground = { Color = "#0087ff" }},
+    { Text = utf8.char(0xe0b2) },
+    { Background = { Color = "#0087ff" }},
+    { Foreground = { Color = "#000000" }},
+    { Text = date },
+  }
+  window:set_right_status(wezterm.format(status))
+end)
+
 -- config.color_scheme = '3024 Night'
 -- config.color_scheme = 'Deep'
 -- config.color_scheme = 'CGA'
