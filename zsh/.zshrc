@@ -79,3 +79,6 @@ setup_pyenv
 [[ -x "$HOME/bin/fzf" ]] && source <("$HOME/bin/fzf" --zsh)
 
 notify_shell_status
+
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd osc7_cwd
