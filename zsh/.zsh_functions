@@ -1040,3 +1040,10 @@ provide_recommendations() {
         echo -e "  ${green}Your system appears to be in good health. No specific recommendations at this time.${reset}"
     fi
 }
+
+# OSC 7 directory tracking
+osc7_cwd() {
+    local hostname=${HOST:-$(hostname)}
+    local url="file://${hostname}${PWD}"
+    printf '\e]7;%s\a' "${url}"
+}
