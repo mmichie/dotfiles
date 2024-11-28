@@ -35,4 +35,48 @@ c.freetype_render_target = "HorizontalLcd"
 c.font_rasterizer = "FreeType"  -- Using FreeType for rendering
 c.adjust_window_size_when_changing_font_size = false
 
+-- Tab bar customization
+c.use_fancy_tab_bar = false  -- Use the retro style tab bar
+c.colors = {
+  tab_bar = {
+    -- The color of the strip that goes along the top of the window
+    background = '#0b0022',
+
+    -- Active tab styling
+    active_tab = {
+      bg_color = '#2b2042',
+      fg_color = '#c0c0c0',
+      intensity = 'Normal',
+      underline = 'None',
+      italic = false,
+    },
+
+    -- Inactive tabs styling
+    inactive_tab = {
+      bg_color = '#1b1032',
+      fg_color = '#808080',
+    },
+
+    -- Hover state for inactive tabs
+    inactive_tab_hover = {
+      bg_color = '#3b3052',
+      fg_color = '#909090',
+      italic = true,
+    },
+
+    -- New tab button styling
+    new_tab = {
+      bg_color = '#1b1032',
+      fg_color = '#808080',
+    },
+
+    -- Hover state for new tab button
+    new_tab_hover = {
+      bg_color = '#3b3052',
+      fg_color = '#909090',
+      italic = true,
+    },
+  },
+}
+
 return c
