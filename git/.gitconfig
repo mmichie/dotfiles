@@ -1,26 +1,46 @@
-# This is Git's per-user configuration file.
 [user]
-    useConfigOnly = true
-	email = mmichie@gmail.com
 	name = Matt Michie
-	signingkey = 2A961D23DBF02A06
+	email = mmichie@gmail.com
+	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEUwxYQhqytNcE3C2yjoY67vOZcSDEX+o2kWXBPznRNq
 
-[credential]
-    helper = osxkeychain
-
-[alias]
-    graph = log --branches --pretty=short --decorate --graph
+[core]
+	excludesfile = /Users/mim/.gitignore_global
+	hooksPath = /Users/mim/.git-hooks
+	pager = ~/bin/diff-so-fancy/diff-so-fancy | less --tabs=4 -RFX
 
 [color]
-    branch = on
-    diff = on
-    interactive = on
-    status = on
+	branch = on
+	diff = on
+	interactive = on
+	status = on
 
-[alias]
-    history = log --stat --patch --
+[gpg]
+	format = ssh
+
+[gpg "ssh"]
+	program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
+
+[commit]
+	gpgsign = true
 
 [push]
-	default = tracking
-[core]
-    pager = ~/bin/diff-so-fancy/diff-so-fancy | less --tabs=4 -RFX
+	autoSetupRemote = true
+
+[diff "nodiff"]
+	command = /usr/bin/true
+
+[alias]
+        ai-commit = "!f() { \
+                git diff --staged | intu commit --provider claude > .git/COMMIT_EDITMSG && \
+                git commit -t .git/COMMIT_EDITMSG; \
+        }; f"
+	graph = log --branches --pretty=short --decorate --graph
+	history = log --stat --patch --
+
+[difftool "sourcetree"]
+	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
+	path = 
+
+[mergetool "sourcetree"]
+	cmd = /Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
+	trustExitCode = true
