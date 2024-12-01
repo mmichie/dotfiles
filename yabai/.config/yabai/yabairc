@@ -26,7 +26,7 @@ yabai -m rule --add app="^WezTerm$" space=1
 yabai -m rule --add app="^iTerm2$" space=1
 
 # Workspace 2 - Browser
-yabai -m rule --add app="^Google Chrome$" space=2
+yabai -m rule --add app="^Google Chrome$" space=2 sticky=off
 
 # Workspace 3 - Development
 yabai -m rule --add app="^IntelliJ IDEA$" space=3
@@ -37,6 +37,12 @@ yabai -m rule --add app="^DataGrip$" space=3
 yabai -m rule --add app="^Signal$" space=4
 yabai -m rule --add app="^Discord$" space=4
 yabai -m rule --add app="^Messages$" space=4
+
+# Float settings for specific apps
+yabai -m rule --add app="^Preview$" manage=off
+yabai -m rule --add app="^QuickTime Player$" manage=off
+yabai -m rule --add title="^Preferences$" manage=off
+yabai -m rule --add app="^Finder$" manage=off
 
 # Padding
 yabai -m config top_padding 0
