@@ -4,10 +4,10 @@ after-startup-command = []
 start-at-login = true
 
 # DWM-like window management behavior
-enable-normalization-flatten-containers = true
+enable-normalization-flatten-containers = false
 enable-normalization-opposite-orientation-for-nested-containers = true
 
-# DWM uses master-stack layout by default
+# DWM master-stack layout configuration
 default-root-container-layout = 'tiles'
 default-root-container-orientation = 'horizontal'
 accordion-padding = 0
@@ -28,65 +28,64 @@ outer.right = 0
 [key-mapping]
 preset = 'qwerty'
 
-# Main mode bindings (following dwm's default mod key paradigm)
+# Main mode bindings with updated shortcuts to avoid conflicts
 [mode.main.binding]
-# Layouts (dwm-style)
-#cmd-t = 'layout tiles horizontal vertical'  # Similar to dwm's tiling mode
-cmd-f = 'layout floating tiling'           # Toggle floating mode like dwm
-cmd-m = 'layout tiles horizontal vertical' # Monocle-like layout in tiles mode
+# Layouts
+'cmd-\' = 'layout tiles horizontal vertical'
+'cmd-enter' = 'split horizontal'
 
-# Basic window operations (dwm-style)
-cmd-shift-c = 'close'                      # Close window (dwm default)
-cmd-j = 'focus down'                       # Focus next window
-cmd-k = 'focus up'                         # Focus prev window
-cmd-shift-j = 'move down'                  # Move window forward
-cmd-shift-k = 'move up'                    # Move window backward
+# Basic window operations
+'cmd-shift-q' = 'close'
+'cmd-j' = 'focus down'
+'cmd-k' = 'focus up'
+'cmd-shift-j' = 'move down'
+'cmd-shift-k' = 'move up'
 
-# Master/stack operations (approximating dwm behavior)
-cmd-i = 'resize smart +50'                 # Increase master area
-cmd-d = 'resize smart -50'                 # Decrease master area
+# Master/stack operations
+'cmd-=' = 'resize smart +50'
+'cmd--' = 'resize smart -50'
 
-# Tag (workspace) switching - using numbers like dwm
-cmd-1 = 'workspace 1'
-cmd-2 = 'workspace 2'
-cmd-3 = 'workspace 3'
-cmd-4 = 'workspace 4'
-cmd-5 = 'workspace 5'
-cmd-6 = 'workspace 6'
-cmd-7 = 'workspace 7'
-cmd-8 = 'workspace 8'
-cmd-9 = 'workspace 9'
+# Tag (workspace) switching
+'cmd-1' = 'workspace 1'
+'cmd-2' = 'workspace 2'
+'cmd-3' = 'workspace 3'
+'cmd-4' = 'workspace 4'
+'cmd-5' = 'workspace 5'
+'cmd-6' = 'workspace 6'
+'cmd-7' = 'workspace 7'
+'cmd-8' = 'workspace 8'
+'cmd-9' = 'workspace 9'
 
-# Move windows to tags (workspaces)
-cmd-shift-1 = 'move-node-to-workspace 1'
-cmd-shift-2 = 'move-node-to-workspace 2'
-cmd-shift-3 = 'move-node-to-workspace 3'
-cmd-shift-4 = 'move-node-to-workspace 4'
-cmd-shift-5 = 'move-node-to-workspace 5'
-cmd-shift-6 = 'move-node-to-workspace 6'
-cmd-shift-7 = 'move-node-to-workspace 7'
-cmd-shift-8 = 'move-node-to-workspace 8'
-cmd-shift-9 = 'move-node-to-workspace 9'
+# Move windows to tags (using cmd-ctrl to avoid screenshot conflicts)
+'cmd-ctrl-1' = 'move-node-to-workspace 1'
+'cmd-ctrl-2' = 'move-node-to-workspace 2'
+'cmd-ctrl-3' = 'move-node-to-workspace 3'
+'cmd-ctrl-4' = 'move-node-to-workspace 4'
+'cmd-ctrl-5' = 'move-node-to-workspace 5'
+'cmd-ctrl-6' = 'move-node-to-workspace 6'
+'cmd-ctrl-7' = 'move-node-to-workspace 7'
+'cmd-ctrl-8' = 'move-node-to-workspace 8'
+'cmd-ctrl-9' = 'move-node-to-workspace 9'
 
 # Monitor controls
-cmd-comma = 'focus-monitor prev'           # Focus prev monitor
-cmd-period = 'focus-monitor next'          # Focus next monitor
-cmd-shift-comma = 'move-workspace-to-monitor prev'    # Move window to prev monitor
-cmd-shift-period = 'move-workspace-to-monitor next'   # Move window to next monitor
+'cmd-[' = 'focus-monitor prev'
+'cmd-]' = 'focus-monitor next'
+'cmd-shift-[' = 'move-workspace-to-monitor prev'
+'cmd-shift-]' = 'move-workspace-to-monitor next'
 
-# Service mode for additional controls
-cmd-shift-semicolon = 'mode service'
+# Service mode
+'cmd-shift-;' = 'mode service'
 
 [mode.service.binding]
-esc = ['reload-config', 'mode main']
-r = ['flatten-workspace-tree', 'mode main']    # Reset layout
-backspace = ['close-all-windows-but-current', 'mode main']
+'esc' = ['reload-config', 'mode main']
+'r' = ['flatten-workspace-tree', 'mode main']
+'backspace' = ['close-all-windows-but-current', 'mode main']
 
-# Monitor joining (similar to dwm's merge functionality)
-cmd-shift-h = ['join-with left', 'mode main']
-cmd-shift-j = ['join-with down', 'mode main']
-cmd-shift-k = ['join-with up', 'mode main']
-cmd-shift-l = ['join-with right', 'mode main']
+# Monitor joining (using cmd-ctrl to avoid conflicts)
+'cmd-ctrl-h' = ['join-with left', 'mode main']
+'cmd-ctrl-j' = ['join-with down', 'mode main']
+'cmd-ctrl-k' = ['join-with up', 'mode main']
+'cmd-ctrl-l' = ['join-with right', 'mode main']
 
 # Window assignment rules
 # Workspace 1: Terminals
