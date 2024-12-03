@@ -1,82 +1,77 @@
 local wezterm = require 'wezterm'
 local c = wezterm.config_builder()
 
-c.font = wezterm.font("Inconsolata for Powerline", {weight="Medium", stretch="Normal", style="Normal"})
-c.font_size = 18
+-- Keep existing font and window configuration
+c.font = wezterm.font("Hack")
+c.font_size = 15
 c.tab_bar_at_bottom = false
 c.use_fancy_tab_bar = false
 c.show_new_tab_button_in_tab_bar = false
 c.show_tabs_in_tab_bar = true
+c.tab_max_width = 32
+
 c.window_frame = {
   font = wezterm.font({ family = "Inconsolata for Powerline", weight = "Bold" }),
   font_size = 16.0,
-  active_titlebar_bg = '#000033',
-  inactive_titlebar_bg = '#000066',
+  active_titlebar_bg = '#0F0F0F',
+  inactive_titlebar_bg = '#1F1F1F',
 }
 
-wezterm.on('update-right-status', function(window, pane)
-  local cells = {}
-  local date = wezterm.strftime '%a %b %-d %H:%M'
-  table.insert(cells, date)
-  for _, b in ipairs(wezterm.battery_info()) do
-    table.insert(cells, string.format('%.0f%%', b.state_of_charge * 100))
-  end
-  local LEFT_ARROW = utf8.char(0xe0b3)
-  local SOLID_LEFT_ARROW = utf8.char(0xe0b2)
-  local colors = {
-    '#000033',
-    '#000066',
-    '#000099',
-    '#0000cc',
-    '#0000ff',
-  }
-  local text_fg = '#ffffff'
-  local elements = {}
-  local num_cells = 0
-  function push(text, is_last)
-    local cell_no = num_cells + 1
-    table.insert(elements, { Foreground = { Color = text_fg } })
-    table.insert(elements, { Background = { Color = colors[cell_no] } })
-    table.insert(elements, { Text = ' ' .. text .. ' ' })
-    if not is_last then
-      table.insert(elements, { Foreground = { Color = colors[cell_no + 1] } })
-      table.insert(elements, { Text = SOLID_LEFT_ARROW })
-    end
-    num_cells = num_cells + 1
-  end
-  while #cells > 0 do
-    local cell = table.remove(cells, 1)
-    push(cell, #cells == 0)
-  end
-  window:set_right_status(wezterm.format(elements))
-end)
-
-c.tab_max_width = 32
+-- Adjusted color scheme to match Warp more precisely
 c.colors = {
+  -- Default colors
+  foreground = '#FFFFFF',
+  background = '#000000',
+  
+  -- Normal colors
+  ansi = {
+    '#000000', -- black
+    '#FF5555', -- red
+    '#50FA7B', -- green (brighter lime green for files)
+    '#F1FA8C', -- yellow
+    '#2B7DE9', -- blue (more saturated for directories)
+    '#BD93F9', -- magenta
+    '#8BE9FD', -- cyan (for symlinks)
+    '#FFFFFF', -- white
+  },
+  
+  -- Bright colors
+  brights = {
+    '#4D4D4D', -- bright black
+    '#FF6E67', -- bright red
+    '#5AF78E', -- bright green
+    '#F4F99D', -- bright yellow
+    '#3B8AEF', -- bright blue
+    '#CAA9FA', -- bright magenta
+    '#9AEDFE', -- bright cyan
+    '#FFFFFF', -- bright white
+  },
+  
+  -- Tab bar colors
   tab_bar = {
-    background = '#000033',
+    background = '#000000',
     active_tab = {
-      bg_color = '#0000cc',
-      fg_color = '#ffffff',
+      bg_color = '#1F1F1F',
+      fg_color = '#FFFFFF',
       intensity = 'Bold',
       underline = 'None',
       italic = false,
     },
     inactive_tab = {
-      bg_color = '#000066',
-      fg_color = '#ffffff',
+      bg_color = '#000000',
+      fg_color = '#808080',
     },
     inactive_tab_hover = {
-      bg_color = '#000099',
-      fg_color = '#ffffff',
+      bg_color = '#252525',
+      fg_color = '#FFFFFF',
     },
     new_tab = {
-      bg_color = '#000033',
-      fg_color = '#ffffff',
+      bg_color = '#000000',
+      fg_color = '#FFFFFF',
     },
     new_tab_hover = {
-      bg_color = '#000066',
-      fg_color = '#ffffff',
+      bg_color = '#252525',
+      fg_color = '#FFFFFF',
     },
   },
 }
@@ -94,9 +89,9 @@ c.keys = {
   },
 }
 
-c.freetype_load_target = "Light"
-c.freetype_render_target = "HorizontalLcd"
-c.font_rasterizer = "FreeType"
-c.adjust_window_size_when_changing_font_size = false
+-- c.freetype_load_target = "Light"
+-- c.freetype_render_target = "HorizontalLcd"
+-- c.font_rasterizer = "FreeType"
+-- c.adjust_window_size_when_changing_font_size = false
 
 return c
