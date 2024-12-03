@@ -1,0 +1,130 @@
+# Auto-start settings
+after-login-command = []
+after-startup-command = []
+start-at-login = true
+
+# DWM-like window management behavior
+enable-normalization-flatten-containers = true
+enable-normalization-opposite-orientation-for-nested-containers = true
+
+# DWM uses master-stack layout by default
+default-root-container-layout = 'tiles'
+default-root-container-orientation = 'horizontal'
+accordion-padding = 0
+
+# Mouse behavior (DWM-like)
+on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+automatically-unhide-macos-hidden-apps = false
+
+# DWM uses zero gaps by default
+[gaps]
+inner.horizontal = 0
+inner.vertical = 0
+outer.left = 0
+outer.bottom = 0
+outer.top = 0
+outer.right = 0
+
+[key-mapping]
+preset = 'qwerty'
+
+# Main mode bindings (following dwm's default mod key paradigm)
+[mode.main.binding]
+# Layouts (dwm-style)
+#cmd-t = 'layout tiles horizontal vertical'  # Similar to dwm's tiling mode
+cmd-f = 'layout floating tiling'           # Toggle floating mode like dwm
+cmd-m = 'layout tiles horizontal vertical' # Monocle-like layout in tiles mode
+
+# Basic window operations (dwm-style)
+cmd-shift-c = 'close'                      # Close window (dwm default)
+cmd-j = 'focus down'                       # Focus next window
+cmd-k = 'focus up'                         # Focus prev window
+cmd-shift-j = 'move down'                  # Move window forward
+cmd-shift-k = 'move up'                    # Move window backward
+
+# Master/stack operations (approximating dwm behavior)
+cmd-i = 'resize smart +50'                 # Increase master area
+cmd-d = 'resize smart -50'                 # Decrease master area
+
+# Tag (workspace) switching - using numbers like dwm
+cmd-1 = 'workspace 1'
+cmd-2 = 'workspace 2'
+cmd-3 = 'workspace 3'
+cmd-4 = 'workspace 4'
+cmd-5 = 'workspace 5'
+cmd-6 = 'workspace 6'
+cmd-7 = 'workspace 7'
+cmd-8 = 'workspace 8'
+cmd-9 = 'workspace 9'
+
+# Move windows to tags (workspaces)
+cmd-shift-1 = 'move-node-to-workspace 1'
+cmd-shift-2 = 'move-node-to-workspace 2'
+cmd-shift-3 = 'move-node-to-workspace 3'
+cmd-shift-4 = 'move-node-to-workspace 4'
+cmd-shift-5 = 'move-node-to-workspace 5'
+cmd-shift-6 = 'move-node-to-workspace 6'
+cmd-shift-7 = 'move-node-to-workspace 7'
+cmd-shift-8 = 'move-node-to-workspace 8'
+cmd-shift-9 = 'move-node-to-workspace 9'
+
+# Monitor controls
+cmd-comma = 'focus-monitor prev'           # Focus prev monitor
+cmd-period = 'focus-monitor next'          # Focus next monitor
+cmd-shift-comma = 'move-workspace-to-monitor prev'    # Move window to prev monitor
+cmd-shift-period = 'move-workspace-to-monitor next'   # Move window to next monitor
+
+# Service mode for additional controls
+cmd-shift-semicolon = 'mode service'
+
+[mode.service.binding]
+esc = ['reload-config', 'mode main']
+r = ['flatten-workspace-tree', 'mode main']    # Reset layout
+backspace = ['close-all-windows-but-current', 'mode main']
+
+# Monitor joining (similar to dwm's merge functionality)
+cmd-shift-h = ['join-with left', 'mode main']
+cmd-shift-j = ['join-with down', 'mode main']
+cmd-shift-k = ['join-with up', 'mode main']
+cmd-shift-l = ['join-with right', 'mode main']
+
+# Window assignment rules
+# Workspace 1: Terminals
+[[on-window-detected]]
+if.app-id = 'com.apple.Terminal'
+run = ['move-node-to-workspace 1']
+
+[[on-window-detected]]
+if.app-id = 'com.googlecode.iterm2'
+run = ['move-node-to-workspace 1']
+
+[[on-window-detected]]
+if.app-id = 'com.github.wez.wezterm'
+run = ['move-node-to-workspace 1']
+
+# Workspace 2: Chrome
+[[on-window-detected]]
+if.app-id = 'com.google.Chrome'
+run = ['move-node-to-workspace 2']
+
+# Workspace 3: VS Code and IntelliJ
+[[on-window-detected]]
+if.app-id = 'com.microsoft.VSCode'
+run = ['move-node-to-workspace 3']
+
+[[on-window-detected]]
+if.app-id = 'com.jetbrains.intellij.ce'
+run = ['move-node-to-workspace 3']
+
+# Workspace 4: Chat apps
+[[on-window-detected]]
+if.app-id = 'com.hnc.Discord'
+run = ['move-node-to-workspace 4']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.MobileSMS'
+run = ['move-node-to-workspace 4']
+
+[[on-window-detected]]
+if.app-id = 'org.whispersystems.signal-desktop'
+run = ['move-node-to-workspace 4']
