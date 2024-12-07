@@ -77,10 +77,28 @@ ensure_dir(backup_dir)
 ensure_dir(undo_dir)
 ensure_dir(swap_dir)
 
-vim.opt.undodir = undo_dir
-vim.opt.backupdir = backup_dir
-vim.opt.directory = swap_dir
+-- Enhanced swap file configuration
+vim.opt.directory = swap_dir .. '//'  -- Double slash keeps full path
 vim.opt.backup = true
+vim.opt.backupdir = backup_dir
+vim.opt.undodir = undo_dir
+vim.opt.swapfile = true
+vim.opt.updatetime = 300  -- Faster swap file writing
+
+-- Automatically handle swap files
+vim.api.nvim_create_autocmd("SwapExists", {
+    pattern = "*",
+    callback = function()
+        local swap_file = vim.v.swapname
+        local modification_time = vim.fn.getftime(swap_file)
+        local current_time = os.time()
+        -- Delete swap files older than 1 day
+        if current_time - modification_time > 86400 then
+            vim.fn.delete(swap_file)
+            vim.cmd("edit")
+        end
+    end
+})
 
 -- Basic Key Mappings (non-plugin related) ----------------------------------------------------
 -- Window navigation
