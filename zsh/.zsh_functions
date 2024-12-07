@@ -117,6 +117,13 @@ setup_environment() {
     setup_misc
     setup_fzf
     setup_intu_alias
+
+    # Show Neovim tip on shell start
+    # Only show tip 20% of the time to avoid being too intrusive
+    #if (( RANDOM % 5 == 0 )); then
+    #    show_nvim_tip
+    #fi
+    show_nvim_tip
 }
 
 # Configures system and user paths.
@@ -1060,4 +1067,48 @@ osc7_cwd() {
     local hostname=${HOST:-$(hostname)}
     local url="file://${hostname}${PWD}"
     printf '\e]7;%s\a' "${url}"
+}
+
+# Neovim tip of the day function
+show_nvim_tip() {
+    local tips=(
+        "Use ,tt to open a new tab, ,tc to close it"
+        "Navigate between windows with Ctrl+h/j/k/l"
+        "Clear search highlighting with ,<Space>"
+        ",e toggles the file explorer (Neo-tree)"
+        ",ff opens fuzzy file finder (Telescope)"
+        ",fg searches for text in files (live grep)"
+        "Use ,vs to select Python virtual environment"
+        ",db toggles debug breakpoint"
+        ",du opens debug UI"
+        ",so opens symbols outline"
+        "gd jumps to definition"
+        "K shows hover documentation"
+        ",rn renames symbol under cursor"
+        ",ca shows code actions"
+        "gr shows references"
+        ",f formats current buffer"
+        "Use Ctrl-\\ to toggle floating terminal"
+        "Tab accepts Copilot suggestion"
+        "Alt-] and Alt-[ cycle through Copilot suggestions"
+        "Shift-h and Shift-l navigate between tabs"
+    )
+
+    # Get a random tip
+    local tip_index=$((RANDOM % ${#tips[@]} + 1))
+    local tip="${tips[$tip_index]}"
+
+    # Display the tip using gum if available, otherwise use regular echo
+    if command -v gum >/dev/null 2>&1; then
+        gum style \
+            --border normal \
+            --margin "1" \
+            --padding "1" \
+            --width 70 \
+            "$(gum style --foreground 212 '💡 Neovim Tip of the Day:')" \
+            "$(gum style --foreground 99 "$tip")"
+    else
+        echo "💡 Neovim Tip of the Day:"
+        echo "$tip"
+    fi
 }
