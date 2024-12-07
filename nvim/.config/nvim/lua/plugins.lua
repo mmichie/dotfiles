@@ -166,10 +166,8 @@ return {
             require("go").setup({
                 -- Go configuration
                 go = 'go', -- Go binary path
-                goimport = 'gopls', -- Import organizer
-                fillstruct = 'gopls',
-                gofmt = 'gofumpt',
-                max_line_len = 120,
+                gofmt = 'gofumpt', -- Formatting tool
+                -- max_line_len = 120, -- Only effective when using golines as formatter
                 tag_transform = false,
                 test_template = '', -- default to testify if not set
                 test_template_dir = '',
@@ -180,6 +178,31 @@ return {
                 lsp_gofumpt = true, -- true: set default gofmt in gopls format to gofumpt
                 lsp_on_attach = true, -- use on_attach from go.nvim
                 dap_debug = true,
+                -- Additional gopls settings
+                lsp_cfg = {
+                    settings = {
+                        gopls = {
+                            gofumpt = true, -- Use gofumpt formatting
+                            analyses = {
+                                nilness = true,
+                                shadow = true,
+                                unusedparams = true,
+                                unusedwrite = true,
+                            },
+                            staticcheck = true,
+                            usePlaceholders = true,
+                            hints = {
+                                assignVariableTypes = true,
+                                compositeLiteralFields = true,
+                                compositeLiteralTypes = true,
+                                constantValues = true,
+                                functionTypeParameters = true,
+                                parameterNames = true,
+                                rangeVariableTypes = true,
+                            },
+                        }
+                    }
+                }
             })
         end,
         event = {"CmdlineEnter"},
