@@ -11,7 +11,8 @@ c.show_tabs_in_tab_bar = true
 c.tab_max_width = 32
 
 c.window_frame = {
-  font = wezterm.font({ family = "Inconsolata for Powerline", weight = "Bold" }),
+--  font = wezterm.font({ family = "Inconsolata for Powerline", weight = "Bold" }),
+  font = wezterm.font({ family = "Fieracode", weight = "Bold" }),
   font_size = 16.0,
   active_titlebar_bg = '#0F0F0F',
   inactive_titlebar_bg = '#1F1F1F',
