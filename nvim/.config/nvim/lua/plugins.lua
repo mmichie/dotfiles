@@ -62,7 +62,7 @@ return {
         },
         config = function()
             local lsp_zero = require('lsp-zero')
-            
+
             lsp_zero.on_attach(function(client, bufnr)
                 -- LSP keymaps
                 local opts = {buffer = bufnr}
@@ -71,14 +71,16 @@ return {
                 vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
                 vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
                 vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
-                vim.keymap.set('n', '<leader>f', vim.lsp.buf.formatting, opts)
+                -- Use format instead of formatting
+                vim.keymap.set('n', '<leader>f', function()
+                    vim.lsp.buf.format({ async = true })
+                end, opts)
             end)
 
             -- Configure Python LSP
             require('lspconfig').pyright.setup({})
         end
     },
-
     -- File explorer
     {
         "nvim-neo-tree/neo-tree.nvim",
@@ -114,4 +116,46 @@ return {
             require('gitsigns').setup()
         end
     },
+
+   {
+    "zbirenbaum/copilot.lua",
+    cmd = "Copilot",
+    event = "InsertEnter",
+    config = function()
+        require("copilot").setup({
+            panel = {
+                enabled = true,
+                auto_refresh = true,
+                keymap = {
+                    jump_prev = "[[",
+                    jump_next = "]]",
+                    accept = "<CR>",
+                    refresh = "gr",
+                    open = "<M-CR>"
+                },
+            },
+            suggestion = {
+                enabled = true,
+                auto_trigger = true,
+                debounce = 75,
+                keymap = {
+                    accept = "<Tab>",
+                    accept_word = "<M-w>",
+                    accept_line = "<M-l>",
+                    next = "<M-]>",
+                    prev = "<M-[>",
+                    dismiss = "<C-]>",
+                },
+            },
+            filetypes = {
+                yaml = true,
+                markdown = true,
+                help = false,
+                gitcommit = false,
+                gitrebase = false,
+                ["."] = false,
+            },
+        })
+    end,
+  }
 }
