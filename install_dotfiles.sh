@@ -12,7 +12,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # List of directories to stow
-stow_dirs=("utils" "tmux" "system" "ssh" "osx" "mail" "git" "fonts" "brew" "x11" "bin" "screen" "vim" "bash" "zsh" "yabai" "wezterm" "eza" "aerospace")
+stow_dirs=("utils" "tmux" "system" "ssh" "osx" "mail" "git" "fonts" "brew" "x11" "bin" "screen" "vim" "bash" "zsh" "yabai" "wezterm" "eza" "aerospace" "nvim")
 
 # Stow directories
 echo "Stowing directories..."
