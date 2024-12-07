@@ -136,13 +136,26 @@ autocmd('BufWritePre', {
     end
 })
 
--- Remember cursor position
+-- Git commit message settings
+autocmd('FileType', {
+    pattern = 'gitcommit',
+    callback = function()
+        -- Set cursor to the top
+        vim.cmd('normal! gg')
+        -- Set text width for git commits
+        vim.opt_local.textwidth = 100
+    end
+})
+
+-- Remember cursor position (but not for git commits)
 autocmd('BufReadPost', {
     pattern = '*',
     callback = function()
-        if vim.fn.line("'\"") > 0 and vim.fn.line("'\"") <= vim.fn.line("$") then
-            vim.fn.setpos(".", vim.fn.getpos("'\""))
-            vim.cmd('normal! zz')
+        if vim.bo.filetype ~= 'gitcommit'
+            and vim.fn.line("'\"") > 0
+            and vim.fn.line("'\"") <= vim.fn.line("$") then
+                vim.fn.setpos(".", vim.fn.getpos("'\""))
+                vim.cmd('normal! zz')
         end
     end
 })
