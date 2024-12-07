@@ -30,9 +30,10 @@ preset = 'qwerty'
 
 # Main mode bindings (following dwm's default mod key paradigm)
 [mode.main.binding]
-cmd-y = 'layout tiles horizontal vertical' 
-cmd-u = 'layout floating tiling'          
-cmd-return = 'layout tiles horizontal vertical'
+# Layouts (dwm-style) - Modified to avoid conflicts
+cmd-y = 'layout tiles horizontal vertical'  # Changed from cmd-t to avoid conflict with "New Tab"
+cmd-u = 'layout floating tiling'           # Changed from cmd-f to avoid conflict with "Find"
+cmd-tab = 'layout tiles horizontal vertical' # Changed to avoid conflicts
 
 # Basic window operations (dwm-style)
 cmd-shift-c = 'close'                      # Close window (dwm default)
@@ -56,15 +57,16 @@ cmd-7 = 'workspace 7'
 cmd-8 = 'workspace 8'
 cmd-9 = 'workspace 9'
 
-cmd-opt-1 = 'move-node-to-workspace 1'
-cmd-opt-2 = 'move-node-to-workspace 2'
-cmd-opt-3 = 'move-node-to-workspace 3'
-cmd-opt-4 = 'move-node-to-workspace 4'
-cmd-opt-5 = 'move-node-to-workspace 5'
-cmd-opt-6 = 'move-node-to-workspace 6'
-cmd-opt-7 = 'move-node-to-workspace 7'
-cmd-opt-8 = 'move-node-to-workspace 8'
-cmd-opt-9 = 'move-node-to-workspace 9'
+# Move windows to tags (workspaces) - Modified to use alt+cmd
+alt-cmd-1 = 'move-node-to-workspace 1'
+alt-cmd-2 = 'move-node-to-workspace 2'
+alt-cmd-3 = 'move-node-to-workspace 3'
+alt-cmd-4 = 'move-node-to-workspace 4'
+alt-cmd-5 = 'move-node-to-workspace 5'
+alt-cmd-6 = 'move-node-to-workspace 6'
+alt-cmd-7 = 'move-node-to-workspace 7'
+alt-cmd-8 = 'move-node-to-workspace 8'
+alt-cmd-9 = 'move-node-to-workspace 9'
 
 # Monitor controls
 cmd-comma = 'focus-monitor prev'           # Focus prev monitor
@@ -86,6 +88,7 @@ cmd-shift-j = ['join-with down', 'mode main']
 cmd-shift-k = ['join-with up', 'mode main']
 cmd-shift-l = ['join-with right', 'mode main']
 
+# Window assignment rules remain unchanged
 [[on-window-detected]]
 if.app-id = 'com.apple.Terminal'
 run = ['move-node-to-workspace 1']
@@ -121,3 +124,19 @@ run = ['move-node-to-workspace 4']
 [[on-window-detected]]
 if.app-id = 'org.whispersystems.signal-desktop'
 run = ['move-node-to-workspace 4']
+
+[[on-window-detected]]
+if.app-id = 'md.obsidian'
+run = ['move-node-to-workspace 5']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.Preview'  # For PDFs
+run = ['move-node-to-workspace 5']
+
+[[on-window-detected]]
+if.app-id = 'com.linear'
+run = ['move-node-to-workspace 6']
+
+[[on-window-detected]]
+if.app-id = 'com.toggl.toggldesktop'  # Time tracking
+run = ['move-node-to-workspace 6']
