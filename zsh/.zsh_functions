@@ -188,7 +188,7 @@ setup_intu_alias() {
         OSX-arm64) intu_cmd="$HOME/bin/intu-darwin-arm64" ;;
         LINUX-arm64) intu_cmd="$HOME/bin/intu-linux-arm64" ;;
         LINUX-x86_64) intu_cmd="$HOME/bin/intu-linux-amd64" ;;
-        *) 
+        *)
             echo "Unsupported platform for intu: $platform_cmd"
             return 1
             ;;
@@ -315,6 +315,19 @@ docker_cleanup() {
 }
 
 # Aliases
+
+# Setup Neovim aliases if available
+setup_nvim_alias() {
+    # Check if nvim is installed
+    if command -v nvim >/dev/null 2>&1; then
+        alias vim='nvim'
+        alias vi='nvim'
+        export EDITOR='nvim'
+        export VISUAL='nvim'
+        echo "Neovim aliases set up successfully"
+    fi
+}
+
 setup_aliases() {
     alias history="history 1" # behave more like bash
     alias gclean="git_cleanup"
@@ -334,6 +347,7 @@ setup_aliases() {
     alias ::::="cd ../../../.."
     alias :::::="cd ../../../../.."
     alias ::::::="cd ../../../../../.."
+    setup_nvim_alias
 }
 
 # Functions
@@ -446,7 +460,7 @@ EOF
             local file_extension="${file##*.}"
             local full_path=$(realpath "$file")
             local relative_path=$(echo "$full_path" | sed "s|^$PWD/||")
-            
+
             # Cross-platform MD5 checksum calculation
             local checksum
             if [[ "$os_type" == "OSX" ]]; then
@@ -454,7 +468,7 @@ EOF
             else
                 checksum=$(md5sum "$file" | cut -d' ' -f1)
             fi
-            
+
             local file_content=$(<"$file")
 
             if $use_json; then
@@ -588,18 +602,18 @@ setup_readline() {
 setup_completions() {
     autoload -Uz compinit
     compinit
-    
+
     # Command specific completions
     compdef _command command
     compdef _signal kill
     compdef _user finger pinky
-    
+
     # Directory handling completions
     compdef _directories cd
     compdef _directories pushd
     compdef _directories mkdir
     compdef _directories rmdir
-    
+
     # File and job handling completions
     compdef _files ln chmod chown chgrp
     compdef _jobs fg bg disown jobs
@@ -793,11 +807,11 @@ notify_shell_status() {
 # Recommendations function remains the same
 provide_quick_recommendations() {
     local recommendations=()
-    
+
     if [[ "${memory_usage%\%}" -gt 90 ]]; then
         recommendations+=("- High memory usage detected. Consider closing unnecessary applications.")
     fi
-    
+
     if [[ $(echo "$cpu_load > $cpu_cores" | bc -l) -eq 1 ]]; then
         recommendations+=("- High CPU load detected. Check for resource-intensive processes.")
     fi
