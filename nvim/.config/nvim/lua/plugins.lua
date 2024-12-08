@@ -5,13 +5,34 @@ return {
         tag = "stable"
     },
 
-    -- Color scheme
+    -- Color schemes
     {
-        "ellisonleao/gruvbox.nvim",
+        "rebelot/kanagawa.nvim",
         priority = 1000,
         config = function()
-            vim.cmd([[colorscheme gruvbox]])
-        end,
+            require('kanagawa').setup({
+                compile = false,
+                undercurl = true,
+                commentStyle = { italic = true },
+                functionStyle = {},
+                keywordStyle = { italic = true},
+                statementStyle = { bold = true },
+                typeStyle = {},
+                transparent = false,
+                dimInactive = false,
+                terminalColors = true,
+                colors = {
+                    theme = {
+                        all = {
+                            ui = {
+                                bg_gutter = "none"
+                            }
+                        }
+                    }
+                }
+            })
+            vim.cmd([[colorscheme kanagawa]])
+        end
     },
 
     -- Status line
