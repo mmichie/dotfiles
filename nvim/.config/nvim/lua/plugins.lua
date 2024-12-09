@@ -134,8 +134,97 @@ return {
             "nvim-tree/nvim-web-devicons",
             "MunifTanjim/nui.nvim",
         },
+        keys = {
+            { "<leader>e", "<cmd>Neotree toggle<CR>", desc = "Toggle Neo-tree" },
+        },
         config = function()
-            vim.keymap.set('n', '<leader>e', ':Neotree toggle<CR>')
+            -- If you want icons for diagnostic errors, you'll need to define them somewhere:
+            vim.fn.sign_define("DiagnosticSignError",
+                {text = " ", texthl = "DiagnosticSignError"})
+            vim.fn.sign_define("DiagnosticSignWarn",
+                {text = " ", texthl = "DiagnosticSignWarn"})
+            vim.fn.sign_define("DiagnosticSignInfo",
+                {text = " ", texthl = "DiagnosticSignInfo"})
+            vim.fn.sign_define("DiagnosticSignHint",
+                {text = "󰌵", texthl = "DiagnosticSignHint"})
+
+            require("neo-tree").setup({
+                close_if_last_window = false,
+                popup_border_style = "rounded",
+                enable_git_status = true,
+                enable_diagnostics = true,
+                filesystem = {
+                    filtered_items = {
+                        visible = false,
+                        hide_dotfiles = false,
+                        hide_gitignored = true,
+                        hide_hidden = false,
+                        hide_by_name = {
+                            --"node_modules"
+                        },
+                        hide_by_pattern = {
+                            --"*.meta",
+                            --"*/src/*/tsconfig.json",
+                        },
+                        always_show = {
+                            --".gitignored",
+                        },
+                        never_show = {
+                            --".DS_Store",
+                            --"thumbs.db"
+                        },
+                        never_show_by_pattern = {
+                            --".null-ls_*",
+                        },
+                    },
+                    follow_current_file = {
+                        enabled = true,
+                        leave_dirs_open = false,
+                    },
+                    group_empty_dirs = false,
+                    hijack_netrw_behavior = "open_current",
+                    use_libuv_file_watcher = true,
+                },
+                window = {
+                    position = "left",
+                    width = 40,
+                    mapping_options = {
+                        noremap = true,
+                        nowait = true,
+                    },
+                    mappings = {
+                        ["<space>"] = {
+                            "toggle_node",
+                            nowait = false,
+                        },
+                        ["<2-LeftMouse>"] = "open",
+                        ["<cr>"] = "open",
+                        ["<esc>"] = "cancel",
+                        ["P"] = { "toggle_preview", config = { use_float = true } },
+                        ["l"] = "focus_preview",
+                        ["S"] = "open_split",
+                        ["s"] = "open_vsplit",
+                        ["t"] = "open_tabnew",
+                        ["w"] = "open_with_window_picker",
+                        ["C"] = "close_node",
+                        ["z"] = "close_all_nodes",
+                        ["H"] = "toggle_hidden",
+                        ["a"] = "add",
+                        ["A"] = "add_directory",
+                        ["d"] = "delete",
+                        ["r"] = "rename",
+                        ["y"] = "copy_to_clipboard",
+                        ["x"] = "cut_to_clipboard",
+                        ["p"] = "paste_from_clipboard",
+                        ["c"] = "copy",
+                        ["m"] = "move",
+                        ["q"] = "close_window",
+                        ["R"] = "refresh",
+                    }
+                },
+            })
+
+            vim.cmd([[nnoremap \ :Neotree reveal<cr>]])
         end
     },
 
