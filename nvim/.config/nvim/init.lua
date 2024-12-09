@@ -39,7 +39,7 @@ vim.opt.splitbelow = true
 vim.opt.splitright = true
 vim.opt.autowrite = true
 vim.opt.autoread = true
-vim.opt.title = true
+vim.opt.title = false
 vim.opt.titlestring = 'NVIM: %F'
 vim.opt.termguicolors = true
 
