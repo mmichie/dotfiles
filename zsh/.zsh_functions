@@ -123,7 +123,7 @@ setup_environment() {
     #if (( RANDOM % 5 == 0 )); then
     #    show_nvim_tip
     #fi
-    show_nvim_tip
+    show_daily_tip
 }
 
 # Configures system and user paths.
@@ -1069,53 +1069,97 @@ osc7_cwd() {
     printf '\e]7;%s\a' "${url}"
 }
 
-# Neovim tip of the day function
-show_nvim_tip() {
-    local tips=(
-        "Use ,tt to open a new tab, ,tc to close it"
-        "Use ,tn for next tab, ,tp for previous tab"
-        "Navigate between windows with Ctrl+h/j/k/l"
-        "Clear search highlighting with ,<Space>"
-        ",e toggles the file explorer (Neo-tree)"
-        ",ff opens fuzzy file finder (Telescope)"
-        ",fg searches for text in files (live grep)"
-        ",fb shows open buffers in Telescope"
-        ",fh searches help tags"
-        ",db toggles debug breakpoint"
-        ",dc continues debugging"
-        ",ds steps over in debugger"
-        ",di steps into in debugger"
-        ",do steps out in debugger"
-        ",du opens debug UI"
-        ",so opens symbols outline"
-        "gd jumps to definition"
-        "K shows hover documentation"
-        ",rn renames symbol under cursor"
-        ",ca shows code actions"
-        "gr shows references"
-        ",f formats current buffer"
-        "Use Ctrl-\\ to toggle floating terminal"
-        "Tab accepts Copilot suggestion"
-        "Alt-] and Alt-[ cycle through Copilot suggestions"
-        "Alt-w accepts word from Copilot"
-        "Alt-l accepts line from Copilot"
-        "Ctrl-] dismisses Copilot suggestion"
-        "Shift-h and Shift-l navigate between tabs"
-    )
-    # Get a random tip
-    local tip_index=$((RANDOM % ${#tips[@]} + 1))
-    local tip="${tips[$tip_index]}"
-    # Display the tip using gum if available, otherwise use regular echo
+# Expert-level ZSH hotkeys expansions and tips:
+zsh_hotkeys_tips=(
+    "!!: Repeat last command"
+    "!<num>: Repeat command by history event number"
+    "!<prefix>: Repeat last command starting with <prefix>"
+    "!?<string>?: Repeat last command containing <string>"
+    "!:s/foo/bar/: Replace 'foo' with 'bar' in previous command"
+    "!^: First argument of last command, !$: Last argument of last command"
+    "Alt+. (Esc .): Insert last word of previous command line"
+    "Ctrl+R: Reverse incremental search in history"
+    "Ctrl+W: Delete previous word"
+    "Ctrl+U: Delete to start of line"
+    "Ctrl+K: Delete to end of line"
+    "Ctrl+Y: Yank last killed text"
+    "Alt+B/F: Move backward/forward one word in command line"
+    "Ctrl+X Ctrl+E: Edit current command line in \$EDITOR"
+    "^foo^bar: Inline substitution in the last command"
+)
+
+nvim_tips=(
+    "Use ,tt to open a new tab, ,tc to close it"
+    "Use ,tn for next tab, ,tp for previous tab"
+    "Navigate between windows with Ctrl+h/j/k/l"
+    "Clear search highlighting with ,<Space>"
+    ",e toggles the file explorer (Neo-tree)"
+    ",ff opens fuzzy file finder (Telescope)"
+    ",fg searches for text in files (live grep)"
+    ",fb shows open buffers in Telescope"
+    ",fh searches help tags"
+    ",db toggles debug breakpoint"
+    ",dc continues debugging"
+    ",ds steps over in debugger"
+    ",di steps into in debugger"
+    ",do steps out in debugger"
+    ",du opens debug UI"
+    ",so opens symbols outline"
+    "gd jumps to definition"
+    "K shows hover documentation"
+    ",rn renames symbol under cursor"
+    ",ca shows code actions"
+    "gr shows references"
+    ",f formats current buffer"
+    "Use Ctrl-\\ to toggle floating terminal"
+    "Tab accepts Copilot suggestion"
+    "Alt-] and Alt-[ cycle through Copilot suggestions"
+    "Alt-w accepts word from Copilot"
+    "Alt-l accepts line from Copilot"
+    "Ctrl-] dismisses Copilot suggestion"
+    "Shift-h and Shift-l navigate between tabs"
+)
+
+all_tips=("${nvim_tips[@]}" "${zsh_hotkeys_tips[@]}")
+
+
+show_daily_tip() {
+    local tip_index=$((RANDOM % ${#all_tips[@]}))
+    local tip="${all_tips[$tip_index]}"
+
+    # Display the tip using gum if available, otherwise regular echo
     if command -v gum >/dev/null 2>&1; then
         gum style \
             --border normal \
             --margin "1" \
             --padding "1" \
             --width 70 \
-            "$(gum style --foreground 212 '💡 Neovim Tip of the Day:')" \
+            "$(gum style --foreground 212 '💡 Daily Tip:')" \
             "$(gum style --foreground 99 "$tip")"
     else
-        echo "💡 Neovim Tip of the Day:"
+        echo "💡 Daily Tip:"
         echo "$tip"
     fi
+}
+
+zsh_hotkeys_help() {
+    cat <<EOF
+Expert-level ZSH history expansions and hotkeys:
+  !!          : Repeat last command
+  !<num>      : Repeat command by history event number
+  !<prefix>   : Repeat last command starting with <prefix>
+  !?<string>? : Repeat last command containing <string>
+  !:s/foo/bar/: Replace 'foo' with 'bar' in previous command
+  !^          : Insert first argument of last command
+  !$          : Insert last argument of last command
+  Alt+.       : Insert last word of previous command line
+  Ctrl+R      : Reverse incremental history search
+  Ctrl+W      : Delete previous word
+  Ctrl+U      : Delete to start of line
+  Ctrl+K      : Delete to end of line
+  Ctrl+Y      : Yank last killed text
+  Alt+B/F     : Move backward/forward one word
+  Ctrl+X Ctrl+E: Edit command line in \$EDITOR
+  ^foo^bar    : Quick inline substitution in last command
+EOF
 }
