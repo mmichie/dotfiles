@@ -228,6 +228,19 @@ return {
         end
     },
 
+     {
+      "folke/snacks.nvim",
+      opts = {
+        indent = {
+          scope = {
+            animate = {
+              enabled = false
+            }
+          }
+        }
+      }
+    },
+
     -- Fuzzy finder
     {
         'nvim-telescope/telescope.nvim',
@@ -380,7 +393,7 @@ return {
                     auto_trigger = true,
                     debounce = 75,
                     keymap = {
-                        accept = "<Tab>",
+                        accept = "<M-j>",
                         accept_word = "<M-w>",
                         accept_line = "<M-l>",
                         next = "<M-]>",
@@ -397,6 +410,18 @@ return {
                     ["."] = false,
                 },
             })
+
+            -- Add a smarter Tab handling function
+            local function smart_tab()
+                if require("copilot.suggestion").is_visible() then
+                    require("copilot.suggestion").accept()
+                else
+                    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Tab>", true, false, true), "n", false)
+                end
+            end
+
+            -- Map Tab to the smart function
+            vim.keymap.set("i", "<Tab>", smart_tab, { expr = false, silent = true })
         end,
-    }
+    },
 }
