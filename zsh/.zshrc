@@ -18,6 +18,8 @@ export ZSHRC_LOADED=true
 # Load shell functions
 [[ -f "$HOME/.zsh_functions" ]] && source "$HOME/.zsh_functions"
 
+source ~/.zsh/functions/tips.zsh
+
 # Detect shell platform
 SHELL_PLATFORM=$(detect_shell_platform)
 export SHELL_PLATFORM
@@ -82,3 +84,4 @@ notify_shell_status
 
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd osc7_cwd
+
