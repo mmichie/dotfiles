@@ -1148,10 +1148,29 @@ vim_movement_tips=(
     "di) deletes inside () block"
 )
 
+telescope_tips=(
+    "Use <leader>ff to find files quickly in your current directory"
+    "Use <leader>fg to perform live grep across all files - great for finding specific code snippets"
+    "Use <leader>fb to search through open buffers"
+    "Use <leader>fh to search through help tags - perfect for finding vim/neovim documentation"
+    "Press <C-u>/<C-d> in telescope to scroll up/down in the preview window"
+    "Press <C-x> to split horizontally with selected file, <C-v> for vertical split"
+    "Press <Tab> to select multiple files in telescope, then <C-x> or <C-v> to open all of them"
+    "Use <C-q> to send telescope results to quickfix list"
+    "Press ? in normal mode or <C-/> in insert mode to see all telescope mappings"
+    "Use <C-n>/<C-p> or <Down>/<Up> to navigate through results"
+    "Type :Telescope followed by <Tab> to see all available telescope commands"
+    "Use <C-r><C-w> in telescope prompt to insert the word under cursor"
+    "Press <Esc> to exit telescope or switch to normal mode for vim-style navigation"
+    "Use <CR> (Enter) to select and open a file in telescope"
+    "Combine with git: try :Telescope git_files to search only tracked files"
+)
+
 all_tips=(
     "${vim_movement_tips[@]}"
     "${nvim_tips[@]}"
     "${zsh_hotkeys_tips[@]}"
+    "${telescope_tips[@]}"
 )
 
 
