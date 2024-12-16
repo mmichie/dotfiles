@@ -19,6 +19,7 @@ export ZSHRC_LOADED=true
 [[ -f "$HOME/.zsh_functions" ]] && source "$HOME/.zsh_functions"
 
 source ~/.zsh/functions/tips.zsh
+source ~/.zsh/functions/system_health.zsh
 
 # Detect shell platform
 SHELL_PLATFORM=$(detect_shell_platform)
