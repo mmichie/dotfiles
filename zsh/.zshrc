@@ -1,17 +1,32 @@
 #!/bin/zsh
 
-# Prevent multiple sourcing
-[[ "${(P)ZSHRC_LOADED}" == "true" ]] && return
-export ZSHRC_LOADED=true
-
-# Exit if not running interactively
+# Early exit for non-interactive shells
 [[ $- != *i* ]] && return
 
-# Initialize completions properly first
-autoload -Uz compinit
-compinit
+# Initialize essential variables
+declare -gx SHELL_CONFIG_DIR="$HOME/.zsh"
+declare -gx SHELL_LIB_DIR="$SHELL_CONFIG_DIR/lib"
+declare -gx SHELL_FUNCTIONS_DIR="$SHELL_CONFIG_DIR/functions"
+declare -gx SHELL_CACHE_DIR="$HOME/.cache/zsh"
 
-# CRITICAL: Set up Homebrew PATH first
+# Create necessary directories
+mkdir -p "$SHELL_CACHE_DIR"
+
+# Prevent multiple sourcing
+if [[ -n "$ZSH_INITIALIZED" ]]; then
+    return 0
+fi
+export ZSH_INITIALIZED=1
+
+# Set up completion system early
+autoload -Uz compinit
+if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
+    compinit -d "$SHELL_CACHE_DIR/zcompdump"
+else
+    compinit -C -d "$SHELL_CACHE_DIR/zcompdump"
+fi
+
+# Initialize Homebrew if available
 if [[ -x "/opt/homebrew/bin/brew" ]]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
@@ -19,54 +34,87 @@ fi
 # Source global definitions if available
 [[ -f /etc/zshrc ]] && source /etc/zshrc
 
-# Source each module exactly once with simple tracking
-declare -A LOADED_MODULES
+# Module loading helper function
+load_module() {
+    local module_type=$1
+    local module_name=$2
+    local module_path
 
-# Core modules first
-for module in platform environment shell prompt ssh; do
-    if [[ -z ${LOADED_MODULES[$module]} ]]; then
-        if [[ -f "$HOME/.zsh/lib/${module}.zsh" ]]; then
-            source "$HOME/.zsh/lib/${module}.zsh"
-            LOADED_MODULES[$module]=1
-        fi
+    case "$module_type" in
+        "lib")      module_path="$SHELL_LIB_DIR/${module_name}.zsh" ;;
+        "function") module_path="$SHELL_FUNCTIONS_DIR/${module_name}.zsh" ;;
+        *)          return 1 ;;
+    esac
+
+    if [[ -f "$module_path" ]]; then
+        source "$module_path"
+        return 0
     fi
-done
-
-# Function modules
-for module in tips system_health; do
-    if [[ -z ${LOADED_MODULES[$module]} ]]; then
-        if [[ -f "$HOME/.zsh/functions/${module}.zsh" ]]; then
-            source "$HOME/.zsh/functions/${module}.zsh"
-            LOADED_MODULES[$module]=1
-        fi
-    fi
-done
-
-# Setup hooks
-autoload -Uz add-zsh-hook
-add-zsh-hook precmd osc7_cwd
-[[ $TERM == (xterm*|screen*) ]] && add-zsh-hook precmd update_ps1
-
-# Verify critical commands are available
-if ! command -v gum >/dev/null 2>&1; then
-    echo "Warning: gum not found. Please run: brew install gum"
     return 1
-fi
+}
 
-# Initialize core functionality
+# Load core library modules in specific order
+core_modules=(
+    "platform"      # Must be first for platform detection
+    "environment"   # Environment setup
+    "shell"         # Shell configuration
+    "prompt"        # Prompt setup
+    "ssh"          # SSH configuration
+    "utils"         # Utility functions
+)
+
+for module in "${core_modules[@]}"; do
+    load_module "lib" "$module"
+done
+
+# Load function modules
+function_modules=(
+    "tips"
+    "status"
+    "system_health"
+)
+
+for module in "${function_modules[@]}"; do
+    load_module "function" "$module"
+done
+
+# Initialize core components
 init_platform
 setup_environment
 init_shell
+init_prompt
 
-# Ensure history backup
+# Setup FZF if available
+if [[ -x "$HOME/bin/fzf" ]]; then
+    source <("$HOME/bin/fzf" --zsh)
+fi
+
+# Setup pyenv if available
+if [[ -d "$HOME/.pyenv" ]]; then
+    setup_pyenv
+fi
+
+# Load work profile if it exists
+if [[ -f "$HOME/.bash_work_profile" ]]; then
+    source "$HOME/.bash_work_profile"
+fi
+
+# Ensure backup cron job exists
 ensure_cron_job_exists
 
-# Additional setup
-setup_pyenv
-[[ -x "$HOME/bin/fzf" ]] && source <("$HOME/bin/fzf" --zsh)
+# Display system status only on initial login shell
+if [[ ! -f "/tmp/shell_status_shown_$$" ]]; then
+    # Verify gum is available
+    if command -v gum >/dev/null 2>&1; then
+        notify_shell_status
+        touch "/tmp/shell_status_shown_$$"
+    else
+        echo "Warning: 'gum' command not found. Please install it via: brew install gum"
+    fi
+fi
 
-# Load work profile if available
-[[ -f "$HOME/.bash_work_profile" ]] && source "$HOME/.bash_work_profile"
+# Show daily tip
+show_daily_tip
 
-# Show shell status
-notify_shell_status
+# Final cleanup
+unset core_modules function_modules

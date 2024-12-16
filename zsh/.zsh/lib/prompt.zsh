@@ -1,5 +1,13 @@
 #!/bin/zsh
 
+# Constants for styling
+reset="[0m"
+bold="[1m"
+red="[31m"
+green="[32m"
+yellow="[33m"
+blue="[34m"
+
 # Update PS1 prompt
 update_ps1() {
     local os_type=$(detect_shell_platform)
@@ -18,11 +26,11 @@ update_ps1() {
     if [[ -n "$powerline_cmd" ]] && [[ -x "$powerline_cmd" ]]; then
         PS1="$($powerline_cmd -error $? -jobs $(jobs -p | wc -l))"
     else
-        echo "Error: powerline-go command not found or not executable at $powerline_cmd"
         PS1="[%n@%m %~]%# "
     fi
 }
 
+# Display system status and information
 notify_shell_status() {
     # Check if gum is available and executable
     if ! command -v gum >/dev/null 2>&1; then
@@ -138,9 +146,36 @@ notify_shell_status() {
     fi
 }
 
+# Helper function for system recommendations
+provide_quick_recommendations() {
+    local recommendations=()
+
+    if [[ "${memory_usage%\%}" -gt 90 ]]; then
+        recommendations+=("- High memory usage detected. Consider closing unnecessary applications.")
+    fi
+
+    if [[ $(echo "$cpu_load > $cpu_cores" | bc -l) -eq 1 ]]; then
+        recommendations+=("- High CPU load detected. Check for resource-intensive processes.")
+    fi
+
+    if [[ ${#recommendations[@]} -gt 0 ]]; then
+        printf "%s\n" "${recommendations[@]}"
+    else
+        echo "  Your system appears to be in good health. No specific recommendations at this time."
+    fi
+}
+
 # OSC 7 directory tracking
 osc7_cwd() {
     local hostname=${HOST:-$(hostname)}
     local url="file://${hostname}${PWD}"
-    printf ']7;%s' "${url}"
+    printf '\e]7;%s\a' "${url}"
+}
+
+# Initialize prompt
+init_prompt() {
+    # Set up precmd hooks only once
+    autoload -Uz add-zsh-hook
+    add-zsh-hook precmd osc7_cwd
+    [[ $TERM == (xterm*|screen*) ]] && add-zsh-hook precmd update_ps1
 }
