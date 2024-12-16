@@ -148,6 +148,49 @@ setup_shell_options() {
     setopt long_list_jobs
     setopt prompt_subst
     setopt rm_star_silent
+    setopt AUTO_CD              # If command is a directory name, cd into it
+    setopt AUTO_PUSHD          # Make cd push old directory onto directory stack
+    setopt PUSHD_IGNORE_DUPS   # Don't push multiple copies of same directory
+    setopt PUSHD_SILENT        # Don't print directory stack after pushd/popd
+    setopt EXTENDED_GLOB       # Use extended globbing syntax
+    setopt NO_CASE_GLOB        # Case insensitive globbing
+    setopt NUMERIC_GLOB_SORT   # Sort filenames numerically when possible
+    setopt NO_BEEP             # Don't beep on error
+    setopt CORRECT             # Command correction prompt
+    setopt COMPLETE_IN_WORD    # Complete from both ends of word
+    setopt ALWAYS_TO_END       # Move cursor to end of word after completion
+}
+
+# LS colors setup function
+setup_ls_colors() {
+    local os_type=$(detect_shell_platform)
+
+    case "$os_type" in
+        OSX)
+            if command -v gls &>/dev/null; then
+                alias ls="gls --color=auto -F"
+            else
+                export CLICOLOR=1
+                export LSCOLORS="ExGxFxdaCxDaDahbadacec"
+                alias ls="ls -F"
+            fi
+            ;;
+        LINUX)
+            alias ls="ls --color=auto -F"
+            if [[ -x "/usr/bin/dircolors" ]]; then
+                if [[ -r "$HOME/.dircolors" ]]; then
+                    eval "$(dircolors -b "$HOME/.dircolors")"
+                else
+                    eval "$(dircolors -b)"
+                fi
+            fi
+            ;;
+    esac
+
+    # Common ls aliases
+    alias ll="ls -lh"
+    alias la="ls -A"
+    alias l="ls -CF"
 }
 
 # Setup Neovim aliases if available
@@ -182,6 +225,20 @@ setup_aliases() {
     alias ::::="cd ../../../.."
     alias :::::="cd ../../../../.."
     alias ::::::="cd ../../../../../.."
+    alias df='df -h'
+    alias du='du -h'
+    alias mkdir='mkdir -p'
+    alias ..='cd ..'
+    alias ...='cd ../..'
+    alias ....='cd ../../..'
+    alias .....='cd ../../../..'
+    alias -- -='cd -'
+    alias path='echo -e ${PATH//:/\\n}'
+
+    # Suffix aliases
+    alias -s {txt,md,markdown,rst}=$EDITOR
+    alias -s {gif,jpg,jpeg,png}='open'
+    alias -s {html,htm}='open'
     setup_nvim_alias
 }
 
@@ -191,4 +248,5 @@ init_shell() {
     setup_dircolors
     setup_readline
     setup_completions
+    setup_ls_colors
 }
