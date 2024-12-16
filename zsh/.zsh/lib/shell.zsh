@@ -1,12 +1,5 @@
 #!/bin/zsh
 
-# Shell options setup
-setup_shell_options() {
-    setopt interactive_comments
-    setopt long_list_jobs
-    setopt prompt_subst
-    setopt rm_star_silent
-}
 
 # Setup History
 setup_history() {
