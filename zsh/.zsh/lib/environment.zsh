@@ -158,6 +158,15 @@ setup_environment() {
     setup_terminal
     setup_misc
 
+    export WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
+    export TIMEFMT=$'\nreal\t%*E\nuser\t%*U\nsys\t%*S'
+    export REPORTTIME=10
+    export KEYTIMEOUT=1  # Reduces delay in vi-mode
+
+    # History improvements
+    export HISTIGNORE="ls:cd:cd -:pwd:exit:date:* --help"
+    export HISTCONTROL="ignoreboth:erasedups"
+
     # Load local environment if exists
     load_env_file "$HOME/.env"
 }
