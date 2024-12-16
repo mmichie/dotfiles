@@ -53,9 +53,6 @@ cmd-3 = 'workspace 3'
 cmd-4 = 'workspace 4'
 cmd-5 = 'workspace 5'
 cmd-6 = 'workspace 6'
-cmd-7 = 'workspace 7'
-cmd-8 = 'workspace 8'
-cmd-9 = 'workspace 9'
 
 # Move windows to tags (workspaces) - Modified to use alt+cmd
 alt-cmd-1 = 'move-node-to-workspace 1'
@@ -64,9 +61,6 @@ alt-cmd-3 = 'move-node-to-workspace 3'
 alt-cmd-4 = 'move-node-to-workspace 4'
 alt-cmd-5 = 'move-node-to-workspace 5'
 alt-cmd-6 = 'move-node-to-workspace 6'
-alt-cmd-7 = 'move-node-to-workspace 7'
-alt-cmd-8 = 'move-node-to-workspace 8'
-alt-cmd-9 = 'move-node-to-workspace 9'
 
 # Monitor controls
 cmd-comma = 'focus-monitor prev'           # Focus prev monitor
