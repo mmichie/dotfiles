@@ -7,7 +7,11 @@ export ZSHRC_LOADED=true
 # Exit if not running interactively
 [[ $- != *i* ]] && return
 
-# CRITICAL: Set up Homebrew PATH first, before anything else
+# Initialize completions properly first
+autoload -Uz compinit
+compinit
+
+# CRITICAL: Set up Homebrew PATH first
 if [[ -x "/opt/homebrew/bin/brew" ]]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
@@ -15,27 +19,33 @@ fi
 # Source global definitions if available
 [[ -f /etc/zshrc ]] && source /etc/zshrc
 
-# First source the functions file as it contains base functions needed by other modules
-[[ -f ~/.zsh_functions ]] && source ~/.zsh_functions
+# Source each module exactly once with simple tracking
+declare -A LOADED_MODULES
 
-# Then source core modules in order
-for module in platform environment prompt ssh; do
-    [[ -f ~/.zsh/lib/${module}.zsh ]] && source ~/.zsh/lib/${module}.zsh
+# Core modules first
+for module in platform environment shell prompt ssh; do
+    if [[ -z ${LOADED_MODULES[$module]} ]]; then
+        if [[ -f "$HOME/.zsh/lib/${module}.zsh" ]]; then
+            source "$HOME/.zsh/lib/${module}.zsh"
+            LOADED_MODULES[$module]=1
+        fi
+    fi
 done
 
-# Source function modules
+# Function modules
 for module in tips system_health; do
-    [[ -f ~/.zsh/functions/${module}.zsh ]] && source ~/.zsh/functions/${module}.zsh
+    if [[ -z ${LOADED_MODULES[$module]} ]]; then
+        if [[ -f "$HOME/.zsh/functions/${module}.zsh" ]]; then
+            source "$HOME/.zsh/functions/${module}.zsh"
+            LOADED_MODULES[$module]=1
+        fi
+    fi
 done
 
 # Setup hooks
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd osc7_cwd
-case $TERM in
-    xterm* | screen*)
-        add-zsh-hook precmd update_ps1
-        ;;
-esac
+[[ $TERM == (xterm*|screen*) ]] && add-zsh-hook precmd update_ps1
 
 # Verify critical commands are available
 if ! command -v gum >/dev/null 2>&1; then
