@@ -201,8 +201,7 @@ setup_eza() {
         return
     fi
 
-    # Use existing LS_COLORS from dircolors
-    export EZA_COLORS="auto"
+    export EZA_COLORS="ur=0:uw=0:ux=0:ue=0:gr=0:gw=0:gx=0:tr=0:tw=0:tx=0:su=0:sf=0"
 
     # Core eza aliases with standard formatting
     alias ls='_ls_command'  # Override ls with our custom function
