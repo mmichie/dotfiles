@@ -1,26 +1,5 @@
 #!/bin/zsh
 
-# Detect only the architecture
-detect_architecture() {
-    local arch=$(uname -m)
-    case "$arch" in
-        x86_64) echo 'x86_64' ;;
-        aarch64|arm64) echo 'arm64' ;;  # Handle both identifiers for ARM64
-        *) echo 'unknown' ;;
-    esac
-}
-
-# Detect shell platform
-detect_shell_platform() {
-    case "$OSTYPE" in
-        linux*) echo 'LINUX' ;;
-        darwin*) echo 'OSX' ;;
-        freebsd*) echo 'BSD' ;;
-        cygwin*) echo 'CYGWIN' ;;
-        *) echo 'OTHER' ;;
-    esac
-}
-
 # History management
 setup_history() {
     # Path to the history file
@@ -72,8 +51,6 @@ setup_environment() {
     setup_locale
     setup_editors
     setup_misc
-    setup_fzf
-    setup_intu_alias
 
     # Show Neovim tip on shell start
     # Only show tip 20% of the time to avoid being too intrusive
@@ -117,100 +94,6 @@ setup_misc() {
     export ENV_DISABLE_DONATION_MSG=1
 }
 
-setup_fzf() {
-    local os_type=$(detect_shell_platform)
-    local arch_type=$(detect_architecture)
-    local platform_cmd="${os_type}-${arch_type}"
-    local fzf_cmd
-    local common_fzf_link="$HOME/bin/fzf"
-
-    case "$platform_cmd" in
-        OSX-x86_64) fzf_cmd="$HOME/bin/fzf-darwin-amd64" ;;
-        OSX-arm64) fzf_cmd="$HOME/bin/fzf-darwin-arm64" ;;
-        LINUX-arm64) fzf_cmd="$HOME/bin/fzf-linux-arm64" ;;
-        LINUX-x86_64) fzf_cmd="$HOME/bin/fzf-linux-amd64" ;;
-    esac
-
-    # Check if the specific binary exists and is executable
-    if [[ -n "$fzf_cmd" ]] && [[ -x "$fzf_cmd" ]]; then
-        # Only create symlink if it does not already exist or points to a different target
-        if [[ ! -L "$common_fzf_link" ]] || [[ "$(readlink -- "$common_fzf_link")" != "$fzf_cmd" ]]; then
-            ln -sf "$fzf_cmd" "$common_fzf_link"
-        fi
-    fi
-}
-
-setup_intu_alias() {
-    local os_type=$(detect_shell_platform)
-    local arch_type=$(detect_architecture)
-    local platform_cmd="${os_type}-${arch_type}"
-    local intu_cmd
-    local common_intu_link="$HOME/bin/intu"
-
-    case "$platform_cmd" in
-        OSX-x86_64) intu_cmd="$HOME/bin/intu-darwin-amd64" ;;
-        OSX-arm64) intu_cmd="$HOME/bin/intu-darwin-arm64" ;;
-        LINUX-arm64) intu_cmd="$HOME/bin/intu-linux-arm64" ;;
-        LINUX-x86_64) intu_cmd="$HOME/bin/intu-linux-amd64" ;;
-        *)
-            echo "Unsupported platform for intu: $platform_cmd"
-            return 1
-            ;;
-    esac
-
-    # Check if the specific binary exists and is executable
-    if [[ -n "$intu_cmd" ]] && [[ -x "$intu_cmd" ]]; then
-        # Only create symlink if it does not already exist or points to a different target
-        if [[ ! -L "$common_intu_link" ]] || [[ "$(readlink -- "$common_intu_link")" != "$intu_cmd" ]]; then
-            ln -sf "$intu_cmd" "$common_intu_link"
-        fi
-        alias intu="$common_intu_link"
-        echo "intu alias has been set to use $intu_cmd"
-    else
-        echo "intu binary not found or not executable at $intu_cmd"
-        return 1
-    fi
-}
-
-# Function to set up the clipboard alias
-setup_clipboard_alias() {
-    local os_type=$(detect_shell_platform)
-    local clip_cmd
-
-    case "$os_type" in
-        OSX)
-            clip_cmd="pbcopy"
-            ;;
-        LINUX)
-            if command -v xclip &>/dev/null; then
-                clip_cmd="xclip -selection clipboard"
-            elif command -v xsel &>/dev/null; then
-                clip_cmd="xsel --clipboard --input"
-            elif command -v clip.exe &>/dev/null; then
-                # This is for Windows Subsystem for Linux (WSL)
-                clip_cmd="clip.exe"
-            else
-                echo "No suitable clipboard command found. Please install xclip or xsel."
-                return 1
-            fi
-            ;;
-        CYGWIN)
-            clip_cmd="clip.exe"
-            ;;
-        *)
-            echo "Unsupported operating system for clipboard operations."
-            return 1
-            ;;
-    esac
-
-    if [[ -n "$clip_cmd" ]]; then
-        alias clip="$clip_cmd"
-        echo "Clipboard alias 'clip' has been set to use '$clip_cmd'"
-    else
-        echo "Failed to set clipboard alias."
-        return 1
-    fi
-}
 
 # GOPATH setup
 setup_gopath() {
@@ -220,52 +103,6 @@ setup_gopath() {
         path=($path $GOPATH/bin)
         export GOPROXY="https://proxy.golang.org,direct"
     fi
-}
-
-# Platform-specific aliases and setup
-setup_platform_specific() {
-    local os_type=$(detect_shell_platform)
-
-    case "$os_type" in
-        OSX)
-            export HOMEBREW_NO_ANALYTICS=1
-            #alias slock='pmset displaysleepnow && ssh 172.17.122.15 "DISPLAY=:0 slock"'
-            alias brew="/opt/homebrew/bin/brew"
-            if (( $+commands[brew] )) && [[ -r "$(brew --prefix)/share/zsh/site-functions/_brew" ]]; then
-                fpath=($fpath $(brew --prefix)/share/zsh/site-functions)
-                autoload -Uz compinit && compinit
-            fi
-            path=($path $(brew --prefix)/sbin $(brew --prefix)/bin $HOME/bin)
-            alias ls="gls --color=auto"
-            if [[ -r "$HOME/.iterm2_shell_integration.zsh" ]]; then
-                source "$HOME/.iterm2_shell_integration.zsh"
-            fi
-
-            # Set up JAVA_HOME for Homebrew-installed openjdk@17 on macOS
-            local brew_java_home="$(/opt/homebrew/bin/brew --prefix openjdk@17)"
-            if [[ -d "$brew_java_home" ]]; then
-                export JAVA_HOME="$brew_java_home"
-                path=($JAVA_HOME/bin $path)
-            fi
-            ;;
-        LINUX)
-            export NO_AT_BRIDGE=1
-            alias open="xdg-open"
-            alias ls="ls --color=auto"
-            if [[ -x "/usr/bin/dircolors" ]]; then
-                if [[ -r "$HOME/.dircolors" ]]; then
-                    eval "$(dircolors -b "$HOME/.dircolors")"
-                else
-                    eval "$(dircolors -b)"
-                fi
-                alias ls="ls --color=auto"
-                alias grep="grep --color=auto"
-                alias fgrep="fgrep --color=auto"
-                alias egrep="egrep --color=auto"
-            fi
-            export GCC_COLORS="error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01"
-            ;;
-    esac
 }
 
 git_cleanup() {

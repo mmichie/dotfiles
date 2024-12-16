@@ -19,6 +19,7 @@ export ZSHRC_LOADED=true
 source ~/.zsh/functions/tips.zsh
 source ~/.zsh/functions/system_health.zsh
 source ~/.zsh/lib/ssh.zsh
+source ~/.zsh/lib/platform.zsh
 
 # Detect shell platform
 SHELL_PLATFORM=$(detect_shell_platform)
@@ -63,9 +64,6 @@ setup_completions
 
 # Check and ensure the cron job for history backup is present
 ensure_cron_job_exists
-
-# Call the function to set up the clipboard alias
-setup_clipboard_alias
 
 # Load work-specific profile if available
 [[ -f "$HOME/.bash_work_profile" ]] && source "$HOME/.bash_work_profile"
