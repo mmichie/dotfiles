@@ -149,3 +149,53 @@ docker_cleanup() {
     docker system prune -af
     docker volume prune -f
 }
+
+setup_shell_options() {
+    setopt interactive_comments
+    setopt long_list_jobs
+    setopt prompt_subst
+    setopt rm_star_silent
+}
+
+# Setup Neovim aliases if available
+setup_nvim_alias() {
+    # Check if nvim is installed
+    if command -v nvim >/dev/null 2>&1; then
+        alias vim='nvim'
+        alias vi='nvim'
+        export EDITOR='nvim'
+        export VISUAL='nvim'
+        echo "Neovim aliases set up successfully"
+    fi
+}
+
+# Setup aliases
+setup_aliases() {
+    alias history="history 1" # behave more like bash
+    alias gclean="git_cleanup"
+    alias dclean="docker_cleanup"
+    alias grep="grep --color=auto -d skip"
+    alias grpe="grep --color=auto -d skip"
+    alias screen="tmux"
+    alias ssh="ssh -A -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -o VisualHostKey=yes -o IdentitiesOnly=yes"
+    alias nsr="netstat -rn"
+    alias nsa="netstat -an | sed -n '1,/Active UNIX domain sockets/p'"
+    alias lsock="sudo /usr/sbin/lsof -i -P"
+    alias keypress="read -s -n1 keypress; echo \$keypress"
+    alias loadenv='export $(grep -v "^#" .env | xargs)'
+    alias :="cd .."
+    alias ::="cd ../.."
+    alias :::="cd ../../.."
+    alias ::::="cd ../../../.."
+    alias :::::="cd ../../../../.."
+    alias ::::::="cd ../../../../../.."
+    setup_nvim_alias
+}
+
+init_shell() {
+    setup_shell_options
+    setup_aliases
+    setup_dircolors
+    setup_readline
+    setup_completions
+}

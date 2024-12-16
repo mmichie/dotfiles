@@ -21,40 +21,6 @@ setup_history() {
 }
 
 
-# Update PS1 prompt
-update_ps1() {
-    local os_type=$(detect_shell_platform)
-    local arch_type=$(detect_architecture)
-    local platform_cmd="${os_type}-${arch_type}"
-    local powerline_cmd
-
-    case "$platform_cmd" in
-        OSX-x86_64) powerline_cmd="$HOME/bin/powerline-go-darwin-amd64" ;;
-        OSX-arm64) powerline_cmd="$HOME/bin/powerline-go-darwin-arm64" ;;
-        LINUX-arm64) powerline_cmd="$HOME/bin/powerline-go-linux-arm64" ;;
-        LINUX-x86_64) powerline_cmd="$HOME/bin/powerline-go-linux-amd64" ;;
-    esac
-
-    # Check if the powerline_cmd is executable
-    if [[ -n "$powerline_cmd" ]] && [[ -x "$powerline_cmd" ]]; then
-        PS1="$($powerline_cmd -error $? -jobs $(jobs -p | wc -l))"
-    else
-        echo "Error: powerline-go command not found or not executable at $powerline_cmd"
-        PS1="[%n@%m %~]%# "
-    fi
-}
-
-
-# GOPATH setup
-setup_gopath() {
-    if [[ -z "$GOPATH" ]]; then
-        export GOPATH="$HOME/workspace/go"
-        mkdir -p "$GOPATH"
-        path=($path $GOPATH/bin)
-        export GOPROXY="https://proxy.golang.org,direct"
-    fi
-}
-
 git_cleanup() {
     git fetch --prune
     git branch --merged | grep -v "\*" | xargs -n 1 git branch -d
@@ -77,28 +43,6 @@ setup_nvim_alias() {
         export VISUAL='nvim'
         echo "Neovim aliases set up successfully"
     fi
-}
-
-setup_aliases() {
-    alias history="history 1" # behave more like bash
-    alias gclean="git_cleanup"
-    alias dclean="docker_cleanup"
-    alias grep="grep --color=auto -d skip"
-    alias grpe="grep --color=auto -d skip"
-    alias screen="tmux"
-    alias ssh="ssh -A -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -o VisualHostKey=yes -o IdentitiesOnly=yes"
-    alias nsr="netstat -rn"
-    alias nsa="netstat -an | sed -n '1,/Active UNIX domain sockets/p'"
-    alias lsock="sudo /usr/sbin/lsof -i -P"
-    alias keypress="read -s -n1 keypress; echo \$keypress"
-    alias loadenv='export $(grep -v "^#" .env | xargs)'
-    alias :="cd .."
-    alias ::="cd ../.."
-    alias :::="cd ../../.."
-    alias ::::="cd ../../../.."
-    alias :::::="cd ../../../../.."
-    alias ::::::="cd ../../../../../.."
-    setup_nvim_alias
 }
 
 # Functions
@@ -306,13 +250,6 @@ EOF
     rm -f "$temp_file" "$python_script"
 }
 
-# Shell options
-setup_shell_options() {
-    setopt interactive_comments
-    setopt long_list_jobs
-    setopt prompt_subst
-    setopt rm_star_silent
-}
 
 # Dircolors setup
 setup_dircolors() {

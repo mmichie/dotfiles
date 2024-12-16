@@ -1,8 +1,5 @@
 #!/bin/zsh
 
-# Constants
-ZSHRC_LOADED="zshrc_loaded"
-
 # Prevent multiple sourcing
 [[ "${(P)ZSHRC_LOADED}" == "true" ]] && return
 export ZSHRC_LOADED=true
@@ -47,17 +44,9 @@ if ! command -v gum >/dev/null 2>&1; then
 fi
 
 # Initialize core functionality
+init_platform
 setup_environment
-setup_gopath
-setup_platform_specific
-
-# Shell configuration
-setup_aliases
-setup_shell_options
-setup_history
-setup_dircolors
-setup_readline
-setup_completions
+init_shell
 
 # Ensure history backup
 ensure_cron_job_exists
