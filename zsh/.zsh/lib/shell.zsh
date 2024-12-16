@@ -227,8 +227,6 @@ setup_eza() {
     # Git-specific aliases
     alias lg='eza --long --header --icons --git --git-ignore'
     alias lsg='eza --long --header --icons --git --git-ignore --sort=size'
-
-    echo "eza aliases have been configured using system dircolors"
 }
 
 # Function to handle ls commands including the common -altr pattern
@@ -248,7 +246,6 @@ setup_nvim_alias() {
         alias vi='nvim'
         export EDITOR='nvim'
         export VISUAL='nvim'
-        echo "Neovim aliases set up successfully"
     fi
 }
 
