@@ -1,51 +1,6 @@
 #!/bin/zsh
 
-# History management
-setup_history() {
-    # Path to the history file
-    export HISTFILE="$HOME/.zsh_history"
-
-    # Number of commands to save in the history file
-    export HISTSIZE=1000000
-    export SAVEHIST=1000000
-
-    # Options to manage how history is stored and shared
-    setopt SHARE_HISTORY          # Share history between all sessions
-    setopt INC_APPEND_HISTORY_TIME
-    setopt HIST_EXPIRE_DUPS_FIRST # Expire duplicate entries first when trimming history
-    setopt HIST_REDUCE_BLANKS     # Remove superfluous blanks before saving entry
-    setopt HIST_IGNORE_ALL_DUPS   # Ignore duplicated entries
-    setopt HIST_IGNORE_SPACE      # Don't record an entry starting with a space
-    setopt HIST_FIND_NO_DUPS      # Do not display duplicates in history search
-    setopt HIST_VERIFY            # Show command with history expansion to user before running it
-}
-
-
-git_cleanup() {
-    git fetch --prune
-    git branch --merged | grep -v "\*" | xargs -n 1 git branch -d
-}
-
-docker_cleanup() {
-    docker system prune -af
-    docker volume prune -f
-}
-
-# Aliases
-
-# Setup Neovim aliases if available
-setup_nvim_alias() {
-    # Check if nvim is installed
-    if command -v nvim >/dev/null 2>&1; then
-        alias vim='nvim'
-        alias vi='nvim'
-        export EDITOR='nvim'
-        export VISUAL='nvim'
-        echo "Neovim aliases set up successfully"
-    fi
-}
-
-# Functions
+# Enhanced man pages with colors
 man() {
     env \
         LESS_TERMCAP_md=$'\e[1;36m' \
@@ -57,10 +12,12 @@ man() {
         man "$@"
 }
 
+# Check HTTP headers
 http_headers() {
     /usr/bin/curl -I -L "$@"
 }
 
+# Create SSH tunnel
 sshtunnel() {
     if [[ $# -ne 3 ]]; then
         echo "usage: sshtunnel host remote-port local_port"
@@ -114,13 +71,13 @@ catfiles() {
             ;;
     esac
 
-    # Create Python script
+    # Create Python script for JSON processing
     cat << 'EOF' > "$python_script"
 import json
 import sys
 
 def escape_string(s):
-    return s.encode("unicode_escape").decode("utf-8").replace('"', '\"')
+    return s.encode("unicode_escape").decode("utf-8").replace('"', '\\"')
 
 try:
     data = json.loads(sys.stdin.read())
@@ -221,7 +178,7 @@ EOF
     else
         # If no files specified, use current directory
         if [[ $# -eq 0 ]]; then
-            for file in *(.); do  # This glob qualifier '(.)' ensures only regular files are matched
+            for file in *(.) ; do  # This glob qualifier '(.)' ensures only regular files are matched
                 process_file "$file"
             done
         else
@@ -250,74 +207,7 @@ EOF
     rm -f "$temp_file" "$python_script"
 }
 
-
-# Dircolors setup
-setup_dircolors() {
-    if [[ "$TERM" != "dumb" ]]; then
-        local dircolors_cmd="$(whence gdircolors 2>/dev/null || whence dircolors 2>/dev/null)"
-        local dir_colors="$HOME/.dircolors"
-        if [[ -x "$dircolors_cmd" ]] && [[ -r "$dir_colors" ]]; then
-            eval "$($dircolors_cmd -b "$dir_colors")"
-        elif [[ -x "$dircolors_cmd" ]]; then
-            eval "$($dircolors_cmd -b)"
-        else
-            echo "No dircolors command found, using default LS_COLORS"
-        fi
-        alias grep="grep --color=auto"
-        alias fgrep="fgrep --color=auto"
-        alias egrep="egrep --color=auto"
-    fi
-}
-
-# Readline setup
-setup_readline() {
-    # Enable vi command mode
-    bindkey -v
-
-    # Basic navigation bindings
-    bindkey '^A' beginning-of-line
-    bindkey '^E' end-of-line
-    bindkey '^D' delete-char
-    bindkey '^L' clear-screen
-
-    # History search bindings
-    bindkey '^R' history-incremental-search-backward
-    bindkey '^\e[A' up-line-or-search
-    bindkey '^\e[B' down-line-or-search
-}
-
-# Completions
-setup_completions() {
-    autoload -Uz compinit
-    compinit
-
-    # Command specific completions
-    compdef _command command
-    compdef _signal kill
-    compdef _user finger pinky
-
-    # Directory handling completions
-    compdef _directories cd
-    compdef _directories pushd
-    compdef _directories mkdir
-    compdef _directories rmdir
-
-    # File and job handling completions
-    compdef _files ln chmod chown chgrp
-    compdef _jobs fg bg disown jobs
-}
-
-
-# pyenv setup
-setup_pyenv() {
-    export PYENV_ROOT="$HOME/.pyenv"
-    if [[ -d "$PYENV_ROOT/bin" ]] && [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
-        path=($PYENV_ROOT/bin $path)
-        eval "$(pyenv init -)"
-    fi
-}
-
-# Function to load environment variables from a .env file and print their names
+# Load and display environment variables from a .env file
 loadenv() {
     if [ -f ".env" ]; then
         echo "Loading environment variables:"
@@ -334,56 +224,7 @@ loadenv() {
     fi
 }
 
-# Check and add cron job for backing up shell history
-ensure_cron_job_exists() {
-    local cron_job="0 0 * * 0 . $HOME/.zshrc; backup_shell_history"
-    if ! crontab -l | grep -Fq "$cron_job"; then
-        (crontab -l 2>/dev/null; echo "$cron_job") | crontab -
-    fi
-}
-
-# Backup shell history
-backup_shell_history() {
-    local backup_dir="$HOME/.shell_history_backups"
-    mkdir -p "$backup_dir"
-    local timestamp=$(date +"%Y%m%d%H%M%S")
-    tar -czf "$backup_dir/zsh_history_$timestamp.tar.gz" -C "$HOME" .zsh_history
-}
-
-notify_mac() {
-    local title="$1"
-    local message="$2"
-    osascript -e "display notification \"$message\" with title \"$title\""
-}
-
-notify_linux() {
-    local title="$1"
-    local message="$2"
-    notify-send "$title" "$message"
-}
-
-notify_windows() {
-    local title="$1"
-    local message="$2"
-    powershell -Command "& {Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('$message', '$title')}"
-}
-
-notify_cross_platform() {
-    local title="$1"
-    local message="$2"
-    if command -v zenity &> /dev/null; then
-        zenity --info --title="$title" --text="$message"
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
-        osascript -e "display notification \"$message\" with title \"$title\""
-    elif command -v notify-send &> /dev/null; then
-        notify-send "$title" "$message"
-    elif command -v powershell &> /dev/null; then
-        powershell -Command "& {Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('$message', '$title')}"
-    else
-        echo "Notification not supported on this OS."
-    fi
-}
-
+# System status notification with fancy ASCII art
 notify_shell_status() {
     # Temporarily disable job notifications
     setopt local_options NO_NOTIFY NO_MONITOR
@@ -423,6 +264,7 @@ notify_shell_status() {
                 cpu_load=$(uptime | awk -F'[a-z]:' '{print $2}' | awk -F',' '{printf "%.1f", $1}')
                 ;;
         esac
+
         # Store results in temporary files
         echo "$cpu_info" > /tmp/cpu_info.$$
         echo "$memory_info" > /tmp/memory_info.$$
@@ -450,7 +292,7 @@ notify_shell_status() {
   ╚════-» [ fido.net.scene.2024.MAIN ] «-═══╝" \
       "$(gum style --foreground 99 'DISTRIBUTION NODE: 4:920/35')"
 
-    # Wait for background process to complete
+    # Wait for background process
     wait >/dev/null 2>&1
 
     # Read the gathered information
@@ -463,7 +305,7 @@ notify_shell_status() {
     # Clean up temporary files
     rm -f /tmp/cpu_info.$$ /tmp/memory_info.$$ /tmp/memory_usage.$$ /tmp/cpu_cores.$$ /tmp/cpu_load.$$ 2>/dev/null
 
-    # Display system information with gathered values
+    # Display system information
     gum style \
         --width 70 \
         --border normal \
@@ -480,7 +322,7 @@ notify_shell_status() {
         "$(gum style --foreground 99 "×þ Memory     [ $memory_info ]")" \
         "$(gum style --foreground 99 "×þ Mem Usage  [ $memory_usage ]")"
 
-    # Show recommendations for critical issues
+    # Show recommendations if there are any issues
     if [[ "${memory_usage%\%}" -gt 90 || $(echo "$cpu_load > $cpu_cores" | bc -l) -eq 1 ]]; then
         gum style \
             --width 70 \
@@ -492,7 +334,7 @@ notify_shell_status() {
     fi
 }
 
-# Recommendations function remains the same
+# Helper function for system recommendations
 provide_quick_recommendations() {
     local recommendations=()
 
@@ -500,7 +342,7 @@ provide_quick_recommendations() {
         recommendations+=("- High memory usage detected. Consider closing unnecessary applications.")
     fi
 
-    if [[ $(echo "$cpu_load > $cpu_cores" | bc -l) -eq 1 ]]; then
+if [[ $(echo "$cpu_load > $cpu_cores" | bc -l) -eq 1 ]]; then
         recommendations+=("- High CPU load detected. Check for resource-intensive processes.")
     fi
 
@@ -511,38 +353,33 @@ provide_quick_recommendations() {
     fi
 }
 
-check_new_mail() {
-    if [[ -n "$(find /var/mail -type f -newer ~/.last_mail_check 2>/dev/null)" ]]; then
-        echo -e "  ${yellow}New Mail:${reset} Yes ${red}(Action: Check your mail)${reset}" > /tmp/shell_status_mail
-    else
-        echo -e "  ${yellow}New Mail:${reset} No" > /tmp/shell_status_mail
-    fi
+# Git cleanup utility
+git_cleanup() {
+    git fetch --prune
+    git branch --merged | grep -v "\*" | xargs -n 1 git branch -d
 }
 
-check_ssh_agent() {
-    if [[ -n "$SSH_AGENT_PID" ]]; then
-        echo -e "  ${yellow}SSH Agent:${reset} Running (PID: $SSH_AGENT_PID)" > /tmp/shell_status_ssh
-    else
-        echo -e "  ${yellow}SSH Agent:${reset} Not Running ${red}(Action: Start SSH agent)${reset}" > /tmp/shell_status_ssh
-    fi
+# Docker cleanup utility
+docker_cleanup() {
+    docker system prune -af
+    docker volume prune -f
 }
 
-check_fzf_setup() {
-    if [[ -x "$HOME/bin/fzf" ]]; then
-        echo -e "  ${yellow}fzf Setup:${reset} Properly Set Up" > /tmp/shell_status_fzf
-    else
-        echo -e "  ${yellow}fzf Setup:${reset} Not Set Up ${red}(Action: Install fzf)${reset}" > /tmp/shell_status_fzf
-    fi
+# Backup shell history
+backup_shell_history() {
+    local backup_dir="$HOME/.shell_history_backups"
+    mkdir -p "$backup_dir"
+    local timestamp=$(date +"%Y%m%d%H%M%S")
+    tar -czf "$backup_dir/zsh_history_$timestamp.tar.gz" -C "$HOME" .zsh_history
 }
 
-check_cron_job() {
-    if crontab -l 2>/dev/null | grep -Fq "backup_shell_history"; then
-        echo -e "  ${yellow}History Backup Cron:${reset} Exists" > /tmp/shell_status_cron
-    else
-        echo -e "  ${yellow}History Backup Cron:${reset} Not Found ${red}(Action: Set up backup cron job)${reset}" > /tmp/shell_status_cron
+# Ensure cron job exists for history backup
+ensure_cron_job_exists() {
+    local cron_job="0 0 * * 0 . $HOME/.zshrc; backup_shell_history"
+    if ! crontab -l | grep -Fq "$cron_job"; then
+        (crontab -l 2>/dev/null; echo "$cron_job") | crontab -
     fi
 }
-
 
 # OSC 7 directory tracking
 osc7_cwd() {
@@ -550,4 +387,3 @@ osc7_cwd() {
     local url="file://${hostname}${PWD}"
     printf '\e]7;%s\a' "${url}"
 }
-
