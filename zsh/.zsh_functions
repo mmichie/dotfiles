@@ -1,9 +1,5 @@
 #!/bin/zsh
 
-# Constants
-readonly AGENT_SOCKET="$HOME/.ssh/.ssh-agent-socket"
-readonly AGENT_INFO="$HOME/.ssh/.ssh-agent-info"
-
 # Detect only the architecture
 detect_architecture() {
     local arch=$(uname -m)
@@ -45,37 +41,6 @@ setup_history() {
     setopt HIST_VERIFY            # Show command with history expansion to user before running it
 }
 
-
-# Handles the initialization and maintenance of an SSH agent to manage SSH keys.
-handle_ssh_agent() {
-    local ssh_agent_info="$HOME/.ssh/.ssh-agent-info"
-    local agent_socket="$HOME/.ssh/.ssh-agent-socket"
-
-    # Load existing agent configuration if available
-    if [[ -s "$ssh_agent_info" ]]; then
-        source "$ssh_agent_info"
-    fi
-
-    # Check if SSH agent needs restarting
-    if ! ssh-add -l &>/dev/null || [[ ! -S "$agent_socket" ]]; then
-        restart_ssh_agent "$agent_socket" "$ssh_agent_info"
-    fi
-}
-
-# Restarts the SSH agent and updates the agent information files
-restart_ssh_agent() {
-    local agent_socket=$1
-    local agent_info_file=$2
-
-    # Ensure old sockets are removed for security
-    [[ -S "$agent_socket" ]] && rm "$agent_socket"
-
-    # Start new SSH agent and save its configuration
-    echo "Starting new SSH agent..."
-    ssh-agent -a "$agent_socket" > "$agent_info_file"
-    source "$agent_info_file"
-    ssh-add
-}
 
 # Update PS1 prompt
 update_ps1() {

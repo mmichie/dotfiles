@@ -2,8 +2,6 @@
 
 # Constants
 ZSHRC_LOADED="zshrc_loaded"
-SSH_HOSTNAMES=("mattmichie-mbp" "matt-pc" "miley" "matt-pc-wsl")
-SSH_ENV="$HOME/.ssh/environment"
 
 # Prevent multiple sourcing
 [[ "${(P)ZSHRC_LOADED}" == "true" ]] && return
@@ -20,15 +18,11 @@ export ZSHRC_LOADED=true
 
 source ~/.zsh/functions/tips.zsh
 source ~/.zsh/functions/system_health.zsh
+source ~/.zsh/lib/ssh.zsh
 
 # Detect shell platform
 SHELL_PLATFORM=$(detect_shell_platform)
 export SHELL_PLATFORM
-
-# SSH agent handling
-if [[ " ${SSH_HOSTNAMES[*]} " == *$(hostname)* ]]; then
-    handle_ssh_agent
-fi
 
 # Update PS1 prompt
 unset USERNAME
