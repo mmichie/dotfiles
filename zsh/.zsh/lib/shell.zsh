@@ -252,8 +252,13 @@ setup_nvim_alias() {
     fi
 }
 
-# Setup aliases
 setup_aliases() {
+    # Check if bat is installed and set up alias for cat
+    if command -v bat &>/dev/null; then
+        alias cat="bat --style=plain --paging=never --wrap=never"
+    fi
+
+    # Common aliases
     alias history="history 1" # behave more like bash
     alias gclean="git_cleanup"
     alias dclean="docker_cleanup"
@@ -266,6 +271,8 @@ setup_aliases() {
     alias lsock="sudo /usr/sbin/lsof -i -P"
     alias keypress="read -s -n1 keypress; echo \$keypress"
     alias loadenv='export $(grep -v "^#" .env | xargs)'
+
+    # Directory navigation
     alias :="cd .."
     alias ::="cd ../.."
     alias :::="cd ../../.."
@@ -288,6 +295,7 @@ setup_aliases() {
     alias -s {html,htm}='open'
     setup_nvim_alias
 }
+
 
 init_shell() {
     setup_shell_options
