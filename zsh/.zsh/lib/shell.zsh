@@ -193,6 +193,54 @@ setup_ls_colors() {
     alias l="ls -CF"
 }
 
+# Setup eza if available, using existing dircolors
+setup_eza() {
+    # Only proceed if eza is installed
+    if ! command -v eza &>/dev/null; then
+        setup_ls_colors
+        return
+    fi
+
+    # Use existing LS_COLORS from dircolors
+    export EZA_COLORS="auto"
+
+    # Core eza aliases with standard formatting
+    alias ls='_ls_command'  # Override ls with our custom function
+    alias ll='eza --long --header --icons --git --group-directories-first'
+    alias la='eza --long --header --icons --git --group-directories-first --all'
+    alias lt='eza --tree --level=2 --icons'
+    alias ltt='eza --tree --level=3 --icons'
+    alias lttt='eza --tree --level=4 --icons'
+    alias l='eza --long --header --icons --git --group-directories-first'
+    alias l.='eza --long --header --icons --git --all --group-directories-first .*'
+
+    # Simple alias for the common pattern
+    alias lstr='eza --long --all --sort=modified --reverse'
+
+    # Additional aliases for different views
+    alias lm='eza --long --header --icons --git --sort=modified'
+    alias lk='eza --long --header --icons --git --sort=size'
+    alias lc='eza --long --header --icons --git --sort=created'
+    alias lx='eza --long --header --icons --git --sort=extension'
+    alias lr='eza --long --header --icons --git --recurse'
+    alias ld='eza --only-dirs --icons'
+
+    # Git-specific aliases
+    alias lg='eza --long --header --icons --git --git-ignore'
+    alias lsg='eza --long --header --icons --git --git-ignore --sort=size'
+
+    echo "eza aliases have been configured using system dircolors"
+}
+
+# Function to handle ls commands including the common -altr pattern
+_ls_command() {
+    if [[ "$*" == "-altr" || "$*" == "-latr" ]]; then
+        eza --long --all --sort=modified  --group-directories-first --icons
+    else
+        eza --group-directories-first --icons "$@"
+    fi
+}
+
 # Setup Neovim aliases if available
 setup_nvim_alias() {
     # Check if nvim is installed
@@ -248,5 +296,6 @@ init_shell() {
     setup_dircolors
     setup_readline
     setup_completions
-    setup_ls_colors
+    # Try eza first, fall back to regular ls colors
+    setup_eza || setup_ls_colors
 }
