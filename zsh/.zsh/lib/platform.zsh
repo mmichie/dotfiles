@@ -125,7 +125,6 @@ setup_intu() {
         [[ ! -L "$common_intu_link" ]] || [[ "$(readlink -- "$common_intu_link")" != "$intu_cmd" ]] && \
             ln -sf "$intu_cmd" "$common_intu_link"
         alias intu="$common_intu_link"
-        echo "intu alias has been set to use $intu_cmd"
     else
         echo "intu binary not found or not executable at $intu_cmd"
         return 1
@@ -165,7 +164,6 @@ setup_clipboard() {
 
     if [[ -n "$clip_cmd" ]]; then
         alias clip="$clip_cmd"
-        echo "Clipboard alias 'clip' has been set to use '$clip_cmd'"
     else
         echo "Failed to set clipboard alias."
         return 1
