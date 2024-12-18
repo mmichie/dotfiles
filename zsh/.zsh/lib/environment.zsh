@@ -151,16 +151,22 @@ setup_misc() {
 # Load environment variables from .env file
 load_env_file() {
     local env_file="$1"
-    if [[ -f "$env_file" ]]; then
-        while IFS= read -r line || [[ -n "$line" ]]; do
-            if [[ ! "$line" =~ ^# && "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
-                # Remove any surrounding quotes from the value
-                line=${line//\"/}  # Remove double quotes
-                line=${line//\'/}  # Remove single quotes
-                export "$line"
-            fi
-        done < "$env_file"
-    fi
+
+    [[ ! -f "$env_file" ]] && return 1
+
+    local line
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Skip empty lines and comments
+        [[ -z "$line" || "$line" = \#* ]] && continue
+
+        # Only process valid environment variable assignments
+        if [[ "$line" = [A-Za-z_]*([A-Za-z0-9_])=* ]]; then
+            # Remove any surrounding quotes from the value
+            local cleaned_line="${line//\"/}"  # Remove double quotes
+            cleaned_line="${cleaned_line//\'/}"  # Remove single quotes
+            export "$cleaned_line"
+        fi
+    done < "$env_file"
 }
 
 # Main environment setup function
