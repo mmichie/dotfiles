@@ -10,12 +10,11 @@ blue="[34m"
 
 # System information functions
 check_system_load() {
-    local os_type=$(detect_shell_platform)
     local load
     local cores
     local load_per_core
 
-    if [[ "$os_type" == "OSX" ]]; then
+    if is_osx; then
         load=$(sysctl -n vm.loadavg | awk '{print $2}')
         cores=$(sysctl -n hw.ncpu)
     else
@@ -33,16 +32,17 @@ check_system_load() {
 }
 
 check_memory_usage() {
-    local os_type=$(detect_shell_platform)
     local memory_usage
     local total_memory
-    if [[ "$os_type" == "OSX" ]]; then
+
+    if is_osx; then
         memory_usage=$(vm_stat | awk '/Pages active/ {print $3}' | sed 's/\.//')
         total_memory=$(sysctl hw.memsize | awk '{print $2}')
         memory_usage=$(echo "scale=2; $memory_usage * 4096 / $total_memory * 100" | bc -l 2>/dev/null)
     else
         memory_usage=$(free | awk '/Mem:/ {printf("%.2f", $3/$2 * 100.0)}')
     fi
+
     if (( $(echo "$memory_usage > 90" | bc -l 2>/dev/null) )); then
         echo -e "  ${yellow}Memory Usage:${reset} ${memory_usage}% ${red}(High usage, consider freeing up memory)${reset}" > /tmp/system_info_memory
     else

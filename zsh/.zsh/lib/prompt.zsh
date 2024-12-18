@@ -10,17 +10,21 @@ blue="[34m"
 
 # Update PS1 prompt
 update_ps1() {
-    local os_type=$(detect_shell_platform)
-    local arch_type=$(detect_architecture)
-    local platform_cmd="${os_type}-${arch_type}"
     local powerline_cmd
 
-    case "$platform_cmd" in
-        OSX-x86_64) powerline_cmd="$HOME/bin/powerline-go-darwin-amd64" ;;
-        OSX-arm64) powerline_cmd="$HOME/bin/powerline-go-darwin-arm64" ;;
-        LINUX-arm64) powerline_cmd="$HOME/bin/powerline-go-linux-arm64" ;;
-        LINUX-x86_64) powerline_cmd="$HOME/bin/powerline-go-linux-amd64" ;;
-    esac
+    if is_osx; then
+        if is_arm; then
+            powerline_cmd="$HOME/bin/powerline-go-darwin-arm64"
+        else
+            powerline_cmd="$HOME/bin/powerline-go-darwin-amd64"
+        fi
+    elif is_linux; then
+        if is_arm; then
+            powerline_cmd="$HOME/bin/powerline-go-linux-arm64"
+        else
+            powerline_cmd="$HOME/bin/powerline-go-linux-amd64"
+        fi
+    fi
 
     # Check if the powerline_cmd is executable
     if [[ -n "$powerline_cmd" ]] && [[ -x "$powerline_cmd" ]]; then
@@ -42,8 +46,8 @@ notify_shell_status() {
     setopt local_options NO_NOTIFY NO_MONITOR
 
     # Get platform info first since we need it immediately
-    local os_type=$(detect_shell_platform)
-    local arch_type=$(detect_architecture)
+    local os_type="$SYSTEM_OS_TYPE"
+    local arch_type="$SYSTEM_ARCH"
     local cpu_info=""
     local memory_info=""
     local memory_usage=""
