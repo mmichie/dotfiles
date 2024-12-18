@@ -2,59 +2,15 @@
 
 # Setup FZF for the current platform
 setup_fzf() {
-    local fzf_cmd
-    local common_fzf_link="$HOME/bin/fzf"
-
-    if is_osx; then
-        if is_arm; then
-            fzf_cmd="$HOME/bin/fzf-darwin-arm64"
-        else
-            fzf_cmd="$HOME/bin/fzf-darwin-amd64"
-        fi
-    elif is_linux; then
-        if is_arm; then
-            fzf_cmd="$HOME/bin/fzf-linux-arm64"
-        else
-            fzf_cmd="$HOME/bin/fzf-linux-amd64"
-        fi
-    fi
-
-    if [[ -n "$fzf_cmd" ]] && [[ -x "$fzf_cmd" ]]; then
-        [[ ! -L "$common_fzf_link" ]] || [[ "$(readlink -- "$common_fzf_link")" != "$fzf_cmd" ]] && \
-            ln -sf "$fzf_cmd" "$common_fzf_link"
-    fi
+    setup_platform_binary "fzf" && \
+    export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border"
 }
+
 
 # Setup Intu for the current platform
 setup_intu() {
-    local intu_cmd
-    local common_intu_link="$HOME/bin/intu"
-
-    if is_osx; then
-        if is_arm; then
-            intu_cmd="$HOME/bin/intu-darwin-arm64"
-        else
-            intu_cmd="$HOME/bin/intu-darwin-amd64"
-        fi
-    elif is_linux; then
-        if is_arm; then
-            intu_cmd="$HOME/bin/intu-linux-arm64"
-        else
-            intu_cmd="$HOME/bin/intu-linux-amd64"
-        fi
-    else
-        echo "Unsupported platform for intu"
-        return 1
-    fi
-
-    if [[ -n "$intu_cmd" ]] && [[ -x "$intu_cmd" ]]; then
-        [[ ! -L "$common_intu_link" ]] || [[ "$(readlink -- "$common_intu_link")" != "$intu_cmd" ]] && \
-            ln -sf "$intu_cmd" "$common_intu_link"
-        alias intu="$common_intu_link"
-    else
-        echo "intu binary not found or not executable at $intu_cmd"
-        return 1
-    fi
+    setup_platform_binary "intu" && \
+    alias intu="$HOME/bin/intu"
 }
 
 # Setup clipboard functionality for the current platform

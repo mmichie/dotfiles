@@ -56,6 +56,7 @@ load_module() {
 # Load core library modules in specific order
 core_modules=(
     "platform_detection" # Must be first for platform detection
+    "platform_utils"     # Platform-specific utilities
     "executables"        # Executable setup
     "environment"        # Environment setup
     "shell"              # Shell configuration
