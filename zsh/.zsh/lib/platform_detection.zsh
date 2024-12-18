@@ -5,6 +5,22 @@ PLATFORM_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/platform"
 PLATFORM_CACHE_FILE="$PLATFORM_CACHE_DIR/platform_info.cache"
 PLATFORM_CACHE_TIMEOUT=3600  # Cache timeout in seconds
 
+# Helper function to check capabilities without regex dependency
+has_capability() {
+    local capability="$1"
+    local found=0
+
+    # Simple array membership check
+    for cap in "${SYSTEM_CAPABILITIES[@]}"; do
+        if [[ "$cap" == "$capability" ]]; then
+            found=1
+            break
+        fi
+    done
+
+    return $(( 1 - found ))
+}
+
 # Platform detection function
 detect_platform() {
     local cache_age=0
@@ -169,11 +185,6 @@ is_arm() {
 
 is_x86() {
     [[ "$SYSTEM_ARCH" == "x86_64" || "$SYSTEM_ARCH" == "x86_64-rosetta" ]]
-}
-
-has_capability() {
-    local capability="$1"
-    [[ " ${SYSTEM_CAPABILITIES[@]} " =~ " ${capability} " ]]
 }
 
 # Function to print system information
