@@ -134,18 +134,6 @@ setup_terminal() {
     esac
 }
 
-# Load environment variables from .env file
-load_env_file() {
-    local env_file="$1"
-    if [[ -f "$env_file" ]]; then
-        while IFS= read -r line || [[ -n "$line" ]]; do
-            if [[ ! "$line" =~ ^# && "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
-                export "$line"
-            fi
-        done < "$env_file"
-    fi
-}
-
 # Setup miscellaneous environment variables
 setup_misc() {
     # Set less options
@@ -166,6 +154,9 @@ load_env_file() {
     if [[ -f "$env_file" ]]; then
         while IFS= read -r line || [[ -n "$line" ]]; do
             if [[ ! "$line" =~ ^# && "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
+                # Remove any surrounding quotes from the value
+                line=${line//\"/}  # Remove double quotes
+                line=${line//\'/}  # Remove single quotes
                 export "$line"
             fi
         done < "$env_file"
