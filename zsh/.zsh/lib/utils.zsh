@@ -28,7 +28,7 @@ sshtunnel() {
 
 # Function to cat files and conditionally copy content to the clipboard based on the OS
 catfiles() {
-    local os_type=$(detect_shell_platform)
+    local os_type="$SYSTEM_OS_TYPE"
     local clip_cmd
     local all_contents=""
     local pattern="*"

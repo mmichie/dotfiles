@@ -163,29 +163,24 @@ setup_shell_options() {
 
 # LS colors setup function
 setup_ls_colors() {
-    local os_type=$(detect_shell_platform)
-
-    case "$os_type" in
-        OSX)
-            if command -v gls &>/dev/null; then
-                alias ls="gls --color=auto -F"
+    if is_osx; then
+        if command -v gls &>/dev/null; then
+            alias ls="gls --color=auto -F"
+        else
+            export CLICOLOR=1
+            export LSCOLORS="ExGxFxdaCxDaDahbadacec"
+            alias ls="ls -F"
+        fi
+    elif is_linux; then
+        alias ls="ls --color=auto -F"
+        if [[ -x "/usr/bin/dircolors" ]]; then
+            if [[ -r "$HOME/.dircolors" ]]; then
+                eval "$(dircolors -b "$HOME/.dircolors")"
             else
-                export CLICOLOR=1
-                export LSCOLORS="ExGxFxdaCxDaDahbadacec"
-                alias ls="ls -F"
+                eval "$(dircolors -b)"
             fi
-            ;;
-        LINUX)
-            alias ls="ls --color=auto -F"
-            if [[ -x "/usr/bin/dircolors" ]]; then
-                if [[ -r "$HOME/.dircolors" ]]; then
-                    eval "$(dircolors -b "$HOME/.dircolors")"
-                else
-                    eval "$(dircolors -b)"
-                fi
-            fi
-            ;;
-    esac
+        fi
+    fi
 
     # Common ls aliases
     alias ll="ls -lh"

@@ -11,7 +11,7 @@ setup_path() {
     )
 
     # Platform-specific paths
-    if [[ "$SHELL_PLATFORM" == "OSX" ]] && command -v brew >/dev/null 2>&1; then
+    if is_osx && has_capability "homebrew"; then
         local brew_prefix=$(/opt/homebrew/bin/brew --prefix)
         common_paths+=(
             "$brew_prefix/bin"
@@ -86,15 +86,28 @@ setup_python() {
 
 # Setup development tools and environments
 setup_development() {
-    # Vagrant settings
+    # Platform-specific setup
+    if is_osx; then
+        # macOS-specific development settings
+        if has_capability "homebrew"; then
+            local brew_java_home="$(/opt/homebrew/bin/brew --prefix openjdk@17 2>/dev/null)"
+            if [[ -d "$brew_java_home" ]]; then
+                export JAVA_HOME="$brew_java_home"
+                path=($JAVA_HOME/bin $path)
+            fi
+        fi
+    elif is_linux; then
+        # Linux-specific development settings
+        export NO_AT_BRIDGE=1
+        export GCC_COLORS="error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01"
+    fi
+
+    # Common development settings
     export VAGRANT_DEFAULT_PROVIDER="aws"
-
-    # GCC colors for better output readability
     export GCC_COLORS="error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01"
-
-    # Disable various donation/upgrade messages
     export ENV_DISABLE_DONATION_MSG=1
 }
+
 
 # Setup XDG Base Directory paths
 setup_xdg() {
@@ -145,6 +158,18 @@ setup_misc() {
 
     # Ensure clean command hash
     hash -r
+}
+
+# Load environment variables from .env file
+load_env_file() {
+    local env_file="$1"
+    if [[ -f "$env_file" ]]; then
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            if [[ ! "$line" =~ ^# && "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
+                export "$line"
+            fi
+        done < "$env_file"
+    fi
 }
 
 # Main environment setup function

@@ -55,12 +55,13 @@ load_module() {
 
 # Load core library modules in specific order
 core_modules=(
-    "platform"      # Must be first for platform detection
-    "environment"   # Environment setup
-    "shell"         # Shell configuration
-    "prompt"        # Prompt setup
-    "ssh"          # SSH configuration
-    "utils"         # Utility functions
+    "platform_detection" # Must be first for platform detection
+    "executables"        # Executable setup
+    "environment"        # Environment setup
+    "shell"              # Shell configuration
+    "prompt"             # Prompt setup
+    "ssh"                # SSH configuration
+    "utils"              # Utility functions
 )
 
 for module in "${core_modules[@]}"; do
@@ -79,7 +80,6 @@ for module in "${function_modules[@]}"; do
 done
 
 # Initialize core components
-init_platform
 setup_environment
 init_shell
 init_prompt
