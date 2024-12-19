@@ -295,6 +295,7 @@ init_shell() {
     setup_dircolors
     setup_readline
     setup_completions
+    setup_history
     # Try eza first, fall back to regular ls colors
     setup_eza || setup_ls_colors
 }

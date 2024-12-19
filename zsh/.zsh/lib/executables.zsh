@@ -3,7 +3,7 @@
 # Setup FZF for the current platform
 setup_fzf() {
     setup_platform_binary "fzf" && \
-    export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border"
+    export FZF_DEFAULT_OPTS="--height 40% --border"
 }
 
 
