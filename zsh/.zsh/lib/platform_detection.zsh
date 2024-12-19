@@ -1,6 +1,6 @@
 #!/bin/zsh
-
-# Constants for cache directory and files
+#
+## Constants for cache directory and files
 PLATFORM_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/platform"
 PLATFORM_CACHE_FILE="$PLATFORM_CACHE_DIR/platform_info.cache"
 PLATFORM_CACHE_TIMEOUT=3600  # Cache timeout in seconds
@@ -30,7 +30,12 @@ detect_platform() {
 
     # Check if cache exists and is recent
     if [[ -f "$PLATFORM_CACHE_FILE" ]]; then
-        cache_age=$(($(date +%s) - $(stat -f %m "$PLATFORM_CACHE_FILE" 2>/dev/null || stat -c %Y "$PLATFORM_CACHE_FILE")))
+        # Platform-independent stat command
+        if [[ "$OSTYPE" == darwin* ]]; then
+            cache_age=$(($(date +%s) - $(stat -f %m "$PLATFORM_CACHE_FILE" 2>/dev/null)))
+        else
+            cache_age=$(($(date +%s) - $(stat -c %Y "$PLATFORM_CACHE_FILE" 2>/dev/null)))
+        fi
     fi
 
     # Return cached results if they exist and are recent
@@ -83,7 +88,7 @@ detect_platform() {
             # Detect init system
             if [[ "$(ps -p 1 -o comm=)" == "systemd" ]]; then
                 init_system="systemd"
-            elif [[ -f /etc/init.d/cron ]] && [[ ! -h /etc/init.d/cron ]]; then
+            elif [[ -f /etc/init.d/cron && ! -h /etc/init.d/cron ]]; then
                 init_system="sysvinit"
             elif [[ -d /etc/openrc ]]; then
                 init_system="openrc"
@@ -100,6 +105,10 @@ detect_platform() {
             os_version=$(cmd /c ver | grep -o '[0-9].[0-9].[0-9]*')
             package_manager="choco"
             init_system="windows"
+            ;;
+        *)
+            os_type="UNKNOWN"
+            os_version="UNKNOWN"
             ;;
     esac
 
@@ -129,7 +138,7 @@ detect_platform() {
         virt="vm"
     elif [[ -d /proc/vz ]]; then
         virt="openvz"
-    elif systemd-detect-virt >/dev/null 2>&1; then
+    elif command -v systemd-detect-virt >/dev/null 2>&1; then
         virt=$(systemd-detect-virt)
     elif [[ "$os_type" == "OSX" ]] && sysctl -n machdep.cpu.features | grep -q "VMM"; then
         virt="vm"
@@ -140,7 +149,7 @@ detect_platform() {
     if command -v systemctl >/dev/null 2>&1; then capabilities+=("systemd"); fi
     if command -v docker >/dev/null 2>&1; then capabilities+=("docker"); fi
     if command -v podman >/dev/null 2>&1; then capabilities+=("podman"); fi
-    if [[ -S "$XDG_RUNTIME_DIR/podman/podman.sock" ]]; then capabilities+=("rootless-podman"); fi
+    if [[ -S "${XDG_RUNTIME_DIR:-/run/user/$UID}/podman/podman.sock" ]]; then capabilities+=("rootless-podman"); fi
     if command -v nix-env >/dev/null 2>&1; then capabilities+=("nix"); fi
     if [[ -d "/opt/homebrew" ]]; then capabilities+=("homebrew"); fi
 
