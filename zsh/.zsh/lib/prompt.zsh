@@ -35,9 +35,33 @@ update_ps1() {
 }
 
 # Display system status and information
+# Get gum path dynamically
+get_gum_path() {
+    local gum_path
+
+    # First check if gum exists in PATH
+    if command -v gum >/dev/null 2>&1; then
+        gum_path=$(command -v gum)
+    # Then check Homebrew location on macOS
+    elif [[ -x "/opt/homebrew/bin/gum" ]]; then
+        gum_path="/opt/homebrew/bin/gum"
+    # Finally check common Linux location
+    elif [[ -x "/usr/bin/gum" ]]; then
+        gum_path="/usr/bin/gum"
+    else
+        echo ""
+        return 1
+    fi
+
+    echo "$gum_path"
+}
+
+# Display system status and information
 notify_shell_status() {
-    # Check if gum is available and executable
-    if ! command -v gum >/dev/null 2>&1; then
+    # Get gum path
+    local gum_cmd=$(get_gum_path)
+
+    if [[ -z "$gum_cmd" ]]; then
         echo "Warning: gum command not found. Please ensure it's installed and in your PATH."
         return 1
     fi
@@ -89,8 +113,8 @@ notify_shell_status() {
         echo "$cpu_load" > /tmp/cpu_load.$$
     } >/dev/null 2>&1 &
 
-    # Use full path to gum for logo display
-    /opt/homebrew/bin/gum style \
+    # Use gum_cmd for logo display
+    "$gum_cmd" style \
         --align center \
         --width 70 \
         --border double \
@@ -106,7 +130,7 @@ notify_shell_status() {
   ╔═-» [ Terminal Underground Division ] «-═╗
   ║    [×] proudly serving the scene [×]    ║
   ╚════-» [ fido.net.scene.2024.MAIN ] «-═══╝" \
-      "$(/opt/homebrew/bin/gum style --foreground 99 'DISTRIBUTION NODE: 4:920/35')"
+      "$("$gum_cmd" style --foreground 99 'DISTRIBUTION NODE: 4:920/35')"
 
     # Wait for background process
     wait >/dev/null 2>&1
@@ -121,31 +145,31 @@ notify_shell_status() {
     # Clean up temporary files
     rm -f /tmp/cpu_info.$$ /tmp/memory_info.$$ /tmp/memory_usage.$$ /tmp/cpu_cores.$$ /tmp/cpu_load.$$ 2>/dev/null
 
-    # Display system information using full path to gum
-    /opt/homebrew/bin/gum style \
+    # Display system information using gum_cmd
+    "$gum_cmd" style \
         --width 70 \
         --border normal \
         --margin "1 0" \
         --padding "1" \
-        "$(/opt/homebrew/bin/gum style --bold --foreground 212 'SYSTEM INFO')" \
-        "$(/opt/homebrew/bin/gum style --foreground 99 "×þ System     [ $(uname -s) ]")" \
-        "$(/opt/homebrew/bin/gum style --foreground 99 "×þ Platform   [ $os_type ]")" \
-        "$(/opt/homebrew/bin/gum style --foreground 99 "×þ Arch       [ $arch_type ]")" \
-        "$(/opt/homebrew/bin/gum style --foreground 99 "×þ Release    [ $(date +%Y-%m-%d) ]")" \
-        "$(/opt/homebrew/bin/gum style --foreground 99 "×þ CPU        [ $cpu_info ]")" \
-        "$(/opt/homebrew/bin/gum style --foreground 99 "×þ Cores      [ $cpu_cores ]")" \
-        "$(/opt/homebrew/bin/gum style --foreground 99 "×þ Load       [ $cpu_load ]")" \
-        "$(/opt/homebrew/bin/gum style --foreground 99 "×þ Memory     [ $memory_info ]")" \
-        "$(/opt/homebrew/bin/gum style --foreground 99 "×þ Mem Usage  [ $memory_usage ]")"
+        "$("$gum_cmd" style --bold --foreground 212 'SYSTEM INFO')" \
+        "$("$gum_cmd" style --foreground 99 "×þ System     [ $(uname -s) ]")" \
+        "$("$gum_cmd" style --foreground 99 "×þ Platform   [ $os_type ]")" \
+        "$("$gum_cmd" style --foreground 99 "×þ Arch       [ $arch_type ]")" \
+        "$("$gum_cmd" style --foreground 99 "×þ Release    [ $(date +%Y-%m-%d) ]")" \
+        "$("$gum_cmd" style --foreground 99 "×þ CPU        [ $cpu_info ]")" \
+        "$("$gum_cmd" style --foreground 99 "×þ Cores      [ $cpu_cores ]")" \
+        "$("$gum_cmd" style --foreground 99 "×þ Load       [ $cpu_load ]")" \
+        "$("$gum_cmd" style --foreground 99 "×þ Memory     [ $memory_info ]")" \
+        "$("$gum_cmd" style --foreground 99 "×þ Mem Usage  [ $memory_usage ]")"
 
     # Show recommendations if there are any issues
     if [[ "${memory_usage%\%}" -gt 90 || $(echo "$cpu_load > $cpu_cores" | bc -l) -eq 1 ]]; then
-        /opt/homebrew/bin/gum style \
+        "$gum_cmd" style \
             --width 70 \
             --border normal \
             --margin "1 0" \
             --padding "1" \
-            "$(/opt/homebrew/bin/gum style --bold --foreground 212 'RECOMMENDATIONS')" \
+            "$("$gum_cmd" style --bold --foreground 212 'RECOMMENDATIONS')" \
             "$(provide_quick_recommendations)"
     fi
 }
