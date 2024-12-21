@@ -1,0 +1,31 @@
+#compdef pyenv
+_pyenv() {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  _arguments -C \
+    '1: :->command' \
+    '*: :->args'
+
+  case $state in
+    command)
+      local -a commands
+      commands=(${(f)"$(pyenv commands)"})
+      _describe -t commands 'pyenv command' commands
+      ;;
+    args)
+      case $words[2] in
+        shell|local|global|versions|install|uninstall)
+          local -a versions
+          versions=(${(f)"$(pyenv versions --bare)"})
+          _describe -t versions 'python version' versions
+          ;;
+        *)
+          local -a subcommand_args
+          subcommand_args=(${(f)"$(pyenv completions ${words[2,-2]})"})
+          _describe -t subcommand-args 'pyenv subcommand arguments' subcommand_args
+          ;;
+      esac
+      ;;
+  esac
+}
