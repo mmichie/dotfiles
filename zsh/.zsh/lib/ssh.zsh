@@ -61,7 +61,7 @@ add_ssh_keys() {
 
     # Add all private keys that don't end in .pub
     for key in "$ssh_dir"/id_*; do
-        if [[ -f "$key" && ! "$key" =~ \.pub$ ]]; then
+        if [[ -f "$key" ]] && [[ "$key" != *.pub ]]; then
             ssh-add "$key" && ((key_count++))
         fi
     done

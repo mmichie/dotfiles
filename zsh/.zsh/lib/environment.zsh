@@ -75,13 +75,19 @@ setup_editors() {
 # Setup Python environment
 setup_python() {
     # Initialize pyenv if available
-    if [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
-        eval "$(pyenv init -)"
+    if [[ -d "$HOME/.pyenv" ]]; then
+        export PYENV_ROOT="$HOME/.pyenv"
+        export PATH="$PYENV_ROOT/bin:$PATH"
+        if command -v pyenv 1>/dev/null 2>&1; then
+            eval "$(pyenv init --path)"
+            # Only run init if shell is interactive
+            [[ -o interactive ]] && eval "$(pyenv init -)"
+        fi
     fi
 
     # Python development settings
-    export PYTHONDONTWRITEBYTECODE=1  # Prevent Python from writing .pyc files
-    export PYTHONUNBUFFERED=1         # Prevent Python from buffering stdout/stderr
+    export PYTHONDONTWRITEBYTECODE=1
+    export PYTHONUNBUFFERED=1
 }
 
 # Setup development tools and environments
