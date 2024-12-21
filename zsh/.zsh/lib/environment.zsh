@@ -77,16 +77,28 @@ setup_python() {
     # Initialize pyenv if available
     if [[ -d "$HOME/.pyenv" ]]; then
         export PYENV_ROOT="$HOME/.pyenv"
-        export PATH="$PYENV_ROOT/bin:$PATH"
-        if command -v pyenv 1>/dev/null 2>&1; then
-            eval "$(pyenv init --path)"
-            # Only run init if shell is interactive
-            [[ -o interactive ]] && eval "$(pyenv init -)"
+
+        # Add pyenv to PATH if it isn't there
+        if [[ ":$PATH:" != *":$PYENV_ROOT/bin:"* ]]; then
+            path=("$PYENV_ROOT/bin" $path)
+        fi
+
+        # Skip pyenv's built-in completions
+        export PYENV_DISABLE_COMPLETIONS=1
+
+        if command -v pyenv >/dev/null; then
+            # Initialize without completions
+            eval "$(pyenv init - --no-completion)"
+
+            # Add our custom completion directory to fpath
+            fpath=(~/.zsh/functions $fpath)
+
+            # Reload completions
+            autoload -Uz compinit && compinit
         fi
     fi
 
     # Python development settings
-    export PYTHONDONTWRITEBYTECODE=1
     export PYTHONUNBUFFERED=1
 }
 

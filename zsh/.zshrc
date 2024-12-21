@@ -9,6 +9,43 @@ declare -gx SHELL_LIB_DIR="$SHELL_CONFIG_DIR/lib"
 declare -gx SHELL_FUNCTIONS_DIR="$SHELL_CONFIG_DIR/functions"
 declare -gx SHELL_CACHE_DIR="$HOME/.cache/zsh"
 
+# Set up fpath for zsh functions
+() {
+    local -a zsh_paths
+
+    # Common paths that might exist
+    local -a possible_paths=(
+        "/usr/share/zsh/site-functions"
+        "/usr/local/share/zsh/site-functions"
+        "/opt/homebrew/share/zsh/site-functions"
+        "/usr/share/zsh/functions/Completion"
+        "/usr/share/zsh/functions/Completion/Unix"
+        "/usr/share/zsh/functions/Completion/Linux"
+        "/usr/share/zsh/vendor-functions"
+        "$SHELL_FUNCTIONS_DIR"
+    )
+
+    # Only add paths that exist
+    for p in "${possible_paths[@]}"; do
+        [[ -d "$p" ]] && zsh_paths+=("$p")
+    done
+
+    # Set fpath
+    fpath=("${zsh_paths[@]}" $fpath)
+}
+
+# Load completion system
+autoload -Uz compinit
+compinit -i
+
+# Load compctl module if available
+if ! zmodload -e zsh/compctl; then
+    zmodload zsh/compctl 2>/dev/null
+fi
+
+# Basic autoloads
+autoload -Uz compctl
+
 # Create necessary directories
 mkdir -p "$SHELL_CACHE_DIR"
 
@@ -17,14 +54,6 @@ if [[ -n "$ZSH_INITIALIZED" ]]; then
     return 0
 fi
 export ZSH_INITIALIZED=1
-
-# Set up completion system early
-autoload -Uz compinit
-if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
-    compinit -d "$SHELL_CACHE_DIR/zcompdump"
-else
-    compinit -C -d "$SHELL_CACHE_DIR/zcompdump"
-fi
 
 # Initialize Homebrew if available
 if [[ -x "/opt/homebrew/bin/brew" ]]; then
