@@ -34,6 +34,18 @@ return {
             vim.cmd([[colorscheme kanagawa]])
         end
     },
+    {
+        "gbprod/nord.nvim",
+        lazy = false,
+        priority = 1000,
+        config = function()
+            require("nord").setup({})
+            vim.cmd.colorscheme("nord")
+        end,
+    },
+    install = {
+        colorscheme = { "nord" },
+    },
 
     -- Status line
     {
@@ -42,7 +54,7 @@ return {
         config = function()
             require('lualine').setup({
                 options = {
-                    theme = 'gruvbox',
+                    theme = 'nord',
                     component_separators = '|',
                     section_separators = { left = '', right = '' },
                 },
