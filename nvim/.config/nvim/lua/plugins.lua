@@ -452,4 +452,9 @@ return {
             notification = true, -- shows notification when you make inefficient movement
         }
     },
+
+    {
+        "karb94/neoscroll.nvim",
+        opts = {},
+    },
 }
