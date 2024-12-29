@@ -436,4 +436,20 @@ return {
             vim.keymap.set("i", "<Tab>", smart_tab, { expr = false, silent = true })
         end,
     },
+
+    {
+        "m4xshen/hardtime.nvim",
+        dependencies = { "MunifTanjim/nui.nvim", "nvim-lua/plenary.nvim" },
+        opts = {
+            max_count = 2,
+            disabled_keys = {
+                ["<Up>"] = {},
+                ["<Down>"] = {},
+                ["<Left>"] = {},
+                ["<Right>"] = {},
+            },
+            hint = true, -- shows hint when you make inefficient movement
+            notification = true, -- shows notification when you make inefficient movement
+        }
+    },
 }
