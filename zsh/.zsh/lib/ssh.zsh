@@ -3,6 +3,7 @@
 # Constants for SSH agent configuration
 readonly AGENT_SOCKET="$HOME/.ssh/.ssh-agent-socket"
 readonly AGENT_INFO="$HOME/.ssh/.ssh-agent-info"
+readonly ONEPASSWORD_SOCKET="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 
 # List of hostnames where SSH agent should be started
 readonly SSH_HOSTNAMES=(
@@ -23,6 +24,13 @@ handle_ssh_agent() {
     # Skip if not on a designated SSH host
     is_ssh_host || return 0
 
+    # First try to use 1Password SSH agent
+    if [[ -S "$ONEPASSWORD_SOCKET" ]]; then
+        export SSH_AUTH_SOCK="$ONEPASSWORD_SOCKET"
+        return 0
+    fi
+
+    # Fall back to traditional SSH agent if 1Password is not available
     # Load existing agent configuration if available
     if [[ -s "$AGENT_INFO" ]]; then
         source "$AGENT_INFO"
@@ -50,7 +58,7 @@ restart_ssh_agent() {
     # Load the new agent configuration
     source "$AGENT_INFO"
 
-    # Add default keys
+    # Add default keys and store in keychain
     add_ssh_keys
 }
 
@@ -62,7 +70,15 @@ add_ssh_keys() {
     # Add all private keys that don't end in .pub
     for key in "$ssh_dir"/id_*; do
         if [[ -f "$key" ]] && [[ "$key" != *.pub ]]; then
-            ssh-add "$key" && ((key_count++))
+            # Skip if key is already added
+            if ! ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')"; then
+                # Add key and store in keychain on macOS
+                if [[ "$(uname)" == "Darwin" ]]; then
+                    ssh-add -K "$key" && ((key_count++))
+                else
+                    ssh-add "$key" && ((key_count++))
+                fi
+            fi
         fi
     done
 
@@ -71,33 +87,43 @@ add_ssh_keys() {
 
 # Get SSH agent status information
 get_ssh_agent_status() {
-    local status="Unknown"
+    local agent_status="Unknown"
     local pid=""
     local key_count=0
+    local socket_path=${SSH_AUTH_SOCK:-"N/A"}
 
-    if [[ -n "$SSH_AGENT_PID" ]]; then
+    if [[ -S "$ONEPASSWORD_SOCKET" ]] && [[ "$SSH_AUTH_SOCK" == "$ONEPASSWORD_SOCKET" ]]; then
+        agent_status="Using 1Password SSH Agent"
+        socket_path="$ONEPASSWORD_SOCKET"
+        key_count=$(ssh-add -l 2>/dev/null | grep -c "^[0-9]")
+    elif [[ -n "$SSH_AGENT_PID" ]]; then
         if ps -p "$SSH_AGENT_PID" >/dev/null; then
-            status="Running"
+            agent_status="Running (Traditional SSH Agent)"
             pid=$SSH_AGENT_PID
             key_count=$(ssh-add -l 2>/dev/null | grep -c "^[0-9]")
         else
-            status="Dead (stale PID)"
+            agent_status="Dead (stale PID)"
         fi
     else
-        status="Not running"
+        agent_status="Not running"
     fi
 
     cat <<EOF
 SSH Agent Status:
-  Status: $status
+  Status: $agent_status
   PID: ${pid:-N/A}
-  Socket: ${SSH_AUTH_SOCK:-N/A}
+  Socket: $socket_path
   Keys loaded: ${key_count}
 EOF
 }
 
-# Kill the current SSH agent
+# Kill the current SSH agent (only if using traditional agent)
 kill_ssh_agent() {
+    if [[ "$SSH_AUTH_SOCK" == "$ONEPASSWORD_SOCKET" ]]; then
+        echo "Using 1Password SSH agent - no need to kill"
+        return 0
+    fi
+
     if [[ -n "$SSH_AGENT_PID" ]]; then
         echo "Killing SSH agent (PID: $SSH_AGENT_PID)..."
         kill "$SSH_AGENT_PID"
@@ -111,14 +137,8 @@ kill_ssh_agent() {
 
         echo "SSH agent terminated"
     else
-        echo "No SSH agent running"
+        echo "No traditional SSH agent running"
     fi
-}
-
-# Restart the SSH agent and reload keys
-reload_ssh_agent() {
-    kill_ssh_agent
-    handle_ssh_agent
 }
 
 # Initialize SSH agent handling
