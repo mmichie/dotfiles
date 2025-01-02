@@ -2,47 +2,113 @@
 
 # Setup PATH environment variable
 setup_path() {
-    # Common paths
-    local common_paths=(
-        "$HOME/bin"
-        "$HOME/.local/bin"
-        "/usr/local/bin"
-        "/usr/local/sbin"
+    # Initialize path array if not already set
+    typeset -U path
+
+    # Common system paths that should exist on all platforms
+    local system_paths=(
+        /usr/local/bin
+        /usr/bin
+        /bin
+        /usr/sbin
+        /sbin
     )
 
     # Platform-specific paths
-    if is_osx && has_capability "homebrew"; then
-        local brew_prefix=$(/opt/homebrew/bin/brew --prefix)
-        common_paths+=(
-            "$brew_prefix/bin"
-            "$brew_prefix/sbin"
+    if is_osx; then
+        system_paths+=(
+            /opt/X11/bin
+        )
+
+        # Homebrew on macOS
+        if has_capability "homebrew"; then
+            local brew_prefix=$(/opt/homebrew/bin/brew --prefix)
+            path=(
+                $brew_prefix/bin
+                $brew_prefix/sbin
+                $path
+            )
+
+            # Java from Homebrew
+            if [[ -d "$brew_prefix/opt/openjdk@17" ]]; then
+                path=($brew_prefix/opt/openjdk@17/bin $path)
+                export JAVA_HOME="$brew_prefix/opt/openjdk@17"
+            fi
+        fi
+    elif is_linux; then
+        # Linux specific paths
+        system_paths+=(
+            /usr/local/games
+            /usr/games
+        )
+
+        # WSL2 specific
+        if [[ -f /proc/sys/fs/binfmt_misc/WSLInterop ]]; then
+            system_paths+=(
+                /mnt/c/Windows/System32
+                /mnt/c/Windows
+            )
+        fi
+
+        # Linuxbrew
+        if has_capability "homebrew"; then
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        fi
+    fi
+
+    # Set up pyenv if available
+    if [[ -d "$HOME/.pyenv" ]]; then
+        export PYENV_ROOT="$HOME/.pyenv"
+        path=(
+            $PYENV_ROOT/shims
+            $PYENV_ROOT/bin
+            $path
         )
     fi
 
-    # Go paths
+    # Add Go paths if needed
     if [[ -z "$GOPATH" ]]; then
         export GOPATH="$HOME/workspace/go"
-        mkdir -p "$GOPATH"
-        common_paths+=("$GOPATH/bin")
+        path=($path $GOPATH/bin)
         export GOPROXY="https://proxy.golang.org,direct"
     fi
 
-    # Add pyenv paths if available
-    if [[ -d "$HOME/.pyenv" ]]; then
-        export PYENV_ROOT="$HOME/.pyenv"
-        common_paths+=("$PYENV_ROOT/bin")
-    fi
+    # Add user paths - these should be consistent across platforms
+    local user_paths=(
+        "$HOME/bin"
+        "$HOME/.local/bin"
+    )
 
-    # Construct PATH
-    local new_path=()
-    for p in "${common_paths[@]}"; do
-        if [[ -d "$p" ]]; then
-            new_path+=("$p")
+    # Helper function to check if a path is already in $path
+    path_exists() {
+        local check_path="$1"
+        local p
+        for p in $path; do
+            [[ "$p" == "$check_path" ]] && return 0
+        done
+        return 1
+    }
+
+    # Construct the final path
+    # 1. Start with user paths
+    for user_path in $user_paths; do
+        if [[ -d "$user_path" ]]; then
+            path=($user_path $path)
         fi
     done
 
-    # Set the new PATH, preserving system paths
-    path=($new_path $path)
+    # 2. Add system paths if they're not already present
+    for sys_path in $system_paths; do
+        if [[ -d "$sys_path" ]] && ! path_exists "$sys_path"; then
+            path+=$sys_path
+        fi
+    done
+
+    # Ensure unique entries while preserving order
+    typeset -U path
+
+    # Export the updated PATH
+    export PATH="${(j.:.)path}"
 }
 
 # Setup locale and timezone settings
