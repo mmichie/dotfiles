@@ -69,7 +69,8 @@ setup_path() {
     # Add Go paths if needed
     if [[ -z "$GOPATH" ]]; then
         export GOPATH="$HOME/workspace/go"
-        path=($path $GOPATH/bin)
+        export GOBIN="$GOPATH/bin"
+        path=($path $GOBIN)
         export GOPROXY="https://proxy.golang.org,direct"
     fi
 
@@ -263,6 +264,7 @@ setup_environment() {
     setup_development
     setup_terminal
     setup_misc
+    setup_go_directories
 
     export WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
     export TIMEFMT=$'\nreal\t%*E\nuser\t%*U\nsys\t%*S'
@@ -275,6 +277,11 @@ setup_environment() {
 
     # Load local environment if exists
     load_env_file "$HOME/.env"
+}
+
+# Setup Go directories
+setup_go_directories() {
+    [[ -n "$GOBIN" ]] && mkdir -p "$GOBIN"
 }
 
 # Initialize environment when sourced
