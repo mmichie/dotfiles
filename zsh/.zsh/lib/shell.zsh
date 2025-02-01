@@ -19,31 +19,6 @@ setup_history() {
     setopt HIST_VERIFY            # Show command with history expansion before running it
 }
 
-# Setup aliases
-setup_aliases() {
-    # Common aliases
-    alias history="history 1" # behave more like bash
-    alias gclean="git_cleanup"
-    alias dclean="docker_cleanup"
-    alias grep="grep --color=auto -d skip"
-    alias grpe="grep --color=auto -d skip"
-    alias screen="tmux"
-    alias ssh="ssh -A -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -o VisualHostKey=yes -o IdentitiesOnly=yes"
-    alias nsr="netstat -rn"
-    alias nsa="netstat -an | sed -n '1,/Active UNIX domain sockets/p'"
-    alias lsock="sudo /usr/sbin/lsof -i -P"
-    alias keypress="read -s -n1 keypress; echo \$keypress"
-    alias loadenv='export $(grep -v "^#" .env | xargs)'
-
-    # Directory navigation
-    alias :="cd .."
-    alias ::="cd ../.."
-    alias :::="cd ../../.."
-    alias ::::="cd ../../../.."
-    alias :::::="cd ../../../../.."
-    alias ::::::="cd ../../../../../.."
-}
-
 # Dircolors setup
 setup_dircolors() {
     if [[ "$TERM" != "dumb" ]]; then
