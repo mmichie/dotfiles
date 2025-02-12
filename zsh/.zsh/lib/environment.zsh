@@ -169,6 +169,26 @@ setup_python() {
     export PYTHONUNBUFFERED=1
 }
 
+# Setup Node Version Manager (nvm)
+setup_nvm() {
+    # Set NVM_DIR to the Homebrew location
+    export NVM_DIR="$HOME/.nvm"
+
+    if has_capability "homebrew"; then
+        local nvm_brew_path="/opt/homebrew/opt/nvm"
+        if [[ -d "$nvm_brew_path" ]]; then
+            # Create .nvm directory if it doesn't exist
+            mkdir -p "$NVM_DIR"
+
+            # Source the nvm.sh from Homebrew installation
+            [ -s "$nvm_brew_path/nvm.sh" ] && \. "$nvm_brew_path/nvm.sh"
+
+            # Source the nvm bash_completion
+            [ -s "$nvm_brew_path/etc/bash_completion.d/nvm" ] && \. "$nvm_brew_path/etc/bash_completion.d/nvm"
+        fi
+    fi
+}
+
 # Setup development tools and environments
 setup_development() {
     # Platform-specific setup
@@ -261,6 +281,7 @@ setup_environment() {
     setup_locale
     setup_editors
     setup_python
+    setup_nvm
     setup_development
     setup_terminal
     setup_misc
