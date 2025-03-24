@@ -56,14 +56,14 @@ setup_path() {
         fi
     fi
 
-    # Set up pyenv if available
+    # Set up pyenv path if available
     if [[ -d "$HOME/.pyenv" ]]; then
         export PYENV_ROOT="$HOME/.pyenv"
         path=(
-            $PYENV_ROOT/shims
             $PYENV_ROOT/bin
             $path
         )
+        # Note: pyenv shims will be added by the lazy loader when needed
     fi
 
     # Add Go paths if needed
@@ -141,52 +141,97 @@ setup_editors() {
 
 # Setup Python environment
 setup_python() {
-    # Initialize pyenv if available
-    if [[ -d "$HOME/.pyenv" ]]; then
-        export PYENV_ROOT="$HOME/.pyenv"
-
-        # Add pyenv to PATH if it isn't there
-        if [[ ":$PATH:" != *":$PYENV_ROOT/bin:"* ]]; then
-            path=("$PYENV_ROOT/bin" $path)
-        fi
-
-        # Skip pyenv's built-in completions
-        export PYENV_DISABLE_COMPLETIONS=1
-
-        if command -v pyenv >/dev/null; then
-            # Initialize without completions
-            eval "$(pyenv init - --no-completion)"
-
-            # Add our custom completion directory to fpath
-            fpath=(~/.zsh/functions $fpath)
-
-            # Reload completions
-            autoload -Uz compinit && compinit
-        fi
-    fi
-
     # Python development settings
     export PYTHONUNBUFFERED=1
+    
+    # Other Python settings can be added here
+    # pyenv is now lazy loaded in setup_pyenv()
 }
 
-# Setup Node Version Manager (nvm)
+# Setup Node Version Manager (nvm) - lazy loading
 setup_nvm() {
     # Set NVM_DIR to the Homebrew location
     export NVM_DIR="$HOME/.nvm"
 
+    # Create .nvm directory if it doesn't exist
+    mkdir -p "$NVM_DIR"
+
+    # Only set up nvm brew path - actual loading happens lazily
     if has_capability "homebrew"; then
-        local nvm_brew_path="/opt/homebrew/opt/nvm"
-        if [[ -d "$nvm_brew_path" ]]; then
-            # Create .nvm directory if it doesn't exist
-            mkdir -p "$NVM_DIR"
-
-            # Source the nvm.sh from Homebrew installation
-            [ -s "$nvm_brew_path/nvm.sh" ] && \. "$nvm_brew_path/nvm.sh"
-
-            # Source the nvm bash_completion
-            [ -s "$nvm_brew_path/etc/bash_completion.d/nvm" ] && \. "$nvm_brew_path/etc/bash_completion.d/nvm"
-        fi
+        export NVM_BREW_PATH="/opt/homebrew/opt/nvm"
     fi
+
+    # Define lazy loading functions
+    nvm() {
+        unset -f nvm node npm npx yarn
+        
+        # Source the nvm script
+        if [[ -s "$NVM_BREW_PATH/nvm.sh" ]]; then
+            source "$NVM_BREW_PATH/nvm.sh"
+            # Source completions 
+            [[ -s "$NVM_BREW_PATH/etc/bash_completion.d/nvm" ]] && source "$NVM_BREW_PATH/etc/bash_completion.d/nvm"
+        fi
+        
+        # Call the newly loaded nvm function with the provided arguments
+        nvm "$@"
+    }
+
+    # Lazy load proxies for common Node commands
+    node() {
+        unset -f nvm node npm npx yarn
+        
+        # Source the nvm script
+        if [[ -s "$NVM_BREW_PATH/nvm.sh" ]]; then
+            source "$NVM_BREW_PATH/nvm.sh"
+            # Source completions 
+            [[ -s "$NVM_BREW_PATH/etc/bash_completion.d/nvm" ]] && source "$NVM_BREW_PATH/etc/bash_completion.d/nvm"
+        fi
+        
+        # Call the command now
+        node "$@"
+    }
+
+    npm() {
+        unset -f nvm node npm npx yarn
+        
+        # Source the nvm script
+        if [[ -s "$NVM_BREW_PATH/nvm.sh" ]]; then
+            source "$NVM_BREW_PATH/nvm.sh"
+            # Source completions 
+            [[ -s "$NVM_BREW_PATH/etc/bash_completion.d/nvm" ]] && source "$NVM_BREW_PATH/etc/bash_completion.d/nvm"
+        fi
+        
+        # Call the command now
+        npm "$@"
+    }
+
+    npx() {
+        unset -f nvm node npm npx yarn
+        
+        # Source the nvm script
+        if [[ -s "$NVM_BREW_PATH/nvm.sh" ]]; then
+            source "$NVM_BREW_PATH/nvm.sh"
+            # Source completions 
+            [[ -s "$NVM_BREW_PATH/etc/bash_completion.d/nvm" ]] && source "$NVM_BREW_PATH/etc/bash_completion.d/nvm"
+        fi
+        
+        # Call the command now
+        npx "$@"
+    }
+
+    yarn() {
+        unset -f nvm node npm npx yarn
+        
+        # Source the nvm script
+        if [[ -s "$NVM_BREW_PATH/nvm.sh" ]]; then
+            source "$NVM_BREW_PATH/nvm.sh"
+            # Source completions 
+            [[ -s "$NVM_BREW_PATH/etc/bash_completion.d/nvm" ]] && source "$NVM_BREW_PATH/etc/bash_completion.d/nvm"
+        fi
+        
+        # Call the command now
+        yarn "$@"
+    }
 }
 
 # Setup development tools and environments

@@ -81,13 +81,86 @@ setup_gopath() {
     fi
 }
 
-# pyenv setup
+# pyenv setup - lazy loading
 setup_pyenv() {
     export PYENV_ROOT="$HOME/.pyenv"
-    if [[ -d "$PYENV_ROOT/bin" ]] && [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
+    
+    # Add pyenv binary directory to PATH but don't initialize pyenv yet
+    if [[ -d "$PYENV_ROOT/bin" ]]; then
         path=($PYENV_ROOT/bin $path)
-        eval "$(pyenv init -)"
     fi
+    
+    # Export basic pyenv environment settings
+    export PYENV_DISABLE_COMPLETIONS=1
+    
+    # Create lazy loading function for pyenv
+    pyenv() {
+        unset -f pyenv python python3 pip pip3
+        
+        # Now do full initialization
+        if [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
+            # Initialize pyenv without completions
+            eval "$(pyenv init - --no-completion)"
+            
+            # Add custom completion directory to fpath
+            fpath=(~/.zsh/functions $fpath)
+            
+            # Reload completions
+            autoload -Uz compinit && compinit
+        fi
+        
+        # Call the real pyenv command
+        pyenv "$@"
+    }
+    
+    # Lazy load proxies for Python commands
+    python() {
+        unset -f pyenv python python3 pip pip3
+        
+        # Initialize pyenv
+        if [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
+            eval "$(pyenv init - --no-completion)"
+        fi
+        
+        # Call the command
+        python "$@"
+    }
+    
+    python3() {
+        unset -f pyenv python python3 pip pip3
+        
+        # Initialize pyenv
+        if [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
+            eval "$(pyenv init - --no-completion)"
+        fi
+        
+        # Call the command
+        python3 "$@"
+    }
+    
+    pip() {
+        unset -f pyenv python python3 pip pip3
+        
+        # Initialize pyenv
+        if [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
+            eval "$(pyenv init - --no-completion)"
+        fi
+        
+        # Call the command
+        pip "$@"
+    }
+    
+    pip3() {
+        unset -f pyenv python python3 pip pip3
+        
+        # Initialize pyenv
+        if [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
+            eval "$(pyenv init - --no-completion)"
+        fi
+        
+        # Call the command
+        pip3 "$@"
+    }
 }
 
 # Cron job setup for history backup
