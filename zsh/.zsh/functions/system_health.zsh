@@ -177,21 +177,32 @@ check_security() {
 
 # Main function to display system health
 display_system_health() {
-    # Run all checks in parallel
-    check_system_load &
-    check_memory_usage &
-    check_disk_usage &
-    check_ip_address &
-    check_last_login &
-    check_uptime &
-    check_cpu_temperature &
-    check_disk_health &
-    check_network_status &
-    check_system_updates &
-    check_security &
-
-    # Wait for all background processes to complete
-    wait
+    local fast_mode=${1:-0}
+    
+    # If fast mode is enabled, only run essential checks
+    if [[ "$fast_mode" -eq 1 ]]; then
+        # Run only essential checks in parallel
+        check_system_load &
+        check_memory_usage &
+        check_disk_usage &
+        # Wait for background processes to complete
+        wait
+    else
+        # Run all checks in parallel
+        check_system_load &
+        check_memory_usage &
+        check_disk_usage &
+        check_ip_address &
+        check_last_login &
+        check_uptime &
+        check_cpu_temperature &
+        check_disk_health &
+        check_network_status &
+        check_system_updates &
+        check_security &
+        # Wait for all background processes to complete
+        wait
+    fi
 
     # Display system information
     gum style \

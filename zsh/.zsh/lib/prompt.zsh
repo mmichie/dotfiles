@@ -8,27 +8,41 @@ green="[32m"
 yellow="[33m"
 blue="[34m"
 
-# Update PS1 prompt
-update_ps1() {
-    local powerline_cmd
+# Cache the powerline-go path
+_cached_powerline_cmd=""
 
-    if is_osx; then
-        if is_arm; then
-            powerline_cmd="$HOME/bin/powerline-go-darwin-arm64"
-        else
-            powerline_cmd="$HOME/bin/powerline-go-darwin-amd64"
+# Detect the appropriate powerline command only once
+_detect_powerline_cmd() {
+    if [[ -z "$_cached_powerline_cmd" ]]; then
+        if is_osx; then
+            if is_arm; then
+                _cached_powerline_cmd="$HOME/bin/powerline-go-darwin-arm64"
+            else
+                _cached_powerline_cmd="$HOME/bin/powerline-go-darwin-amd64"
+            fi
+        elif is_linux; then
+            if is_arm; then
+                _cached_powerline_cmd="$HOME/bin/powerline-go-linux-arm64"
+            else
+                _cached_powerline_cmd="$HOME/bin/powerline-go-linux-amd64"
+            fi
         fi
-    elif is_linux; then
-        if is_arm; then
-            powerline_cmd="$HOME/bin/powerline-go-linux-arm64"
-        else
-            powerline_cmd="$HOME/bin/powerline-go-linux-amd64"
+        
+        # If not executable, set to empty
+        if [[ -n "$_cached_powerline_cmd" ]] && [[ ! -x "$_cached_powerline_cmd" ]]; then
+            _cached_powerline_cmd=""
         fi
     fi
+}
 
-    # Check if the powerline_cmd is executable
-    if [[ -n "$powerline_cmd" ]] && [[ -x "$powerline_cmd" ]]; then
-        PS1="$($powerline_cmd -error $? -jobs $(jobs -p | wc -l))"
+# Initialize powerline command on load
+_detect_powerline_cmd
+
+# Update PS1 prompt
+update_ps1() {
+    # Check if the powerline_cmd is available
+    if [[ -n "$_cached_powerline_cmd" ]]; then
+        PS1="$($_cached_powerline_cmd -error $? -jobs $(jobs -p | wc -l))"
     else
         PS1="[%n@%m %~]%# "
     fi
@@ -72,48 +86,8 @@ notify_shell_status() {
     # Get platform info first since we need it immediately
     local os_type="$SYSTEM_OS_TYPE"
     local arch_type="$SYSTEM_ARCH"
-    local cpu_info=""
-    local memory_info=""
-    local memory_usage=""
-    local cpu_cores=""
-    local cpu_load=""
-
-    # Start system info gathering in background with output redirection
-    {
-        case "$os_type" in
-            OSX)
-                cpu_info=$(sysctl -n machdep.cpu.brand_string)
-                memory_info=$(($(sysctl -n hw.memsize) / 1024 / 1024))"MB"
-                memory_usage=$(vm_stat | awk '
-                    /Pages active/ {active=$3}
-                    /Pages wired/ {wired=$3}
-                    /Pages occupied/ {occupied=$3}
-                    END {
-                        used=(active + wired + occupied) * 4096
-                        total='$(sysctl -n hw.memsize)'
-                        printf "%.1f%%", used/total*100
-                    }' | sed 's/\.0%/%/')
-                cpu_cores=$(sysctl -n hw.ncpu)
-                cpu_load=$(sysctl -n vm.loadavg | awk '{printf "%.1f", $2}')
-                ;;
-            LINUX)
-                cpu_info=$(grep "model name" /proc/cpuinfo | head -1 | cut -d':' -f2 | sed 's/^[ \t]*//')
-                memory_info=$(($(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024))"MB"
-                memory_usage=$(free | awk '/Mem:/ {printf "%.1f%%", $3/$2 * 100}')
-                cpu_cores=$(nproc)
-                cpu_load=$(uptime | awk -F'[a-z]:' '{print $2}' | awk -F',' '{printf "%.1f", $1}')
-                ;;
-        esac
-
-        # Store results in temporary files
-        echo "$cpu_info" > /tmp/cpu_info.$$
-        echo "$memory_info" > /tmp/memory_info.$$
-        echo "$memory_usage" > /tmp/memory_usage.$$
-        echo "$cpu_cores" > /tmp/cpu_cores.$$
-        echo "$cpu_load" > /tmp/cpu_load.$$
-    } >/dev/null 2>&1 &
-
-    # Use gum_cmd for logo display
+    
+    # Use optimized/simplified display for better performance
     "$gum_cmd" style \
         --align center \
         --width 70 \
@@ -132,46 +106,33 @@ notify_shell_status() {
   ╚════-» [ fido.net.scene.2024.MAIN ] «-═══╝" \
       "$("$gum_cmd" style --foreground 99 'DISTRIBUTION NODE: 4:920/35')"
 
-    # Wait for background process
-    wait >/dev/null 2>&1
+    # Get minimal system info quickly
+    local system_name=$(uname -s)
+    local date_info=$(date +%Y-%m-%d)
+    local load_info=""
+    local memory_info=""
+    
+    if is_osx; then
+        load_info=$(sysctl -n vm.loadavg | awk '{printf "%.1f", $2}')
+        memory_info=$(($(sysctl -n hw.memsize) / 1024 / 1024 / 1024))"GB"
+    elif is_linux; then
+        load_info=$(uptime | awk -F'[a-z]:' '{print $2}' | awk -F',' '{printf "%.1f", $1}')
+        memory_info=$(($(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 / 1024))"GB"
+    fi
 
-    # Read the gathered information
-    cpu_info=$(cat /tmp/cpu_info.$$ 2>/dev/null)
-    memory_info=$(cat /tmp/memory_info.$$ 2>/dev/null)
-    memory_usage=$(cat /tmp/memory_usage.$$ 2>/dev/null)
-    cpu_cores=$(cat /tmp/cpu_cores.$$ 2>/dev/null)
-    cpu_load=$(cat /tmp/cpu_load.$$ 2>/dev/null)
-
-    # Clean up temporary files
-    rm -f /tmp/cpu_info.$$ /tmp/memory_info.$$ /tmp/memory_usage.$$ /tmp/cpu_cores.$$ /tmp/cpu_load.$$ 2>/dev/null
-
-    # Display system information using gum_cmd
+    # Display simplified system information
     "$gum_cmd" style \
         --width 70 \
         --border normal \
         --margin "1 0" \
         --padding "1" \
         "$("$gum_cmd" style --bold --foreground 212 'SYSTEM INFO')" \
-        "$("$gum_cmd" style --foreground 99 "×þ System     [ $(uname -s) ]")" \
+        "$("$gum_cmd" style --foreground 99 "×þ System     [ $system_name ]")" \
         "$("$gum_cmd" style --foreground 99 "×þ Platform   [ $os_type ]")" \
         "$("$gum_cmd" style --foreground 99 "×þ Arch       [ $arch_type ]")" \
-        "$("$gum_cmd" style --foreground 99 "×þ Release    [ $(date +%Y-%m-%d) ]")" \
-        "$("$gum_cmd" style --foreground 99 "×þ CPU        [ $cpu_info ]")" \
-        "$("$gum_cmd" style --foreground 99 "×þ Cores      [ $cpu_cores ]")" \
-        "$("$gum_cmd" style --foreground 99 "×þ Load       [ $cpu_load ]")" \
-        "$("$gum_cmd" style --foreground 99 "×þ Memory     [ $memory_info ]")" \
-        "$("$gum_cmd" style --foreground 99 "×þ Mem Usage  [ $memory_usage ]")"
-
-    # Show recommendations if there are any issues
-    if [[ "${memory_usage%\%}" -gt 90 || $(echo "$cpu_load > $cpu_cores" | bc -l) -eq 1 ]]; then
-        "$gum_cmd" style \
-            --width 70 \
-            --border normal \
-            --margin "1 0" \
-            --padding "1" \
-            "$("$gum_cmd" style --bold --foreground 212 'RECOMMENDATIONS')" \
-            "$(provide_quick_recommendations)"
-    fi
+        "$("$gum_cmd" style --foreground 99 "×þ Date       [ $date_info ]")" \
+        "$("$gum_cmd" style --foreground 99 "×þ Load       [ $load_info ]")" \
+        "$("$gum_cmd" style --foreground 99 "×þ Memory     [ $memory_info ]")"
 }
 
 # Helper function for system recommendations
