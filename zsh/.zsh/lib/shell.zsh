@@ -1,22 +1,92 @@
 #!/bin/zsh
 
 
-# Setup History
+# Setup History with advanced features
 setup_history() {
     # History file configuration
     export HISTFILE="$HOME/.zsh_history"
-    export HISTSIZE=1000000
-    export SAVEHIST=1000000
+    export HISTSIZE=1000000       # Very large history in memory
+    export SAVEHIST=1000000       # Very large history on disk
 
-    # History options
+    # Enhanced history options
     setopt SHARE_HISTORY          # Share history between all sessions
-    setopt INC_APPEND_HISTORY_TIME
+    setopt INC_APPEND_HISTORY_TIME # Add timestamps to history
+    setopt EXTENDED_HISTORY       # Save timestamp and duration of command
     setopt HIST_EXPIRE_DUPS_FIRST # Expire duplicate entries first when trimming history
     setopt HIST_IGNORE_ALL_DUPS   # Ignore duplicated entries
+    setopt HIST_IGNORE_DUPS       # Don't record a command that's a duplicate of the previous command
     setopt HIST_REDUCE_BLANKS     # Remove superfluous blanks
     setopt HIST_IGNORE_SPACE      # Don't record an entry starting with a space
     setopt HIST_FIND_NO_DUPS      # Do not display duplicates in history search
+    setopt HIST_SAVE_NO_DUPS      # Don't write duplicate entries to history file
     setopt HIST_VERIFY            # Show command with history expansion before running it
+    setopt HIST_FCNTL_LOCK        # Use better file locking for the history file
+    
+    # Add functions for better history searching and management
+    
+    # Function to search history with a pattern
+    hgrep() {
+        if [[ $# -eq 0 ]]; then
+            echo "Usage: hgrep <pattern>"
+            return 1
+        fi
+        
+        fc -l 1 -1 | grep --color=auto -i "$@"
+    }
+    
+    # Function to view recent commands
+    recent() {
+        local n=${1:-10}
+        history -${n}
+    }
+    
+    # Function to save important commands to a separate file
+    remember() {
+        if [[ $# -eq 0 ]]; then
+            echo "Usage: remember <command> - Save important command for future reference"
+            return 1
+        fi
+        
+        local remember_file="$HOME/.important_commands"
+        echo "$(date +"%Y-%m-%d %H:%M:%S") $@" >> "$remember_file"
+        echo "Command saved to $remember_file"
+    }
+    
+    # Function to view saved important commands
+    recalls() {
+        local remember_file="$HOME/.important_commands"
+        
+        if [[ ! -f "$remember_file" ]]; then
+            echo "No saved commands yet."
+            return 0
+        fi
+        
+        if [[ $# -eq 0 ]]; then
+            cat "$remember_file"
+        else
+            grep -i "$@" "$remember_file"
+        fi
+    }
+    
+    # Setup weekly backups of history
+    [[ ! -d "$HOME/.zsh_history_backups" ]] && mkdir -p "$HOME/.zsh_history_backups"
+    
+    # Function to create dated backup of shell history
+    backup_history() {
+        local backup_file="$HOME/.zsh_history_backups/zsh_history_$(date +"%Y%m%d").gz"
+        cp "$HISTFILE" "$HISTFILE.bak"
+        gzip -c "$HISTFILE.bak" > "$backup_file"
+        rm "$HISTFILE.bak"
+        
+        # Clean up old backups (keep last 30)
+        ls -t "$HOME/.zsh_history_backups" | tail -n +31 | xargs -I {} rm "$HOME/.zsh_history_backups/{}" 2>/dev/null
+    }
+    
+    # Add to weekly cron if not already there
+    add_history_backup_cron() {
+        local cron_cmd="0 0 * * 0 . $HOME/.zshrc; backup_history >/dev/null 2>&1"
+        (crontab -l 2>/dev/null | grep -v "backup_history" ; echo "$cron_cmd") | crontab -
+    }
 }
 
 # Dircolors setup
@@ -402,4 +472,21 @@ init_shell() {
     setup_fzf_tab
     # Setup zoxide for smarter directory navigation
     setup_zoxide
+    
+    # Set up history backup cron job during login shells only
+    if [[ -o login ]]; then
+        add_history_backup_cron
+    fi
+    
+    # Bind Ctrl-R to a better history search experience using fzf if available
+    if command -v fzf &>/dev/null; then
+        # Better Ctrl-R history search using fzf
+        bindkey '^R' history-incremental-search-backward
+        
+        # Ctrl-T for file selection
+        bindkey '^T' fzf-file-widget
+        
+        # Alt-C for directory navigation
+        bindkey '^[c' fzf-cd-widget
+    fi
 }
