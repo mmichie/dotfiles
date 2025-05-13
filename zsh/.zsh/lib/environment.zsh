@@ -319,6 +319,39 @@ load_env_file() {
     done < "$env_file"
 }
 
+# Setup npm-installed binaries with lazy loading
+setup_npm_binaries() {
+    # Create function to handle any npm-installed binary that's not found
+    function command_not_found_handler() {
+        local cmd="$1"
+        
+        # Check if the command might be in the npm bin directory
+        local npm_bin_path="$HOME/.npm/bin"
+        local node_modules_bin="$HOME/node_modules/.bin"
+        local npm_binary=""
+        
+        # If npm is already initialized, these paths should already be in PATH
+        if ! command -v "$cmd" &>/dev/null; then
+            # Try initializing npm once
+            if ! command -v npm &>/dev/null || [[ "$(type npm)" == *"function"* ]]; then
+                # Run npm to ensure it's fully initialized
+                npm --version &>/dev/null
+                
+                # Now check if the command exists
+                if command -v "$cmd" &>/dev/null; then
+                    # Command is now available, execute it
+                    "$cmd" "${@:2}"
+                    return $?
+                fi
+            fi
+        fi
+        
+        # If we get here, command wasn't found even after npm initialization
+        echo "zsh: command not found: $cmd" >&2
+        return 127
+    }
+}
+
 # Main environment setup function
 setup_environment() {
     setup_xdg
@@ -327,6 +360,7 @@ setup_environment() {
     setup_editors
     setup_python
     setup_nvm
+    setup_npm_binaries
     setup_development
     setup_terminal
     setup_misc
