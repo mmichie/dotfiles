@@ -127,7 +127,7 @@ system_health() {
         system_health "$@"
     else
         display_system_health
-    fi  
+    fi
 }
 
 # Load status module immediately as it's needed for shell startup
@@ -169,7 +169,7 @@ if [[ ! -f "/tmp/shell_status_shown_$$" ]]; then
     if command -v gum >/dev/null 2>&1; then
         notify_shell_status
         touch "/tmp/shell_status_shown_$$"
-        
+
         # Load tips module and show daily tip
         load_module "function" "tips"
         show_daily_tip
@@ -185,3 +185,9 @@ unset core_modules function_modules
 if [[ -n "$PROFILE_STARTUP" ]]; then
   zprof
 fi
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/mim/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/mim/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/mim/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/mim/google-cloud-sdk/completion.zsh.inc'; fi
