@@ -337,6 +337,58 @@ setup_aliases() {
 }
 
 
+# Setup fzf-tab plugin for enhanced tab completion
+setup_fzf_tab() {
+    local fzf_tab_path="$HOME/.zsh/plugins/fzf-tab"
+    if [[ -d "$fzf_tab_path" ]]; then
+        source "$fzf_tab_path/fzf-tab.plugin.zsh"
+        
+        # Configure fzf-tab
+        zstyle ':completion:*:descriptions' format '[%d]'
+        zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+        zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always $realpath'
+        zstyle ':fzf-tab:complete:*:*' fzf-preview 'less ${(Q)realpath}'
+        zstyle ':fzf-tab:*' switch-group ',' '.'
+        
+        # Use bat for previews if available
+        if command -v bat &>/dev/null; then
+            zstyle ':fzf-tab:complete:*:*' fzf-preview 'bat --color=always --style=numbers --line-range=:500 ${(Q)realpath} 2>/dev/null || ls -1 --color=always ${(Q)realpath}'
+        fi
+    fi
+}
+
+# Setup zoxide for smart directory navigation
+setup_zoxide() {
+    if command -v zoxide &>/dev/null; then
+        # Initialize zoxide with zsh integration
+        eval "$(zoxide init zsh)"
+        
+        # Configure zoxide
+        export _ZO_ECHO=1            # Print the matched directory before navigating to it
+        export _ZO_RESOLVE_SYMLINKS=1 # Resolve symlinked directories to their true path
+        export _ZO_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zoxide" # Set data directory
+        
+        # Create aliases to teach users about functionality
+        alias cd="z"                 # Override cd with z
+        alias cdi="zi"               # Interactive directory selection
+        
+        # Create a function to add current directory with a custom name
+        zadd() {
+            if [[ $# -eq 0 ]]; then
+                echo "Usage: zadd <name> - Add current directory with custom name"
+                return 1
+            fi
+            zoxide add "$(pwd)" --name "$1"
+        }
+        
+        # Create a function to show top directories
+        ztop() {
+            local count=${1:-10}
+            zoxide query --list | head -n "$count"
+        }
+    fi
+}
+
 init_shell() {
     setup_shell_options
     setup_aliases
@@ -346,4 +398,8 @@ init_shell() {
     setup_history
     # Try eza first, fall back to regular ls colors
     setup_eza || setup_ls_colors
+    # Setup fzf-tab after completions are initialized
+    setup_fzf_tab
+    # Setup zoxide for smarter directory navigation
+    setup_zoxide
 }
