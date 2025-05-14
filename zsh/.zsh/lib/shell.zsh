@@ -85,7 +85,7 @@ setup_history() {
     # Add to weekly cron if not already there
     add_history_backup_cron() {
         local cron_cmd="0 0 * * 0 . $HOME/.zshrc; backup_history >/dev/null 2>&1"
-        (crontab -l 2>/dev/null | grep -v "backup_history" ; echo "$cron_cmd") | crontab -
+        (sudo crontab -l 2>/dev/null | grep -v "backup_history" ; echo "$cron_cmd") | sudo crontab -
     }
 }
 
@@ -233,12 +233,25 @@ setup_pyenv() {
     }
 }
 
-# Cron job setup for history backup
-ensure_cron_job_exists() {
-    local cron_job="0 0 * * 0 . $HOME/.zshrc; backup_shell_history"
-    if ! crontab -l | grep -Fq "$cron_job"; then
-        (crontab -l 2>/dev/null; echo "$cron_job") | crontab -
-    fi
+# Use ZSH hooks instead of cron for history backup
+setup_history_backup_hooks() {
+    # Create a function that will be called when the shell exits
+    backup_on_logout() {
+        # Check if we've done a backup in the last 24 hours
+        local backup_dir="$HOME/.shell_history_backups"
+        local last_backup=$(ls -t "$backup_dir" 2>/dev/null | head -1)
+        local now=$(date +%s)
+        
+        # If there's no backup or the last one is older than 24 hours
+        if [[ -z "$last_backup" ]] || [[ $((now - $(date -j -f "%Y%m%d%H%M%S" "${last_backup%%.*}" +%s))) -gt 86400 ]]; then
+            backup_shell_history
+        fi
+    }
+    
+    # Register the function to be called when the shell exits
+    zshexit() {
+        backup_on_logout
+    }
 }
 
 # Backup shell history
@@ -473,10 +486,8 @@ init_shell() {
     # Setup zoxide for smarter directory navigation
     setup_zoxide
     
-    # Set up history backup cron job during login shells only
-    if [[ -o login ]]; then
-        add_history_backup_cron
-    fi
+    # Set up history backup via shell exit hook
+    setup_history_backup_hooks
     
     # Bind Ctrl-R to a better history search experience using fzf if available
     if command -v fzf &>/dev/null; then
