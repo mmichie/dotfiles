@@ -159,9 +159,6 @@ is_login_shell() {
     [[ -o login ]]
 }
 
-# Ensure backup cron job exists (only in login shells)
-is_login_shell && ensure_cron_job_exists
-
 # Display system status synchronously (but optimize the modules)
 # Display system status only on initial login shell
 if [[ ! -f "/tmp/shell_status_shown_$$" ]]; then
