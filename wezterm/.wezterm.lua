@@ -10,6 +10,12 @@ c.show_new_tab_button_in_tab_bar = false
 c.show_tabs_in_tab_bar = true
 c.tab_max_width = 32
 
+-- Scrollback and memory settings
+c.scrollback_lines = 10000
+c.enable_scroll_bar = true
+c.front_end = "WebGpu"  -- GPU acceleration
+c.webgpu_power_preference = "LowPower"  -- Reduce power/memory usage
+
 c.window_frame = {
 --  font = wezterm.font({ family = "Inconsolata for Powerline", weight = "Bold" }),
   font = wezterm.font({ family = "Fieracode", weight = "Bold" }),
