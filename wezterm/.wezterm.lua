@@ -40,16 +40,28 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config, hover, max_wid
     foreground = '#c0caf5'
   end
 
-  -- Get the process name and icon
+  -- Get the process name and title
   local process = tab.active_pane.foreground_process_name
+  local pane_title = tab.active_pane.title
   local icon = '󰆍 '  -- default terminal icon
   
-  if process then
-    if process:find('vim') or process:find('nvim') then
-      icon = ' '
-    elseif process:find('claude') then
-      icon = '󰚩 '  -- Claude Code icon
-    elseif process:find('node') or process:find('npm') then
+  -- Get the full command line to detect claude running via node
+  local user_vars = tab.active_pane.user_vars
+  
+  -- Check multiple sources to determine the icon
+  if pane_title:find('claude') or pane_title:find('Claude') then
+    icon = '󰚩 '  -- Claude Code icon
+  elseif process then
+    -- Check if it's node running claude
+    if process:find('node') then
+      -- Check if the pane title or cwd suggests it's claude
+      local cwd = tab.active_pane.current_working_dir
+      if cwd and (cwd:find('claude') or cwd:find('Claude')) then
+        icon = '󰚩 '  -- Claude Code icon
+      else
+        icon = ' '  -- Regular node icon
+      end
+    elseif process:find('vim') or process:find('nvim') then
       icon = ' '
     elseif process:find('python') then
       icon = ' '
