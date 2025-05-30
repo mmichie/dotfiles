@@ -47,6 +47,8 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config, hover, max_wid
   if process then
     if process:find('vim') or process:find('nvim') then
       icon = ' '
+    elseif process:find('claude') then
+      icon = '󰚩 '  -- Claude Code icon
     elseif process:find('node') or process:find('npm') then
       icon = ' '
     elseif process:find('python') then
