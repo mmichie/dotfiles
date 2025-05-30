@@ -41,13 +41,10 @@ declare -gx SHELL_CACHE_DIR="$HOME/.cache/zsh"
     fpath=("${zsh_paths[@]}" $fpath)
 }
 
-# Load completion system with caching
+# Load completion system with caching and optimization
 autoload -Uz compinit
-if [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.mh+24) ]]; then
-  compinit -i
-else
-  compinit -C -i
-fi
+# Skip security check for faster startup
+compinit -C
 
 # Load compctl module if available
 if ! zmodload -e zsh/compctl; then
@@ -66,9 +63,13 @@ if [[ -n "$ZSH_INITIALIZED" ]]; then
 fi
 export ZSH_INITIALIZED=1
 
-# Initialize Homebrew if available
-if [[ -x "/opt/homebrew/bin/brew" ]]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
+# Lazy load Homebrew - only when brew command is first used
+if [[ -x "/opt/homebrew/bin/brew" ]] && [[ -z "$HOMEBREW_PREFIX" ]]; then
+    brew() {
+        unfunction brew
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+        brew "$@"
+    }
 fi
 
 # Source global definitions if available
@@ -178,13 +179,59 @@ fi
 # Final cleanup
 unset core_modules function_modules
 
+# Disable correction for specific commands
+CORRECT_IGNORE_FILE='.*|claude'
+
+# Wrapper for claude - sets terminal title and handles lazy nvm
+claude() {
+    # Set terminal title for WezTerm icon
+    print -Pn "\e]0;claude\a"
+    
+    # Remove this wrapper temporarily
+    unfunction claude
+    
+    # Ensure nvm is loaded (this triggers lazy loading if needed)
+    if ! command -v claude >/dev/null 2>&1; then
+        # Trigger nvm loading by calling node
+        if type node >/dev/null 2>&1; then
+            : # node function exists, calling it will load nvm
+        fi
+        node --version >/dev/null 2>&1 || true
+    fi
+    
+    # Run the actual claude command
+    command claude "$@"
+    local exit_code=$?
+    
+    # Restore the wrapper for next time
+    claude() {
+        print -Pn "\e]0;claude\a"
+        command claude "$@"
+        local result=$?
+        print -Pn "\e]0;%~\a"
+        return $result
+    }
+    
+    # Reset terminal title
+    print -Pn "\e]0;%~\a"
+    return $exit_code
+}
+
 # Display profiling results if PROFILE_STARTUP is set
 if [[ -n "$PROFILE_STARTUP" ]]; then
   zprof
 fi
 
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/mim/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/mim/google-cloud-sdk/path.zsh.inc'; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f '/Users/mim/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/mim/google-cloud-sdk/completion.zsh.inc'; fi
+# Lazy load Google Cloud SDK
+gcloud() {
+    unfunction gcloud gsutil bq
+    if [ -f '/Users/mim/google-cloud-sdk/path.zsh.inc' ]; then
+        . '/Users/mim/google-cloud-sdk/path.zsh.inc'
+    fi
+    if [ -f '/Users/mim/google-cloud-sdk/completion.zsh.inc' ]; then
+        . '/Users/mim/google-cloud-sdk/completion.zsh.inc'
+    fi
+    gcloud "$@"
+}
+gsutil() { gcloud "$@"; }
+bq() { gcloud "$@"; }
