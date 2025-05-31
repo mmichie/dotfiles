@@ -222,6 +222,16 @@ if [[ -n "$PROFILE_STARTUP" ]]; then
   zprof
 fi
 
+# Initialize atuin for better shell history
+if command -v atuin >/dev/null 2>&1; then
+  eval "$(atuin init zsh)"
+fi
+
+# Set up vivid for better ls colors
+if command -v vivid >/dev/null 2>&1; then
+  export LS_COLORS="$(vivid generate tokyonight-night)"
+fi
+
 # Lazy load Google Cloud SDK
 gcloud() {
     unfunction gcloud gsutil bq
