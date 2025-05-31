@@ -387,6 +387,23 @@ setup_aliases() {
     alias dclean="docker_cleanup"
     alias grep="grep --color=auto -d skip"
     alias grpe="grep --color=auto -d skip"
+    
+    # New modern tool aliases
+    if command -v duf &>/dev/null; then
+        alias df="duf"
+    fi
+    
+    if command -v jless &>/dev/null; then
+        alias jl="jless"
+    fi
+    
+    if command -v gping &>/dev/null; then
+        alias pg="gping"
+    fi
+    
+    if command -v bandwhich &>/dev/null; then
+        alias bw="sudo bandwhich"
+    fi
     alias screen="tmux"
     alias ssh="ssh -A -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -o VisualHostKey=yes -o IdentitiesOnly=yes"
     alias nsr="netstat -rn"
@@ -402,7 +419,7 @@ setup_aliases() {
     alias ::::="cd ../../../.."
     alias :::::="cd ../../../../.."
     alias ::::::="cd ../../../../../.."
-    alias df='df -h'
+    # alias df='df -h'  # Commented out - using duf instead
     alias du='du -h'
     alias mkdir='mkdir -p'
     alias ..='cd ..'
