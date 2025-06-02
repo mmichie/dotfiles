@@ -222,12 +222,13 @@ if [[ -n "$PROFILE_STARTUP" ]]; then
   zprof
 fi
 
-# Initialize atuin for better shell history
+# Initialize atuin for better shell history (only if available)
+# Use atuin for history storage but disable its key bindings to use fzf instead
 if command -v atuin >/dev/null 2>&1; then
-  eval "$(atuin init zsh)"
+  eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
 fi
 
-# Set up vivid for better ls colors
+# Set up vivid for better ls colors (only if available)
 if command -v vivid >/dev/null 2>&1; then
   export LS_COLORS="$(vivid generate tokyonight-night)"
 fi
