@@ -118,8 +118,8 @@ end)
 -- Scrollback and memory settings
 c.scrollback_lines = 10000
 c.enable_scroll_bar = true
-c.front_end = "WebGpu"  -- GPU acceleration
-c.webgpu_power_preference = "LowPower"  -- Reduce power/memory usage
+c.front_end = "OpenGL"  -- Switch from WebGpu to OpenGL to avoid memory leaks
+-- c.webgpu_power_preference = "LowPower"  -- Not needed with OpenGL
 
 c.window_frame = {
 --  font = wezterm.font({ family = "Inconsolata for Powerline", weight = "Bold" }),
