@@ -239,11 +239,39 @@ setup_history_backup_hooks() {
     backup_on_logout() {
         # Check if we've done a backup in the last 24 hours
         local backup_dir="$HOME/.shell_history_backups"
-        local last_backup=$(ls -t "$backup_dir" 2>/dev/null | head -1)
+        local last_backup=$(ls -t "$backup_dir"/zsh_history_*.tar.gz 2>/dev/null | head -1)
         local now=$(date +%s)
         
-        # If there's no backup or the last one is older than 24 hours
-        if [[ -z "$last_backup" ]] || [[ $((now - $(date -j -f "%Y%m%d%H%M%S" "${last_backup%%.*}" +%s))) -gt 86400 ]]; then
+        # If there's no backup, create one
+        if [[ -z "$last_backup" ]]; then
+            backup_shell_history
+            return
+        fi
+        
+        # Extract timestamp from filename (e.g., zsh_history_20240111123456.tar.gz)
+        local basename=$(basename "$last_backup")
+        local timestamp_part=${basename#zsh_history_}
+        timestamp_part=${timestamp_part%.tar.gz}
+        
+        # Validate timestamp format
+        if [[ ! "$timestamp_part" =~ ^[0-9]{14}$ ]]; then
+            backup_shell_history
+            return
+        fi
+        
+        # Parse the timestamp on macOS
+        local year=${timestamp_part:0:4}
+        local month=${timestamp_part:4:2}
+        local day=${timestamp_part:6:2}
+        local hour=${timestamp_part:8:2}
+        local minute=${timestamp_part:10:2}
+        local second=${timestamp_part:12:2}
+        
+        # Convert to epoch time using macOS date syntax
+        local last_backup_time=$(date -j -f "%Y-%m-%d %H:%M:%S" "$year-$month-$day $hour:$minute:$second" +%s 2>/dev/null)
+        
+        # If parsing failed or backup is older than 24 hours, create new backup
+        if [[ -z "$last_backup_time" ]] || [[ $((now - last_backup_time)) -gt 86400 ]]; then
             backup_shell_history
         fi
     }
