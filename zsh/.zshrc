@@ -182,40 +182,10 @@ unset core_modules function_modules
 # Disable correction for specific commands
 CORRECT_IGNORE_FILE='.*|claude'
 
-# Wrapper for claude - sets terminal title and handles lazy nvm
-claude() {
-    # Set terminal title for WezTerm icon
-    print -Pn "\e]0;claude\a"
-    
-    # Remove this wrapper temporarily
-    unfunction claude
-    
-    # Ensure nvm is loaded (this triggers lazy loading if needed)
-    if ! command -v claude >/dev/null 2>&1; then
-        # Trigger nvm loading by calling node
-        if type node >/dev/null 2>&1; then
-            : # node function exists, calling it will load nvm
-        fi
-        node --version >/dev/null 2>&1 || true
-    fi
-    
-    # Run the actual claude command
-    command claude "$@"
-    local exit_code=$?
-    
-    # Restore the wrapper for next time
-    claude() {
-        print -Pn "\e]0;claude\a"
-        command claude "$@"
-        local result=$?
-        print -Pn "\e]0;%~\a"
-        return $result
-    }
-    
-    # Reset terminal title
-    print -Pn "\e]0;%~\a"
-    return $exit_code
-}
+# Load claude wrapper function
+if [[ -f "$SHELL_FUNCTIONS_DIR/claude_wrapper.zsh" ]]; then
+    source "$SHELL_FUNCTIONS_DIR/claude_wrapper.zsh"
+fi
 
 # Display profiling results if PROFILE_STARTUP is set
 if [[ -n "$PROFILE_STARTUP" ]]; then
