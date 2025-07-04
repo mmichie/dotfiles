@@ -141,16 +141,6 @@ setup_completions() {
     compdef _jobs fg bg disown jobs
 }
 
-# GOPATH setup
-setup_gopath() {
-    if [[ -z "$GOPATH" ]]; then
-        export GOPATH="$HOME/workspace/go"
-        mkdir -p "$GOPATH"
-        path=($path $GOPATH/bin)
-        export GOPROXY="https://proxy.golang.org,direct"
-    fi
-}
-
 # pyenv setup - lazy loading
 setup_pyenv() {
     export PYENV_ROOT="$HOME/.pyenv"

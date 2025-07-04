@@ -2,8 +2,12 @@
 
 # Setup PATH environment variable
 setup_path() {
-    # Initialize path array if not already set
+    # Initialize path array from existing PATH if not already set
     typeset -U path
+    # If path array is empty but PATH is set, initialize from PATH
+    if [[ ${#path[@]} -eq 0 && -n "$PATH" ]]; then
+        path=(${(s/:/)PATH})
+    fi
 
     # Common system paths that should exist on all platforms
     local system_paths=(
@@ -56,6 +60,16 @@ setup_path() {
         fi
     fi
 
+    # Helper function to check if a path is already in $path
+    path_exists() {
+        local check_path="$1"
+        local p
+        for p in $path; do
+            [[ "$p" == "$check_path" ]] && return 0
+        done
+        return 1
+    }
+
     # Set up pyenv path if available
     if [[ -d "$HOME/.pyenv" ]]; then
         export PYENV_ROOT="$HOME/.pyenv"
@@ -66,29 +80,22 @@ setup_path() {
         # Note: pyenv shims will be added by the lazy loader when needed
     fi
 
-    # Add Go paths if needed
-    if [[ -z "$GOPATH" ]]; then
-        export GOPATH="$HOME/workspace/go"
-        export GOBIN="$GOPATH/bin"
-        path=($path $GOBIN)
-        export GOPROXY="https://proxy.golang.org,direct"
+    # Add Go paths
+    export GOPATH="${GOPATH:-$HOME/workspace/go}"
+    export GOBIN="${GOBIN:-$GOPATH/bin}"
+    # Always ensure GOBIN is in path if it exists
+    if [[ -d "$GOBIN" ]]; then
+        if ! path_exists "$GOBIN"; then
+            path=($GOBIN $path)
+        fi
     fi
+    export GOPROXY="${GOPROXY:-https://proxy.golang.org,direct}"
 
     # Add user paths - these should be consistent across platforms
     local user_paths=(
         "$HOME/bin"
         "$HOME/.local/bin"
     )
-
-    # Helper function to check if a path is already in $path
-    path_exists() {
-        local check_path="$1"
-        local p
-        for p in $path; do
-            [[ "$p" == "$check_path" ]] && return 0
-        done
-        return 1
-    }
 
     # Construct the final path
     # 1. Start with user paths
@@ -365,6 +372,11 @@ setup_environment() {
     setup_terminal
     setup_misc
     setup_go_directories
+    
+    # Setup platform-specific executables after PATH is configured
+    if type setup_platform_executables >/dev/null 2>&1; then
+        setup_platform_executables
+    fi
 
     export WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
     export TIMEFMT=$'\nreal\t%*E\nuser\t%*U\nsys\t%*S'
@@ -384,5 +396,5 @@ setup_go_directories() {
     [[ -n "$GOBIN" ]] && mkdir -p "$GOBIN"
 }
 
-# Initialize environment when sourced
-setup_environment
+# Don't initialize here - let .zshrc call setup_environment
+# setup_environment

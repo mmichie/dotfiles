@@ -198,6 +198,14 @@ if command -v atuin >/dev/null 2>&1; then
   eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
 fi
 
+# macOS path_helper fix: Ensure custom paths are preserved
+# path_helper in /etc/zprofile can reset PATH in login shells
+# This restores any paths that were configured but got stripped
+if is_osx && [[ -o login ]]; then
+    # Re-add GOBIN if it exists but was removed
+    [[ -d "$GOBIN" ]] && [[ ":$PATH:" != *":$GOBIN:"* ]] && export PATH="$GOBIN:$PATH"
+fi
+
 # Set up vivid for better ls colors (only if available)
 if command -v vivid >/dev/null 2>&1; then
   export LS_COLORS="$(vivid generate tokyonight-night)"
