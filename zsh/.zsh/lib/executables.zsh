@@ -51,7 +51,31 @@ setup_homebrew() {
     if has_capability "homebrew"; then
         export HOMEBREW_NO_ANALYTICS=1
         local brew_prefix=$(/opt/homebrew/bin/brew --prefix)
-        path=($brew_prefix/bin $brew_prefix/sbin $path)
+        
+        # Only add brew paths if they're not already in the path
+        local brew_bin="$brew_prefix/bin"
+        local brew_sbin="$brew_prefix/sbin"
+        
+        # Check if brew paths are already in the path array
+        local found_bin=0
+        local found_sbin=0
+        local p
+        for p in $path; do
+            [[ "$p" == "$brew_bin" ]] && found_bin=1
+            [[ "$p" == "$brew_sbin" ]] && found_sbin=1
+        done
+        
+        # Add only if not found
+        if [[ $found_bin -eq 0 || $found_sbin -eq 0 ]]; then
+            # Prepend brew paths if not already present
+            if [[ $found_bin -eq 0 && $found_sbin -eq 0 ]]; then
+                path=($brew_bin $brew_sbin $path)
+            elif [[ $found_bin -eq 0 ]]; then
+                path=($brew_bin $path)
+            elif [[ $found_sbin -eq 0 ]]; then
+                path=($brew_sbin $path)
+            fi
+        fi
 
         # Homebrew completions
         if [[ -r "$brew_prefix/share/zsh/site-functions/_brew" ]]; then
@@ -86,5 +110,5 @@ setup_platform_executables() {
     fi
 }
 
-# Initialize all platform-specific executables when sourced
-setup_platform_executables
+# Don't auto-initialize - let .zshrc control the order
+# setup_platform_executables
