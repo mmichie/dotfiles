@@ -198,16 +198,10 @@ if command -v atuin >/dev/null 2>&1; then
   eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
 fi
 
-# macOS path_helper fix: Ensure custom paths are preserved
-# path_helper in /etc/zprofile can reset PATH in login shells
-# This rebuilds PATH from our registry to restore proper order
+# macOS path_helper fix: Login shells may have PATH reset by /etc/zprofile
+# Simply rebuild to ensure our custom paths are in the correct order
 if is_osx && [[ -o login ]]; then
-    # Check if path_helper has interfered with our PATH
-    # If GOBIN exists but isn't in PATH, we need to rebuild
-    if [[ -d "$GOBIN" ]] && [[ ":$PATH:" != *":$GOBIN:"* ]]; then
-        # Rebuild PATH from our registry
-        path_build
-    fi
+    path_build
 fi
 
 # Set up vivid for better ls colors (only if available)
@@ -215,16 +209,4 @@ if command -v vivid >/dev/null 2>&1; then
   export LS_COLORS="$(vivid generate tokyonight-night)"
 fi
 
-# Lazy load Google Cloud SDK
-gcloud() {
-    unfunction gcloud gsutil bq
-    if [ -f '/Users/mim/google-cloud-sdk/path.zsh.inc' ]; then
-        . '/Users/mim/google-cloud-sdk/path.zsh.inc'
-    fi
-    if [ -f '/Users/mim/google-cloud-sdk/completion.zsh.inc' ]; then
-        . '/Users/mim/google-cloud-sdk/completion.zsh.inc'
-    fi
-    gcloud "$@"
-}
-gsutil() { gcloud "$@"; }
-bq() { gcloud "$@"; }
+# Note: Google Cloud SDK lazy loading is now handled in environment.zsh
