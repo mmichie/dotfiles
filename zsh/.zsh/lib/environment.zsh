@@ -322,6 +322,26 @@ setup_npm_binaries() {
     }
 }
 
+# Setup Google Cloud SDK - lazy loading
+setup_gcloud() {
+    # Create lazy loading functions for gcloud tools
+    gcloud() {
+        unfunction gcloud gsutil bq
+        if [ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]; then
+            . "$HOME/google-cloud-sdk/path.zsh.inc"
+        fi
+        if [ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]; then
+            . "$HOME/google-cloud-sdk/completion.zsh.inc"
+        fi
+        # Rebuild PATH to ensure gcloud is properly ordered
+        path_build
+        gcloud "$@"
+    }
+    
+    gsutil() { gcloud "$@"; }
+    bq() { gcloud "$@"; }
+}
+
 # Main environment setup function
 setup_environment() {
     setup_xdg
@@ -331,6 +351,7 @@ setup_environment() {
     setup_python
     setup_nvm
     setup_npm_binaries
+    setup_gcloud
     setup_development
     setup_terminal
     setup_misc
