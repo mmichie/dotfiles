@@ -145,10 +145,8 @@ setup_completions() {
 setup_pyenv() {
     export PYENV_ROOT="$HOME/.pyenv"
     
-    # Add pyenv binary directory to PATH but don't initialize pyenv yet
-    if [[ -d "$PYENV_ROOT/bin" ]]; then
-        path=($PYENV_ROOT/bin $path)
-    fi
+    # Note: PATH setup for pyenv is now handled by path_manager.zsh
+    # We only set up lazy loading here
     
     # Export basic pyenv environment settings
     export PYENV_DISABLE_COMPLETIONS=1

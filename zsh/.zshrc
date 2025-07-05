@@ -200,10 +200,14 @@ fi
 
 # macOS path_helper fix: Ensure custom paths are preserved
 # path_helper in /etc/zprofile can reset PATH in login shells
-# This restores any paths that were configured but got stripped
+# This rebuilds PATH from our registry to restore proper order
 if is_osx && [[ -o login ]]; then
-    # Re-add GOBIN if it exists but was removed
-    [[ -d "$GOBIN" ]] && [[ ":$PATH:" != *":$GOBIN:"* ]] && export PATH="$GOBIN:$PATH"
+    # Check if path_helper has interfered with our PATH
+    # If GOBIN exists but isn't in PATH, we need to rebuild
+    if [[ -d "$GOBIN" ]] && [[ ":$PATH:" != *":$GOBIN:"* ]]; then
+        # Rebuild PATH from our registry
+        path_build
+    fi
 fi
 
 # Set up vivid for better ls colors (only if available)

@@ -2,121 +2,84 @@
 
 # Setup PATH environment variable
 setup_path() {
-    # Initialize path array from existing PATH if not already set
-    typeset -U path
-    # If path array is empty but PATH is set, initialize from PATH
-    if [[ ${#path[@]} -eq 0 && -n "$PATH" ]]; then
-        path=(${(s/:/)PATH})
-    fi
-
-    # Common system paths that should exist on all platforms
-    local system_paths=(
-        /usr/local/bin
-        /usr/bin
-        /bin
-        /usr/sbin
-        /sbin
-    )
-
-    # Platform-specific paths
-    if is_osx; then
-        system_paths+=(
-            /opt/X11/bin
-        )
-
-        # Homebrew on macOS
-        if has_capability "homebrew"; then
-            local brew_prefix=$(/opt/homebrew/bin/brew --prefix)
-            path=(
-                $brew_prefix/bin
-                $brew_prefix/sbin
-                $path
-            )
-
-            # Java from Homebrew
-            if [[ -d "$brew_prefix/opt/openjdk@17" ]]; then
-                path=($brew_prefix/opt/openjdk@17/bin $path)
-                export JAVA_HOME="$brew_prefix/opt/openjdk@17"
-            fi
+    # Load the path manager
+    source "$SHELL_LIB_DIR/path_manager.zsh"
+    
+    # Initialize path management
+    path_init
+    
+    # User paths (highest priority)
+    path_add --user \
+        "$HOME/bin" \
+        "$HOME/.local/bin"
+    
+    # Language paths
+    path_add --language \
+        "${GOBIN:-$HOME/workspace/go/bin}" \
+        "$HOME/.cargo/bin"
+    
+    # Add lazy-loaded language paths (may not exist yet)
+    path_add_lazy language \
+        "$HOME/.pyenv/shims" \
+        "$HOME/.pyenv/bin"
+    
+    # Development tools
+    if is_osx && has_capability "homebrew"; then
+        local brew_prefix=$(/opt/homebrew/bin/brew --prefix 2>/dev/null || echo "/opt/homebrew")
+        path_add --tools \
+            "$brew_prefix/bin" \
+            "$brew_prefix/sbin"
+        
+        # Java from Homebrew
+        if [[ -d "$brew_prefix/opt/openjdk@17" ]]; then
+            path_add --tools "$brew_prefix/opt/openjdk@17/bin"
+            export JAVA_HOME="$brew_prefix/opt/openjdk@17"
         fi
+    elif is_linux && has_capability "homebrew"; then
+        # Linuxbrew paths
+        path_add --tools \
+            "/home/linuxbrew/.linuxbrew/bin" \
+            "/home/linuxbrew/.linuxbrew/sbin"
+    fi
+    
+    # Add lazy-loaded tool paths
+    path_add_lazy tools \
+        "$HOME/google-cloud-sdk/bin"
+    
+    # System overrides
+    path_add --system \
+        "/usr/local/bin" \
+        "/usr/local/sbin"
+    
+    # Platform-specific system paths
+    if is_osx; then
+        path_add --system "/opt/X11/bin"
     elif is_linux; then
-        # Linux specific paths
-        system_paths+=(
-            /usr/local/games
-            /usr/games
-        )
-
+        path_add --system \
+            "/usr/local/games" \
+            "/usr/games"
+        
         # WSL2 specific
         if [[ -f /proc/sys/fs/binfmt_misc/WSLInterop ]]; then
-            system_paths+=(
-                /mnt/c/Windows/System32
-                /mnt/c/Windows
-            )
-        fi
-
-        # Linuxbrew
-        if has_capability "homebrew"; then
-            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            path_add --system \
+                "/mnt/c/Windows/System32" \
+                "/mnt/c/Windows"
         fi
     fi
-
-    # Helper function to check if a path is already in $path
-    path_exists() {
-        local check_path="$1"
-        local p
-        for p in $path; do
-            [[ "$p" == "$check_path" ]] && return 0
-        done
-        return 1
-    }
-
-    # Set up pyenv path if available
-    if [[ -d "$HOME/.pyenv" ]]; then
-        export PYENV_ROOT="$HOME/.pyenv"
-        path=(
-            $PYENV_ROOT/bin
-            $path
-        )
-        # Note: pyenv shims will be added by the lazy loader when needed
-    fi
-
-    # Add Go paths
+    
+    # Preserve existing system paths from path_helper
+    path_add_system
+    
+    # Build the final PATH
+    path_build
+    
+    # Set up Go environment variables
     export GOPATH="${GOPATH:-$HOME/workspace/go}"
     export GOBIN="${GOBIN:-$GOPATH/bin}"
-    # Always ensure GOBIN is in path if it exists
-    if [[ -d "$GOBIN" ]]; then
-        if ! path_exists "$GOBIN"; then
-            path=($GOBIN $path)
-        fi
-    fi
     export GOPROXY="${GOPROXY:-https://proxy.golang.org,direct}"
-
-    # Add user paths - these should be consistent across platforms
-    local user_paths=(
-        "$HOME/bin"
-        "$HOME/.local/bin"
-    )
-
-    # Construct the final path
-    # 1. Start with user paths
-    for user_path in $user_paths; do
-        if [[ -d "$user_path" ]]; then
-            path=($user_path $path)
-        fi
-    done
-
-    # 2. Add system paths if they're not already present
-    for sys_path in $system_paths; do
-        if [[ -d "$sys_path" ]] && ! path_exists "$sys_path"; then
-            path+=$sys_path
-        fi
-    done
-
-    # Ensure unique entries while preserving order
-    typeset -U path
-
-    # Export the updated PATH
-    export PATH="${(j.:.)path}"
+    
+    # Set up pyenv root if directory exists
+    [[ -d "$HOME/.pyenv" ]] && export PYENV_ROOT="$HOME/.pyenv"
 }
 
 # Setup locale and timezone settings
