@@ -1,5 +1,21 @@
 #!/bin/zsh
 
+# Create secure temp directory for status files
+_STATUS_TEMP_DIR=""
+_init_status_temp_dir() {
+    if [[ -z "$_STATUS_TEMP_DIR" ]] || [[ ! -d "$_STATUS_TEMP_DIR" ]]; then
+        _STATUS_TEMP_DIR=$(mktemp -d -t shell_status.XXXXXX)
+        # Ensure cleanup on exit
+        trap '_cleanup_status_temp_dir' EXIT
+    fi
+}
+
+_cleanup_status_temp_dir() {
+    if [[ -n "$_STATUS_TEMP_DIR" ]] && [[ -d "$_STATUS_TEMP_DIR" ]]; then
+        rm -rf "$_STATUS_TEMP_DIR"
+    fi
+}
+
 # Platform-specific notification functions
 notify_mac() {
     local title="$1"
@@ -35,55 +51,39 @@ notify_cross_platform() {
     fi
 }
 
-get_gum_path() {
-    local gum_path
-
-    # First check if gum exists in PATH
-    if command -v gum >/dev/null 2>&1; then
-        gum_path=$(command -v gum)
-    # Then check Homebrew location on macOS
-    elif [[ -x "/opt/homebrew/bin/gum" ]]; then
-        gum_path="/opt/homebrew/bin/gum"
-    # Finally check common Linux location
-    elif [[ -x "/usr/bin/gum" ]]; then
-        gum_path="/usr/bin/gum"
-    else
-        echo ""
-        return 1
-    fi
-
-    echo "$gum_path"
-}
-
 # Status check functions
 check_new_mail() {
+    _init_status_temp_dir
     if [[ -n "$(find /var/mail -type f -newer ~/.last_mail_check 2>/dev/null)" ]]; then
-        echo -e "  ${yellow}New Mail:${reset} Yes ${red}(Action: Check your mail)${reset}" > /tmp/shell_status_mail
+        echo -e "  ${yellow}New Mail:${reset} Yes ${red}(Action: Check your mail)${reset}" > "$_STATUS_TEMP_DIR/mail"
     else
-        echo -e "  ${yellow}New Mail:${reset} No" > /tmp/shell_status_mail
+        echo -e "  ${yellow}New Mail:${reset} No" > "$_STATUS_TEMP_DIR/mail"
     fi
 }
 
 check_ssh_agent() {
+    _init_status_temp_dir
     if [[ -n "$SSH_AGENT_PID" ]]; then
-        echo -e "  ${yellow}SSH Agent:${reset} Running (PID: $SSH_AGENT_PID)" > /tmp/shell_status_ssh
+        echo -e "  ${yellow}SSH Agent:${reset} Running (PID: $SSH_AGENT_PID)" > "$_STATUS_TEMP_DIR/ssh"
     else
-        echo -e "  ${yellow}SSH Agent:${reset} Not Running ${red}(Action: Start SSH agent)${reset}" > /tmp/shell_status_ssh
+        echo -e "  ${yellow}SSH Agent:${reset} Not Running ${red}(Action: Start SSH agent)${reset}" > "$_STATUS_TEMP_DIR/ssh"
     fi
 }
 
 check_fzf_setup() {
+    _init_status_temp_dir
     if [[ -x "$HOME/bin/fzf" ]]; then
-        echo -e "  ${yellow}fzf Setup:${reset} Properly Set Up" > /tmp/shell_status_fzf
+        echo -e "  ${yellow}fzf Setup:${reset} Properly Set Up" > "$_STATUS_TEMP_DIR/fzf"
     else
-        echo -e "  ${yellow}fzf Setup:${reset} Not Set Up ${red}(Action: Install fzf)${reset}" > /tmp/shell_status_fzf
+        echo -e "  ${yellow}fzf Setup:${reset} Not Set Up ${red}(Action: Install fzf)${reset}" > "$_STATUS_TEMP_DIR/fzf"
     fi
 }
 
 check_cron_job() {
+    _init_status_temp_dir
     if crontab -l 2>/dev/null | grep -Fq "backup_shell_history"; then
-        echo -e "  ${yellow}History Backup Cron:${reset} Exists" > /tmp/shell_status_cron
+        echo -e "  ${yellow}History Backup Cron:${reset} Exists" > "$_STATUS_TEMP_DIR/cron"
     else
-        echo -e "  ${yellow}History Backup Cron:${reset} Not Found ${red}(Action: Set up backup cron job)${reset}" > /tmp/shell_status_cron
+        echo -e "  ${yellow}History Backup Cron:${reset} Not Found ${red}(Action: Set up backup cron job)${reset}" > "$_STATUS_TEMP_DIR/cron"
     fi
 }

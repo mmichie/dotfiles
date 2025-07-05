@@ -83,9 +83,12 @@ setup_history() {
     }
     
     # Add to weekly cron if not already there
+    # NOTE: This function requires manual execution with appropriate permissions
+    # It will not automatically modify system cron jobs
     add_history_backup_cron() {
         local cron_cmd="0 0 * * 0 . $HOME/.zshrc; backup_history >/dev/null 2>&1"
-        (sudo crontab -l 2>/dev/null | grep -v "backup_history" ; echo "$cron_cmd") | sudo crontab -
+        echo "To add history backup to cron, run:"
+        echo "  (crontab -l 2>/dev/null | grep -v 'backup_history' ; echo '$cron_cmd') | crontab -"
     }
 }
 

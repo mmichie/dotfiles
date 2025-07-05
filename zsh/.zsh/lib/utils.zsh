@@ -1,5 +1,26 @@
 #!/bin/zsh
 
+# Find gum executable path (used by multiple modules)
+get_gum_path() {
+    local gum_path
+
+    # First check if gum exists in PATH
+    if command -v gum >/dev/null 2>&1; then
+        gum_path=$(command -v gum)
+    # Then check Homebrew location on macOS
+    elif [[ -x "/opt/homebrew/bin/gum" ]]; then
+        gum_path="/opt/homebrew/bin/gum"
+    # Finally check common Linux location
+    elif [[ -x "/usr/bin/gum" ]]; then
+        gum_path="/usr/bin/gum"
+    else
+        echo ""
+        return 1
+    fi
+
+    echo "$gum_path"
+}
+
 # Enhanced man pages with colors
 man() {
     env \
