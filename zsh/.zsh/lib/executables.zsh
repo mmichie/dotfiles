@@ -50,33 +50,11 @@ setup_clipboard() {
 setup_homebrew() {
     if has_capability "homebrew"; then
         export HOMEBREW_NO_ANALYTICS=1
-        local brew_prefix=$(/opt/homebrew/bin/brew --prefix)
+        local brew_prefix=$(/opt/homebrew/bin/brew --prefix 2>/dev/null || echo "/opt/homebrew")
         
-        # Only add brew paths if they're not already in the path
-        local brew_bin="$brew_prefix/bin"
-        local brew_sbin="$brew_prefix/sbin"
+        # Note: PATH setup is now handled by path_manager.zsh in setup_path()
+        # This function only handles Homebrew-specific environment and completions
         
-        # Check if brew paths are already in the path array
-        local found_bin=0
-        local found_sbin=0
-        local p
-        for p in $path; do
-            [[ "$p" == "$brew_bin" ]] && found_bin=1
-            [[ "$p" == "$brew_sbin" ]] && found_sbin=1
-        done
-        
-        # Add only if not found
-        if [[ $found_bin -eq 0 || $found_sbin -eq 0 ]]; then
-            # Prepend brew paths if not already present
-            if [[ $found_bin -eq 0 && $found_sbin -eq 0 ]]; then
-                path=($brew_bin $brew_sbin $path)
-            elif [[ $found_bin -eq 0 ]]; then
-                path=($brew_bin $path)
-            elif [[ $found_sbin -eq 0 ]]; then
-                path=($brew_sbin $path)
-            fi
-        fi
-
         # Homebrew completions
         if [[ -r "$brew_prefix/share/zsh/site-functions/_brew" ]]; then
             fpath=($fpath $brew_prefix/share/zsh/site-functions)
