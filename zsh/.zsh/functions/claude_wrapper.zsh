@@ -20,16 +20,12 @@ claude() {
     
     # Find claude executable - use command to bypass any aliases/functions
     local claude_cmd=""
-    if [[ -x "$HOME/.nvm/versions/node/v22.14.0/bin/claude" ]]; then
-        claude_cmd="$HOME/.nvm/versions/node/v22.14.0/bin/claude"
-    else
-        # Use command -v to find the actual binary
-        claude_cmd=$(command -v claude 2>/dev/null)
-        if [[ -z "$claude_cmd" ]]; then
-            echo "Error: claude command not found" >&2
-            print -Pn "\e]0;%~\a"
-            return 1
-        fi
+    # Use command -v to find the actual binary dynamically
+    claude_cmd=$(command -v claude 2>/dev/null)
+    if [[ -z "$claude_cmd" ]]; then
+        echo "Error: claude command not found" >&2
+        print -Pn "\e]0;%~\a"
+        return 1
     fi
     
     # Run claude with proper directory and shell protection
