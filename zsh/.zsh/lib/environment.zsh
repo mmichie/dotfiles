@@ -11,7 +11,8 @@ setup_path() {
     # User paths (highest priority)
     path_add --user \
         "$HOME/bin" \
-        "$HOME/.local/bin"
+        "$HOME/.local/bin" \
+        "$HOME/.claude/local"
     
     # Language paths
     path_add --language \
