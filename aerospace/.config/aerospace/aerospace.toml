@@ -34,17 +34,25 @@ preset = 'qwerty'
 cmd-y = 'layout tiles horizontal vertical'  # Changed from cmd-t to avoid conflict with "New Tab"
 cmd-u = 'layout floating tiling'           # Changed from cmd-f to avoid conflict with "Find"
 cmd-tab = 'layout tiles horizontal vertical' # Changed to avoid conflicts
+cmd-space = 'layout tiles accordion floating' # Cycle through layouts (dwm-style)
+cmd-shift-space = 'layout floating tiling'  # Toggle float for focused window
+cmd-shift-f = 'fullscreen'                 # Toggle fullscreen
 
 # Basic window operations (dwm-style)
 cmd-shift-c = 'close'                      # Close window (dwm default)
 cmd-j = 'focus down'                       # Focus next window
 cmd-k = 'focus up'                         # Focus prev window
+cmd-h = 'focus left'                       # Focus left window
+cmd-l = 'focus right'                      # Focus right window
 cmd-shift-j = 'move down'                  # Move window forward
 cmd-shift-k = 'move up'                    # Move window backward
 
 # Master/stack operations (approximating dwm behavior)
 cmd-i = 'resize smart +50'                 # Increase master area
 cmd-d = 'resize smart -50'                 # Decrease master area
+cmd-enter = 'move left'                    # Move to master position
+cmd-shift-i = 'layout h_accordion'         # Increase master count (approximation)
+cmd-shift-d = 'layout v_accordion'         # Decrease master count (approximation)
 
 # Tag (workspace) switching - using numbers like dwm
 cmd-1 = 'workspace 1'
@@ -53,6 +61,9 @@ cmd-3 = 'workspace 3'
 cmd-4 = 'workspace 4'
 cmd-5 = 'workspace 5'
 cmd-6 = 'workspace 6'
+cmd-alt-left = 'workspace prev'            # Previous workspace
+cmd-alt-right = 'workspace next'           # Next workspace
+cmd-backtick = 'workspace-back-and-forth'  # Focus last workspace (backtick key)
 
 # Move windows to tags (workspaces) - Modified to use alt+cmd
 alt-cmd-1 = 'move-node-to-workspace 1'
@@ -68,6 +79,9 @@ cmd-period = 'focus-monitor next'          # Focus next monitor
 cmd-shift-comma = 'move-workspace-to-monitor prev'    # Move window to prev monitor
 cmd-shift-period = 'move-workspace-to-monitor next'   # Move window to next monitor
 
+# Toggle gaps (dwm-style)
+cmd-b = 'mode gaps'
+
 # Service mode for additional controls
 cmd-shift-semicolon = 'mode service'
 
@@ -81,6 +95,12 @@ cmd-shift-h = ['join-with left', 'mode main']
 cmd-shift-j = ['join-with down', 'mode main']
 cmd-shift-k = ['join-with up', 'mode main']
 cmd-shift-l = ['join-with right', 'mode main']
+
+# Gaps mode (switch between preset gaps configurations)
+[mode.gaps.binding]
+esc = 'mode main'
+0 = ['exec-and-forget osascript -e "do shell script \"defaults write com.nikitabobko.AeroSpace gaps.outer.left 0 && defaults write com.nikitabobko.AeroSpace gaps.outer.right 0 && defaults write com.nikitabobko.AeroSpace gaps.outer.top 0 && defaults write com.nikitabobko.AeroSpace gaps.outer.bottom 0 && defaults write com.nikitabobko.AeroSpace gaps.inner.horizontal 0 && defaults write com.nikitabobko.AeroSpace gaps.inner.vertical 0\""', 'reload-config', 'mode main']
+r = ['reload-config', 'mode main']         # Reset to config defaults
 
 # Window assignment rules remain unchanged
 [[on-window-detected]]
