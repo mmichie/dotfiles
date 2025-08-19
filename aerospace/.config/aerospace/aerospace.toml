@@ -147,3 +147,97 @@ run = ['move-node-to-workspace 6']
 [[on-window-detected]]
 if.app-id = 'com.apple.finder'
 run = 'layout floating'
+
+# System Preferences/Settings (macOS Ventura and later uses different app ID)
+[[on-window-detected]]
+if.app-id = 'com.apple.systempreferences'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.systemsettings'
+run = 'layout floating'
+
+# Activity Monitor
+[[on-window-detected]]
+if.app-id = 'com.apple.ActivityMonitor'
+run = 'layout floating'
+
+# Calculator
+[[on-window-detected]]
+if.app-id = 'com.apple.calculator'
+run = 'layout floating'
+
+# Archive Utility
+[[on-window-detected]]
+if.app-id = 'com.apple.archiveutility'
+run = 'layout floating'
+
+# Disk Utility
+[[on-window-detected]]
+if.app-id = 'com.apple.DiskUtility'
+run = 'layout floating'
+
+# System Information
+[[on-window-detected]]
+if.app-id = 'com.apple.systeminformation'
+run = 'layout floating'
+
+# Screenshot app
+[[on-window-detected]]
+if.app-id = 'com.apple.screencaptureui'
+run = 'layout floating'
+
+# Keychain Access
+[[on-window-detected]]
+if.app-id = 'com.apple.keychainaccess'
+run = 'layout floating'
+
+# Console
+[[on-window-detected]]
+if.app-id = 'com.apple.Console'
+run = 'layout floating'
+
+# Stickies
+[[on-window-detected]]
+if.app-id = 'com.apple.Stickies'
+run = 'layout floating'
+
+# Photo Booth
+[[on-window-detected]]
+if.app-id = 'com.apple.PhotoBooth'
+run = 'layout floating'
+
+# QuickTime Player
+[[on-window-detected]]
+if.app-id = 'com.apple.QuickTimePlayerX'
+run = 'layout floating'
+
+# ColorSync Utility
+[[on-window-detected]]
+if.app-id = 'com.apple.ColorSyncUtility'
+run = 'layout floating'
+
+# Migration Assistant
+[[on-window-detected]]
+if.app-id = 'com.apple.MigrateAssistant'
+run = 'layout floating'
+
+# AirPort Utility
+[[on-window-detected]]
+if.app-id = 'com.apple.airport.airportutility'
+run = 'layout floating'
+
+# App Store
+[[on-window-detected]]
+if.app-id = 'com.apple.AppStore'
+run = 'layout floating'
+
+# Software Update
+[[on-window-detected]]
+if.app-id = 'com.apple.SoftwareUpdate'
+run = 'layout floating'
+
+# VLC Media Player
+[[on-window-detected]]
+if.app-id = 'org.videolan.vlc'
+run = 'layout floating'
