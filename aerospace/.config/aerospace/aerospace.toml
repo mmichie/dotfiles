@@ -142,3 +142,8 @@ run = ['move-node-to-workspace 6']
 [[on-window-detected]]
 if.app-id = 'com.jetbrains.datagrip'
 run = ['move-node-to-workspace 6']
+
+# Make Finder windows float
+[[on-window-detected]]
+if.app-id = 'com.apple.finder'
+run = 'layout floating'
