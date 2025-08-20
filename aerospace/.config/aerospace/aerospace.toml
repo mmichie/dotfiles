@@ -34,7 +34,7 @@ preset = 'qwerty'
 cmd-y = 'layout tiles horizontal vertical'  # Changed from cmd-t to avoid conflict with "New Tab"
 cmd-u = 'layout floating tiling'           # Changed from cmd-f to avoid conflict with "Find"
 cmd-tab = 'layout tiles horizontal vertical' # Changed to avoid conflicts
-cmd-space = 'layout tiles accordion floating' # Cycle through layouts (dwm-style)
+cmd-semicolon = 'layout tiles accordion floating' # Cycle through layouts (changed from cmd-space to avoid Spotlight conflict)
 cmd-shift-space = 'layout floating tiling'  # Toggle float for focused window
 cmd-shift-f = 'fullscreen'                 # Toggle fullscreen
 
