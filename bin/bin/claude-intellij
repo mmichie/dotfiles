@@ -1,0 +1,14 @@
+#!/bin/bash
+# Claude wrapper for IntelliJ that ensures Node.js is available
+
+# Load nvm if needed
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# Alternatively, add Homebrew node to PATH if available
+if [ -d "/opt/homebrew/bin" ]; then
+    export PATH="/opt/homebrew/bin:$PATH"
+fi
+
+# Use the local claude installation
+exec /Users/mim/.claude/local/claude "$@"
