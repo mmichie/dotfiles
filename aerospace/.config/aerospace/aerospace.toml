@@ -271,3 +271,8 @@ run = 'layout floating'
 [[on-window-detected]]
 if.app-id = 'org.gimp.gimp-3.0'
 run = 'layout floating'
+
+# Calendar
+[[on-window-detected]]
+if.app-id = 'com.apple.iCal'
+run = 'layout floating'
