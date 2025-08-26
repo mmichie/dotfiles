@@ -5,7 +5,6 @@
 
 [core]
 	excludesfile = /Users/mim/.gitignore_global
-	hooksPath = /Users/mim/.git-hooks
 	pager = ~/bin/diff-so-fancy/diff-so-fancy | less --tabs=4 -RFX
 
 [color]
@@ -39,8 +38,18 @@
 
 [difftool "sourcetree"]
 	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
-	path = 
+	path =
 
 [mergetool "sourcetree"]
 	cmd = /Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
-	trustExitCode = true
+    trustExitCode = true
+
+#[includeIf "gitdir:~/src/Prime/"]
+	path = ~/.gitconfig-prime-local
+
+[includeIf "gitdir:~/src/tensor9.com-v2/"]
+	path = ~/.gitconfig-prime-local
+
+[url "ssh://git@github.com/"]
+#	insteadOf = https://github.com/
+
