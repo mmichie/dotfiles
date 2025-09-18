@@ -79,9 +79,6 @@ cmd-period = 'focus-monitor next'          # Focus next monitor
 cmd-shift-comma = 'move-workspace-to-monitor prev'    # Move window to prev monitor
 cmd-shift-period = 'move-workspace-to-monitor next'   # Move window to next monitor
 
-# Toggle gaps (dwm-style)
-cmd-b = 'mode gaps'
-
 # Service mode for additional controls
 cmd-shift-semicolon = 'mode service'
 
