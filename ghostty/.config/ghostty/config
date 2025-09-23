@@ -1,0 +1,71 @@
+# Ghostty Configuration
+
+# Font settings
+font-family = "JetBrains Mono"
+font-size = 14
+font-thicken = true
+
+# Window settings
+window-padding-x = 10
+window-padding-y = 10
+window-decoration = true
+window-theme = auto
+
+# Colors - using a dark theme similar to your terminal setup
+background = #1e1e2e
+foreground = #cdd6f4
+
+# Black/Bright Black
+palette = 0=#45475a
+palette = 8=#585b70
+
+# Red/Bright Red  
+palette = 1=#f38ba8
+palette = 9=#f38ba8
+
+# Green/Bright Green
+palette = 2=#a6e3a1
+palette = 10=#a6e3a1
+
+# Yellow/Bright Yellow
+palette = 3=#f9e2af
+palette = 11=#f9e2af
+
+# Blue/Bright Blue
+palette = 4=#89b4fa
+palette = 12=#89b4fa
+
+# Magenta/Bright Magenta
+palette = 5=#f5c2e7
+palette = 13=#f5c2e7
+
+# Cyan/Bright Cyan
+palette = 6=#94e2d5
+palette = 14=#94e2d5
+
+# White/Bright White
+palette = 7=#bac2de
+palette = 15=#a6adc8
+
+# Cursor settings
+cursor-style = block
+cursor-style-blink = true
+
+# Shell integration
+shell-integration = detect
+shell-integration-features = cursor,sudo,title
+
+# Scrollback
+scrollback-limit = 10000
+
+# Mouse/Selection
+mouse-hide-while-typing = true
+
+# macOS specific settings
+macos-option-as-alt = true
+macos-non-native-fullscreen = false
+
+# Keybindings
+keybind = cmd+plus=increase_font_size:1
+keybind = cmd+minus=decrease_font_size:1
+keybind = cmd+0=reset_font_size
