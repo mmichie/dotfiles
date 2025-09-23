@@ -1,6 +1,8 @@
 # Auto-start settings
 after-login-command = []
-after-startup-command = []
+after-startup-command = [
+    'exec-and-forget osascript -e "delay 1" -e "tell application \"System Events\" to tell process \"Ghostty\" to set value of attribute \"AXFullScreen\" of window 1 to true"'
+]
 start-at-login = true
 
 # DWM-like window management behavior
@@ -114,7 +116,7 @@ run = ['move-node-to-workspace 1']
 
 [[on-window-detected]]
 if.app-id = 'com.mitchellh.ghostty'
-run = ['layout floating', 'move-node-to-workspace 1']
+run = ['move-node-to-workspace 1']
 
 [[on-window-detected]]
 if.app-id = 'com.google.Chrome'
