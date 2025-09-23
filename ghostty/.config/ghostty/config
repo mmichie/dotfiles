@@ -1,55 +1,47 @@
 # Ghostty Configuration
 
 # Font settings
-font-family = "JetBrains Mono"
-font-size = 14
+font-family = "Berkeley Mono UltraCondensed"
+font-size = 15
 font-thicken = true
+# Alternative: font-family = "JetBrains Mono" with font-size = 14
 
 # Window settings
-window-padding-x = 10
-window-padding-y = 10
+window-padding-x = 0
+window-padding-y = 0
+# Alternative padding: window-padding-x = 10, window-padding-y = 10
 window-decoration = true
 window-theme = auto
 
-# Colors - using a dark theme similar to your terminal setup
-background = #1e1e2e
-foreground = #cdd6f4
+# Colors - Simple black/white/green terminal theme
+background = #000000
+foreground = #ffffff
 
-# Black/Bright Black
-palette = 0=#45475a
-palette = 8=#585b70
-
-# Red/Bright Red  
-palette = 1=#f38ba8
-palette = 9=#f38ba8
-
-# Green/Bright Green
-palette = 2=#a6e3a1
-palette = 10=#a6e3a1
-
-# Yellow/Bright Yellow
-palette = 3=#f9e2af
-palette = 11=#f9e2af
-
-# Blue/Bright Blue
-palette = 4=#89b4fa
-palette = 12=#89b4fa
-
-# Magenta/Bright Magenta
-palette = 5=#f5c2e7
-palette = 13=#f5c2e7
-
-# Cyan/Bright Cyan
-palette = 6=#94e2d5
-palette = 14=#94e2d5
-
-# White/Bright White
-palette = 7=#bac2de
-palette = 15=#a6adc8
+# Catppuccin theme alternative (uncomment to use):
+# background = #1e1e2e
+# foreground = #cdd6f4
+# palette = 0=#45475a  # Black
+# palette = 8=#585b70  # Bright Black
+# palette = 1=#f38ba8  # Red
+# palette = 9=#f38ba8  # Bright Red
+# palette = 2=#a6e3a1  # Green
+# palette = 10=#a6e3a1 # Bright Green
+# palette = 3=#f9e2af  # Yellow
+# palette = 11=#f9e2af # Bright Yellow
+# palette = 4=#89b4fa  # Blue
+# palette = 12=#89b4fa # Bright Blue
+# palette = 5=#f5c2e7  # Magenta
+# palette = 13=#f5c2e7 # Bright Magenta
+# palette = 6=#94e2d5  # Cyan
+# palette = 14=#94e2d5 # Bright Cyan
+# palette = 7=#bac2de  # White
+# palette = 15=#a6adc8 # Bright White
 
 # Cursor settings
 cursor-style = block
 cursor-style-blink = false
+cursor-color = #00ff00
+cursor-text = #000000
 
 # Shell integration
 shell-integration = detect
