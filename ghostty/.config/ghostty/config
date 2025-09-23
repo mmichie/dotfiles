@@ -49,11 +49,11 @@ palette = 15=#a6adc8
 
 # Cursor settings
 cursor-style = block
-cursor-style-blink = true
+cursor-style-blink = false
 
 # Shell integration
 shell-integration = detect
-shell-integration-features = cursor,sudo,title
+shell-integration-features = no-cursor,sudo,title
 
 # Scrollback
 scrollback-limit = 10000
