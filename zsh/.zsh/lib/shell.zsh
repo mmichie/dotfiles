@@ -407,6 +407,19 @@ setup_aliases() {
     alias grep="grep --color=auto -d skip"
     alias grpe="grep --color=auto -d skip"
     
+    # Configure pagers - use moor if available, otherwise less
+    if command -v moor &>/dev/null; then
+        # moor has better mouse support and modern features
+        alias less="moor"
+        alias more="moor"
+        alias mr="moor"
+        alias mw="moor -wrap"
+    else
+        # Fallback to less with horizontal scrolling and mouse support
+        alias less="less -S --mouse"
+        alias more="less"
+    fi
+    
     # New modern tool aliases
     if command -v duf &>/dev/null; then
         alias df="duf"
