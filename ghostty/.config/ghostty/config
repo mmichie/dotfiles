@@ -17,6 +17,24 @@ window-theme = auto
 background = #000000
 foreground = #ffffff
 
+# Color palette for terminal colors (0-15)
+palette = 0=#000000
+palette = 1=#cc0000
+palette = 2=#00d700
+palette = 3=#c4a000
+palette = 4=#3465a4
+palette = 5=#75507b
+palette = 6=#06989a
+palette = 7=#d3d7cf
+palette = 8=#555753
+palette = 9=#ef2929
+palette = 10=#5fff00
+palette = 11=#fce94f
+palette = 12=#729fcf
+palette = 13=#ad7fa8
+palette = 14=#34e2e2
+palette = 15=#eeeeec
+
 # Catppuccin theme alternative (uncomment to use):
 # background = #1e1e2e
 # foreground = #cdd6f4
@@ -40,8 +58,12 @@ foreground = #ffffff
 # Cursor settings
 cursor-style = block
 cursor-style-blink = false
-cursor-color = #00ff00
+cursor-color = #50fa7b
 cursor-text = #000000
+# Alternative cursor colors:
+# cursor-color = #00ff00  # Bright pure green
+# cursor-color = #5fff00  # Lime green
+# cursor-color = #00d700  # Classic terminal green
 
 # Shell integration
 shell-integration = detect
@@ -57,6 +79,10 @@ mouse-hide-while-typing = true
 macos-option-as-alt = true
 macos-non-native-fullscreen = false
 macos-titlebar-style = tabs
+
+# Tab bar settings
+window-new-tab-position = end
+# window-title-font-family = "SF Pro Display"  # Optional: customize tab font
 
 # Auto-update settings
 auto-update = download
