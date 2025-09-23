@@ -66,6 +66,14 @@ macos-option-as-alt = true
 macos-non-native-fullscreen = false
 macos-titlebar-style = tabs
 
+# Auto-update settings
+auto-update = download
+auto-update-channel = stable
+
+# App behavior
+quit-after-last-window-closed = true
+copy-on-select = clipboard
+
 # Keybindings
 keybind = cmd+plus=increase_font_size:1
 keybind = cmd+minus=decrease_font_size:1
