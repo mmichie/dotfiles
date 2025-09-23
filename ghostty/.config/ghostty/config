@@ -64,6 +64,7 @@ mouse-hide-while-typing = true
 # macOS specific settings
 macos-option-as-alt = true
 macos-non-native-fullscreen = false
+macos-titlebar-style = tabs
 
 # Keybindings
 keybind = cmd+plus=increase_font_size:1

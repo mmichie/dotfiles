@@ -113,6 +113,10 @@ if.app-id = 'com.github.wez.wezterm'
 run = ['move-node-to-workspace 1']
 
 [[on-window-detected]]
+if.app-id = 'com.mitchellh.ghostty'
+run = ['layout floating', 'move-node-to-workspace 1']
+
+[[on-window-detected]]
 if.app-id = 'com.google.Chrome'
 run = ['move-node-to-workspace 2']
 
@@ -146,7 +150,7 @@ run = ['move-node-to-workspace 5']
 
 [[on-window-detected]]
 if.app-id = 'com.apple.Preview'  # For PDFs
-run = ['move-node-to-workspace 5']
+run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.linear'
