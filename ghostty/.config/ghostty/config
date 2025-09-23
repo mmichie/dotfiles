@@ -70,3 +70,5 @@ macos-titlebar-style = tabs
 keybind = cmd+plus=increase_font_size:1
 keybind = cmd+minus=decrease_font_size:1
 keybind = cmd+0=reset_font_size
+keybind = cmd+left=previous_tab
+keybind = cmd+right=next_tab
