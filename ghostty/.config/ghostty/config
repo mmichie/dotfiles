@@ -70,7 +70,7 @@ shell-integration = detect
 shell-integration-features = no-cursor,sudo,title
 
 # Scrollback
-scrollback-limit = 10000
+scrollback-limit = 100000
 
 # Mouse/Selection
 mouse-hide-while-typing = true
