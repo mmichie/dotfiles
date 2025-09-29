@@ -65,12 +65,15 @@ cursor-text = #000000
 # cursor-color = #5fff00  # Lime green
 # cursor-color = #00d700  # Classic terminal green
 
+# Shell command
+command = /opt/homebrew/bin/tmux
+
 # Shell integration
 shell-integration = detect
 shell-integration-features = no-cursor,sudo,title
 
-# Scrollback
-scrollback-limit = 100000
+# Scrollback (in bytes - 100MB = ~100k lines)
+scrollback-limit = 100000000
 
 # Mouse/Selection
 mouse-hide-while-typing = true
