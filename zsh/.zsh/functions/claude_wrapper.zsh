@@ -2,9 +2,14 @@
 
 # Claude wrapper function to prevent shell exit
 claude() {
-    # Set terminal title for WezTerm icon
-    print -Pn "\e]0;claude\a"
-    
+    # Set tmux window name if in tmux
+    if [[ -n "$TMUX" ]]; then
+        tmux rename-window "claude"
+    fi
+
+    # Set terminal title for Ghostty
+    echo -ne "\033]0;claude\007"
+
     # Save current directory
     local current_dir="$PWD"
     
@@ -37,9 +42,14 @@ claude() {
         command "$claude_cmd" "$@"
     )
     local exit_code=$?
-    
-    # Reset terminal title
-    print -Pn "\e]0;%~\a"
-    
+
+    # Re-enable tmux automatic rename if in tmux
+    if [[ -n "$TMUX" ]]; then
+        tmux set-window-option automatic-rename on
+    fi
+
+    # Reset terminal title to zsh
+    echo -ne "\033]0;zsh\007"
+
     return $exit_code
 }
