@@ -82,7 +82,7 @@ mouse-hide-while-typing = true
 # macOS specific settings
 macos-option-as-alt = true
 macos-non-native-fullscreen = false
-macos-titlebar-style = tabs
+macos-titlebar-style = native
 
 # Tab bar settings
 window-new-tab-position = end
