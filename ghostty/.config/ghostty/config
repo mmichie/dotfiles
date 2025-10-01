@@ -12,6 +12,7 @@ window-padding-y = 0
 # Alternative padding: window-padding-x = 10, window-padding-y = 10
 window-decoration = true
 window-theme = auto
+window-inherit-working-directory = true
 
 # Colors - Simple black/white/green terminal theme
 background = #000000
@@ -66,7 +67,7 @@ cursor-text = #000000
 # cursor-color = #00d700  # Classic terminal green
 
 # Shell command
-command = /opt/homebrew/bin/tmux
+command = /bin/sh -c 'exec /opt/homebrew/bin/tmux new-session -c "$PWD"'
 
 # Shell integration
 shell-integration = detect
@@ -99,5 +100,6 @@ copy-on-select = clipboard
 keybind = cmd+plus=increase_font_size:1
 keybind = cmd+minus=decrease_font_size:1
 keybind = cmd+0=reset_font_size
-keybind = cmd+left=previous_tab
-keybind = cmd+right=next_tab
+keybind = cmd+left=text:\x0fp
+keybind = cmd+right=text:\x0fn
+keybind = cmd+t=text:\x0fc
