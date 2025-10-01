@@ -13,6 +13,7 @@ window-padding-y = 0
 window-decoration = true
 window-theme = auto
 window-inherit-working-directory = true
+title = " "
 
 # Colors - Simple black/white/green terminal theme
 background = #000000
