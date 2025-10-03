@@ -13,3 +13,6 @@
 [submodule "tmux/.config/tmux/plugins/tmux-continuum"]
 	path = tmux/.config/tmux/plugins/tmux-continuum
 	url = https://github.com/tmux-plugins/tmux-continuum
+[submodule "tmux/.config/tmux/plugins/dwm.tmux"]
+	path = tmux/.config/tmux/plugins/dwm.tmux
+	url = https://github.com/saysjonathan/dwm.tmux.git
