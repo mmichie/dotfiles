@@ -67,8 +67,8 @@ cursor-text = #000000
 # cursor-color = #5fff00  # Lime green
 # cursor-color = #00d700  # Classic terminal green
 
-# Shell command
-command = /bin/sh -c 'exec /opt/homebrew/bin/tmux new-session -c "$PWD"'
+# Shell command - attach to existing session or create new one
+command = $HOME/bin/tmux-attach-or-new
 
 # Shell integration
 shell-integration = detect
@@ -104,3 +104,14 @@ keybind = cmd+0=reset_font_size
 keybind = cmd+left=text:\x0fp
 keybind = cmd+right=text:\x0fn
 keybind = cmd+t=text:\x0fc
+
+# DWM-style tmux keybindings
+# Karabiner-Elements allows these to pass through (Cmd+H/J/K/L/M)
+keybind = cmd+j=text:\x0f]
+keybind = cmd+k=text:\x0f[
+keybind = cmd+enter=text:\x0f\r
+keybind = cmd+h=text:\x0f-
+keybind = cmd+l=text:\x0f\x3d
+keybind = cmd+n=text:\x0fN
+keybind = cmd+x=text:\x0fx
+keybind = cmd+m=text:\x0fm

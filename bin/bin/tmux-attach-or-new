@@ -1,0 +1,29 @@
+#!/bin/bash
+
+TMUX=/opt/homebrew/bin/tmux
+
+# Count active tmux sessions
+session_count=$($TMUX list-sessions 2>/dev/null | wc -l | tr -d ' ')
+
+if [ "$session_count" -eq 0 ]; then
+    # No sessions - create a new one that will be killed on exit
+    exec $TMUX new-session -c "$PWD"
+elif [ "$session_count" -eq 1 ]; then
+    # Only one session - attach to it
+    exec $TMUX attach-session
+else
+    # Multiple sessions - show a menu to choose
+    echo "Multiple tmux sessions found:"
+    echo
+    $TMUX list-sessions | nl -w2 -s'. '
+    echo
+    echo -n "Enter session number to attach (or press Enter for most recent): "
+    read choice
+
+    if [ -z "$choice" ]; then
+        exec $TMUX attach-session
+    else
+        session_name=$($TMUX list-sessions | sed -n "${choice}p" | cut -d: -f1)
+        exec $TMUX attach-session -t "$session_name"
+    fi
+fi
