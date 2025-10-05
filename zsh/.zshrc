@@ -210,3 +210,6 @@ if command -v vivid >/dev/null 2>&1; then
 fi
 
 # Note: Google Cloud SDK lazy loading is now handled in environment.zsh
+
+# Source local config (not in dotfiles repo, for secrets/machine-specific settings)
+[ -f ~/.zshrc.local ] && source ~/.zshrc.local

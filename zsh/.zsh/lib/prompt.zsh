@@ -146,5 +146,5 @@ init_prompt() {
     # Set up precmd hooks only once
     autoload -Uz add-zsh-hook
     add-zsh-hook precmd osc7_cwd
-    [[ $TERM == (xterm*|screen*) ]] && add-zsh-hook precmd update_ps1
+    [[ $TERM == (xterm*|screen*|tmux*) ]] && add-zsh-hook precmd update_ps1
 }
