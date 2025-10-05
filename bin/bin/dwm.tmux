@@ -1,0 +1,1 @@
+../../tmux/.config/tmux/plugins/dwm.tmux/bin/dwm.tmux
