@@ -70,12 +70,12 @@ cursor-text = #000000
 # Shell command - attach to existing session or create new one
 command = $HOME/bin/tmux-attach-or-new
 
-# Shell integration
+# Shell integration - keep sudo for Touch ID, disable cursor/title (tmux manages these)
 shell-integration = detect
-shell-integration-features = no-cursor,sudo,title
+shell-integration-features = no-cursor,no-title,sudo
 
-# Scrollback (in bytes - 100MB = ~100k lines)
-scrollback-limit = 100000000
+# Scrollback (in bytes - 10MB, tmux handles main scrollback with 10k lines)
+scrollback-limit = 10000000
 
 # Mouse/Selection
 mouse-hide-while-typing = true
