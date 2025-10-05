@@ -1,0 +1,77 @@
+{
+  "global": {
+    "ask_for_confirmation_before_quitting": true,
+    "check_for_updates_on_startup": true,
+    "show_in_menu_bar": true,
+    "show_profile_name_in_menu_bar": false,
+    "unsafe_ui": false,
+    "keyboard_modifier_stuck_duration_milliseconds": 0,
+    "show_notification_for_stuck_modifier_key": false
+  },
+  "profiles": [
+    {
+      "name": "Default",
+      "selected": true,
+      "simple_modifications": [],
+      "devices": [],
+      "complex_modifications": {
+        "rules": [
+          {
+            "description": "Ghostty: Swap Cmd+J/K/H/L/Enter to Option (for tmux dwm navigation)",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "j",
+                  "modifiers": {"mandatory": ["command"]}
+                },
+                "to": [{"key_code": "j", "modifiers": ["option"]}],
+                "conditions": [{"type": "frontmost_application_if", "bundle_identifiers": ["^com\\.mitchellh\\.ghostty$"]}]
+              },
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "k",
+                  "modifiers": {"mandatory": ["command"]}
+                },
+                "to": [{"key_code": "k", "modifiers": ["option"]}],
+                "conditions": [{"type": "frontmost_application_if", "bundle_identifiers": ["^com\\.mitchellh\\.ghostty$"]}]
+              },
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "h",
+                  "modifiers": {"mandatory": ["command"]}
+                },
+                "to": [{"key_code": "h", "modifiers": ["option"]}],
+                "conditions": [{"type": "frontmost_application_if", "bundle_identifiers": ["^com\\.mitchellh\\.ghostty$"]}]
+              },
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "l",
+                  "modifiers": {"mandatory": ["command"]}
+                },
+                "to": [{"key_code": "l", "modifiers": ["option"]}],
+                "conditions": [{"type": "frontmost_application_if", "bundle_identifiers": ["^com\\.mitchellh\\.ghostty$"]}]
+              },
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "return_or_enter",
+                  "modifiers": {"mandatory": ["command"]}
+                },
+                "to": [{"key_code": "return_or_enter", "modifiers": ["option"]}],
+                "conditions": [{"type": "frontmost_application_if", "bundle_identifiers": ["^com\\.mitchellh\\.ghostty$"]}]
+              }
+            ]
+          }
+        ]
+      },
+      "virtual_hid_keyboard": {
+        "country_code": 0,
+        "keyboard_type_v2": "ansi"
+      }
+    }
+  ]
+}
