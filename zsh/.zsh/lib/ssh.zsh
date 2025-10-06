@@ -153,3 +153,25 @@ init_ssh() {
 
 # Call initialization when the file is sourced
 init_ssh
+
+# SSH wrapper to auto-rename tmux windows to hostname
+unalias ssh 2>/dev/null
+ssh() {
+    if [[ -n "$TMUX" ]]; then
+        # Extract hostname from SSH args (last argument)
+        local host="${@: -1}"
+        # Strip user@ prefix if present
+        host="${host#*@}"
+        # Strip everything after : or / (for rsync-style paths)
+        host="${host%%:*}"
+        host="${host%%/*}"
+
+        # Rename tmux window
+        tmux rename-window "$host"
+        command ssh "$@"
+        # Restore automatic renaming when SSH exits
+        tmux set-window-option automatic-rename on
+    else
+        command ssh "$@"
+    fi
+}
