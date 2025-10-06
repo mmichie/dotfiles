@@ -167,7 +167,7 @@ ssh() {
         host="${host%%/*}"
 
         # Rename tmux window
-        tmux rename-window "$host"
+        tmux rename-window "🔐 $host"
         command ssh "$@"
         # Restore automatic renaming when SSH exits
         tmux set-window-option automatic-rename on

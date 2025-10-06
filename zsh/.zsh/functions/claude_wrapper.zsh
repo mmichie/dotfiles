@@ -4,7 +4,7 @@
 claude() {
     # Set tmux window name if in tmux
     if [[ -n "$TMUX" ]]; then
-        tmux rename-window "claude"
+        tmux rename-window "🤖 $(basename "$PWD")"
     fi
 
     # Set terminal title for Ghostty
