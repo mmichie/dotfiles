@@ -90,6 +90,23 @@ clima() {
             DESCRIPTION="$(echo "$WEATHER" | jq -r '.weather[0].main')"
             FEELS_LIKE="Feels like: $(echo "$WEATHER" | jq .main.feels_like | cut -d . -f 1)$SYMBOL"
             WIND_SPEED="Wind speed: $(echo "$WEATHER" | jq .wind.speed) m/s"
+
+            # Get sunrise/sunset times
+            SUNRISE=$(echo "$WEATHER" | jq -r .sys.sunrise)
+            SUNSET=$(echo "$WEATHER" | jq -r .sys.sunset)
+
+            # Determine which sun event to show (next one)
+            if [ "$NOW" -lt "$SUNRISE" ]; then
+                # Before sunrise - show sunrise time
+                SUN_TIME="↑$(date -r "$SUNRISE" +%H:%M)"
+            elif [ "$NOW" -lt "$SUNSET" ]; then
+                # After sunrise, before sunset - show sunset time
+                SUN_TIME="↓$(date -r "$SUNSET" +%H:%M)"
+            else
+                # After sunset - show next sunrise (tomorrow, but we show today's for now)
+                SUN_TIME="↑$(date -r "$SUNRISE" +%H:%M)"
+            fi
+
             CLIMA=""
 
             if [ "$SHOW_LOCATION" == 1 ]; then
@@ -100,8 +117,10 @@ clima() {
                 CLIMA="$CLIMA$ICON"
             fi
 
-            CLIMA="$CLIMA$TEMP"
-            CLIMA_DETAILS="${CITY}, ${COUNTRY}: ${ICON} ${TEMP}, ${DESCRIPTION}, ${FEELS_LIKE}, ${WIND_SPEED}"
+            CLIMA="$CLIMA$TEMP $SUN_TIME"
+            SUNRISE_TIME="$(date -r "$SUNRISE" +%H:%M)"
+            SUNSET_TIME="$(date -r "$SUNSET" +%H:%M)"
+            CLIMA_DETAILS="${CITY}, ${COUNTRY}: ${ICON} ${TEMP}, ${DESCRIPTION}, ${FEELS_LIKE}, ${WIND_SPEED}, Sunrise: ${SUNRISE_TIME}, Sunset: ${SUNSET_TIME}"
 
             set_tmux_option "@clima_last_update_time" "$NOW"
             set_tmux_option "@clima_current_value" "$CLIMA"
