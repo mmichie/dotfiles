@@ -2,6 +2,12 @@
 
 TMUX=/opt/homebrew/bin/tmux
 
+# Source environment variables (including OPEN_WEATHER_API_KEY for tmux-clima)
+[ -f ~/.zshrc.local ] && source ~/.zshrc.local
+
+# Export PATH for tmux to include Homebrew and other tools
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+
 # Count active tmux sessions
 session_count=$($TMUX list-sessions 2>/dev/null | wc -l | tr -d ' ')
 
