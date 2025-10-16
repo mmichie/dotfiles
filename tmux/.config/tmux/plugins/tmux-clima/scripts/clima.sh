@@ -117,7 +117,7 @@ clima() {
                 CLIMA="$CLIMA$ICON"
             fi
 
-            CLIMA="$CLIMA$TEMP $SUN_TIME"
+            CLIMA="$CLIMA$TEMP | $SUN_TIME"
             SUNRISE_TIME="$(date -r "$SUNRISE" +%H:%M)"
             SUNSET_TIME="$(date -r "$SUNSET" +%H:%M)"
             CLIMA_DETAILS="${CITY}, ${COUNTRY}: ${ICON} ${TEMP}, ${DESCRIPTION}, ${FEELS_LIKE}, ${WIND_SPEED}, Sunrise: ${SUNRISE_TIME}, Sunset: ${SUNSET_TIME}"
