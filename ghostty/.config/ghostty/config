@@ -8,9 +8,9 @@ font-thicken = true
 
 # Window settings
 window-padding-x = 0
-window-padding-y = 0
+window-padding-y = 1
 # Alternative padding: window-padding-x = 10, window-padding-y = 10
-window-decoration = true
+window-decoration = false
 window-theme = auto
 window-inherit-working-directory = true
 title = " "
