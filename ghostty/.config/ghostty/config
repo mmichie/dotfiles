@@ -79,6 +79,7 @@ scrollback-limit = 10000000
 
 # Mouse/Selection
 mouse-hide-while-typing = true
+mouse-shift-capture = never
 
 # macOS specific settings
 macos-option-as-alt = true
