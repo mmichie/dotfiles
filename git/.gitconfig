@@ -33,8 +33,50 @@
                 git diff --staged | intu commit --provider claude > .git/COMMIT_EDITMSG && \
                 git commit -t .git/COMMIT_EDITMSG; \
         }; f"
+
+	# Branch helpers
+	mainbranch = !git symbolic-ref refs/remotes/origin/HEAD | cut -d'/' -f4
+	current-branch = symbolic-ref --short HEAD
+
+	# Workflow shortcuts
+	co = checkout --recurse-submodules
+	ci = commit
+	cm = commit -m
+	d = diff
+	di = diff --cached
+	s = show
+	st = status -sb
+
+	# Logging
 	graph = log --branches --pretty=short --decorate --graph
 	history = log --stat --patch --
+	l = log --pretty=oneline --abbrev-commit --max-count=18
+	ll = log --pretty=oneline --abbrev-commit
+	gl = log --graph --all --decorate --oneline
+	gll = log --graph --all --decorate --pretty=format:'%C(yellow)%h%Creset%C(auto)%d%Creset %s %C(white)- %an, %ar%Creset'
+
+	# Search commits
+	ack = log --all -p -S
+
+	# Stash with better names
+	shelve = stash save
+	unshelve = stash pop
+
+	# Remote operations
+	fo = fetch origin
+	fu = fetch upstream
+	po = push origin
+	pu = push upstream
+
+	# Safe pull - fast-forward only
+	pull = pull --ff-only
+	up = merge --ff-only
+	rom = rebase origin/master
+
+	# Branch cleanup
+	clean-branches = !git remote prune origin && git branch -vv | grep ': gone]' | awk '{print $1}' | xargs git branch -d 2>/dev/null || true
+	delete-branch = !sh -c 'git push origin :$1 && git branch -D $1' -
+	clean-local-branches = !git branch --merged | grep -v '\\*\\|master\\|main' | xargs -n 1 git branch -d 2>/dev/null || true
 
 [difftool "sourcetree"]
 	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
