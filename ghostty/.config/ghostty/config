@@ -4,6 +4,7 @@
 font-family = "Berkeley Mono UltraCondensed"
 font-size = 15
 font-thicken = true
+alpha-blending = linear-corrected
 # Alternative: font-family = "JetBrains Mono" with font-size = 14
 
 # Window settings
@@ -72,7 +73,7 @@ command = $HOME/bin/tmux-attach-or-new
 
 # Shell integration - keep sudo for Touch ID, disable cursor/title (tmux manages these)
 shell-integration = detect
-shell-integration-features = no-cursor,no-title,sudo
+shell-integration-features = no-cursor,no-title,sudo,ssh-env,ssh-terminfo
 
 # Scrollback (in bytes - 10MB, tmux handles main scrollback with 10k lines)
 scrollback-limit = 10000000
@@ -80,6 +81,8 @@ scrollback-limit = 10000000
 # Mouse/Selection
 mouse-hide-while-typing = true
 mouse-shift-capture = never
+mouse-scroll-multiplier = 1.5
+cursor-click-to-move = true
 
 # macOS specific settings
 macos-option-as-alt = true
@@ -97,6 +100,7 @@ auto-update-channel = stable
 # App behavior
 quit-after-last-window-closed = true
 copy-on-select = clipboard
+clipboard-trim-trailing-spaces = true
 
 # Keybindings
 keybind = cmd+plus=increase_font_size:1
