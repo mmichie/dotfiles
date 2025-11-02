@@ -134,6 +134,9 @@ system_health() {
 # Load status module immediately as it's needed for shell startup
 load_module "function" "status"
 
+# Load utility functions
+load_module "function" "utils"
+
 # Initialize core components
 setup_environment
 init_shell
