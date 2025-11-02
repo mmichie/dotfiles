@@ -18,6 +18,7 @@ run:
 See Also
 ========
 
+  * https://github.com/ThePrimeagen/.dotfiles
   * https://github.com/xero/dotfiles
   * https://github.com/r00k
   * https://github.com/tpope/tpope
