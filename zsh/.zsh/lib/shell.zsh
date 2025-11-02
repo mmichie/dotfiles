@@ -584,11 +584,16 @@ init_shell() {
     if command -v fzf &>/dev/null; then
         # Use custom atuin+fzf history search
         bindkey '^R' atuin-fzf-history
-        
+
         # Ctrl-T for file selection
         bindkey '^T' fzf-file-widget
-        
+
         # Alt-C for directory navigation
         bindkey '^[c' fzf-cd-widget
+    fi
+
+    # Bind Ctrl-F to tmux-sessionizer for quick project switching
+    if command -v tmux-sessionizer &>/dev/null; then
+        bindkey -s '^F' 'tmux-sessionizer\n'
     fi
 }
