@@ -19,3 +19,10 @@ bin/bin/intu
 *.claudecontext
 .claude-cache/
 .claude-session/
+
+# Location service - keep personal data local
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+system/.config/clima/wifi-locations.conf

@@ -1,0 +1,68 @@
+#!/usr/bin/env -S uv run --quiet --script
+# /// script
+# requires-python = ">=3.9"
+# dependencies = [
+#     "pyobjc-framework-CoreWLAN",
+#     "pyobjc-framework-CoreLocation",
+# ]
+# ///
+"""
+Get WiFi SSID on macOS using CoreWLAN with Location Services.
+Uses uv to automatically manage dependencies.
+"""
+
+import sys
+import time
+
+try:
+    from CoreWLAN import CWWiFiClient
+    from CoreLocation import CLLocationManager
+except ImportError as e:
+    print(f"ERROR: Failed to import CoreWLAN/CoreLocation: {e}", file=sys.stderr)
+    print("Note: uv should have installed dependencies automatically", file=sys.stderr)
+    sys.exit(1)
+
+def get_wifi_info(timeout=5):
+    """Get WiFi SSID and BSSID with Location Services authorization."""
+
+    # Request Location Services authorization
+    location_manager = CLLocationManager.alloc().init()
+    location_manager.requestWhenInUseAuthorization()
+    location_manager.startUpdatingLocation()
+
+    # Wait for authorization (states: 3=authorized when in use, 4=authorized always)
+    for _ in range(timeout):
+        auth_status = location_manager.authorizationStatus()
+        if auth_status in [3, 4]:
+            break
+        time.sleep(1)
+    else:
+        print("ERROR: Location Services not authorized", file=sys.stderr)
+        return None, None, None
+
+    # Get WiFi interface and info
+    try:
+        wifi_client = CWWiFiClient.sharedWiFiClient()
+        interface = wifi_client.interface()
+
+        if interface is None:
+            return None, None, None
+
+        ssid = interface.ssid()
+        bssid = interface.bssid()
+        interface_name = interface.interfaceName()
+
+        return ssid, bssid, interface_name
+    except Exception as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return None, None, None
+
+if __name__ == "__main__":
+    ssid, bssid, interface = get_wifi_info()
+
+    if ssid:
+        # Output format: ssid|bssid|interface
+        print(f"{ssid}|{bssid or ''}|{interface or ''}")
+    else:
+        # Not connected or no permission
+        print("||")

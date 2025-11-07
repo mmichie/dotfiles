@@ -95,6 +95,53 @@ set -g @clima_location "Melbourne"
 
 By default it always show the location in the statusbar.
 
+### Location Override via Environment Variables
+
+You can override the location by setting `CLIMA_LAT` and `CLIMA_LON` environment variables:
+
+```bash
+export CLIMA_LAT="37.7749"
+export CLIMA_LON="-122.4194"
+```
+
+These environment variables are checked first, before any other location detection method.
+
+### WiFi-based Location (Recommended for dotfiles users)
+
+For automatic location detection based on your WiFi network, you can set up a configuration file that maps WiFi SSIDs to coordinates. This is particularly useful if you use a dotfiles repository with shell configuration.
+
+1. Create the config file at `~/.config/clima/wifi-locations.conf`:
+
+```
+# Format: SSID,latitude,longitude
+MyHomeNetwork,37.7749,-122.4194
+OfficeNetwork,40.7128,-74.0060
+```
+
+2. The WiFi detection will automatically set `CLIMA_LAT` and `CLIMA_LON` based on your current network.
+
+See the example config file for more details on the format.
+
+### Home Location with Radius Detection
+
+You can configure a home location that will be used when you're within a certain radius. This works with IP-based location detection.
+
+```bash
+export CLIMA_HOME_LAT="37.7749"
+export CLIMA_HOME_LON="-122.4194"
+export CLIMA_HOME_RADIUS="100"  # radius in miles, default is 100
+```
+
+When your IP-based location is within the specified radius of your home coordinates, the weather will show for your home location instead.
+
+### Location Detection Priority
+
+The plugin checks locations in the following order:
+1. Manual override via `@clima_location` tmux option
+2. Environment variables: `CLIMA_LAT` and `CLIMA_LON` (set by WiFi detection or manually)
+3. Home radius detection (if configured and within range)
+4. IP-based location (default)
+
 ### Icons
 
 You can choose not to show the weather condition icon in the statusbar with the
