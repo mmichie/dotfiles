@@ -38,6 +38,16 @@ get_location_coordinates() {
     local lat=""
     local lon=""
 
+    # Check for environment variable override first (set by zsh WiFi detection)
+    if [ -n "${CLIMA_LAT:-}" ] && [ -n "${CLIMA_LON:-}" ]; then
+        lat="$CLIMA_LAT"
+        lon="$CLIMA_LON"
+        echo -n "$(jq -n --arg "lat" "$lat" \
+            --arg "lon" "$lon" \
+            '{lat: $lat, lon: $lon}')"
+        return 0
+    fi
+
     # Home location from environment variables (optional)
     local home_lat="${CLIMA_HOME_LAT:-}"
     local home_lon="${CLIMA_HOME_LON:-}"
@@ -60,6 +70,7 @@ get_location_coordinates() {
             fi
         fi
     else
+        # Manual location override via @clima_location
         loc_response=$(curl --silent "http://api.openweathermap.org/geo/1.0/direct?q=$CLIMA_LOCATION&limit=1&appid=$OPEN_WEATHER_API_KEY")
         lat=$(echo "$loc_response" | jq -r '.[0].lat')
         lon=$(echo "$loc_response" | jq -r '.[0].lon')

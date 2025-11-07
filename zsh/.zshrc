@@ -100,6 +100,8 @@ core_modules=(
     "platform_utils"     # Platform-specific utilities
     "executables"        # Executable setup
     "environment"        # Environment setup
+    "location_service"   # Location service (SQLite backend)
+    "wifi_location"      # WiFi-based location detection with precmd hook
     "shell"              # Shell configuration
     "prompt"             # Prompt setup
     "ssh"                # SSH configuration
@@ -136,6 +138,9 @@ load_module "function" "status"
 
 # Load utility functions
 load_module "function" "utils"
+
+# Load location CLI commands
+load_module "function" "location_cli"
 
 # Initialize core components
 setup_environment
