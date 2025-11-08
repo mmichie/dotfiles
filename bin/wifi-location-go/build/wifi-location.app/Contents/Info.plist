@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>wifi-location</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.dotfiles.wifi-location</string>
+    <key>CFBundleName</key>
+    <string>WiFi Location</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>NSLocationUsageDescription</key>
+    <string>This app needs access to your location to detect your WiFi network name for weather and location-based services.</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15</string>
+</dict>
+</plist>

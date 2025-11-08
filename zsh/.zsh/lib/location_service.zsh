@@ -117,8 +117,20 @@ _location_get_wifi() {
         if [[ -n "$interface" ]]; then
             # Try multiple methods for WiFi detection on macOS
 
+            # Method 0: Try wifi-location Go app (properly signed, works on macOS Sequoia)
+            if [[ -z "$ssid" ]] && command -v wifi-location >/dev/null 2>&1; then
+                local go_info=$(wifi-location 2>/dev/null)
+                if [[ -n "$go_info" ]]; then
+                    local go_ssid go_bssid go_interface
+                    IFS='|' read -r go_ssid go_bssid go_interface <<< "$go_info"
+                    [[ -n "$go_ssid" ]] && ssid="$go_ssid"
+                    [[ -n "$go_bssid" ]] && bssid="$go_bssid"
+                    [[ -n "$go_interface" ]] && interface="$go_interface"
+                fi
+            fi
+
             # Method 1: Try wdutil (works on macOS 11+, requires Full Disk Access)
-            if command -v wdutil >/dev/null 2>&1; then
+            if [[ -z "$ssid" ]] && command -v wdutil >/dev/null 2>&1; then
                 local wdutil_info=$(wdutil info 2>/dev/null)
                 ssid=$(echo "$wdutil_info" | awk '/SSID/ && !/BSSID/ {for(i=2;i<=NF;i++) printf "%s ", $i; print ""}' | sed 's/ $//' | head -1)
                 bssid=$(echo "$wdutil_info" | awk '/BSSID/ {print $NF}' | head -1)
