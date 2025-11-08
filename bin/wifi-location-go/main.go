@@ -7,10 +7,16 @@ package main
 #import <CoreLocation/CoreLocation.h>
 #import <CoreWLAN/CoreWLAN.h>
 
-// Delegate to handle location authorization
+// Delegate to handle location authorization and updates
 @interface LocationDelegate : NSObject <CLLocationManagerDelegate>
 @property (atomic) BOOL authorized;
 @property (atomic) BOOL done;
+@property (atomic) BOOL locationReceived;
+@property (atomic) double latitude;
+@property (atomic) double longitude;
+@property (atomic) double altitude;
+@property (atomic) double horizontalAccuracy;
+@property (atomic) double verticalAccuracy;
 @end
 
 @implementation LocationDelegate
@@ -19,6 +25,12 @@ package main
     if (self) {
         _authorized = NO;
         _done = NO;
+        _locationReceived = NO;
+        _latitude = 0.0;
+        _longitude = 0.0;
+        _altitude = 0.0;
+        _horizontalAccuracy = 0.0;
+        _verticalAccuracy = 0.0;
     }
     return self;
 }
@@ -30,6 +42,23 @@ package main
     }
     _done = YES;
 }
+
+- (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations {
+    CLLocation *location = [locations lastObject];
+    if (location != nil) {
+        _latitude = location.coordinate.latitude;
+        _longitude = location.coordinate.longitude;
+        _altitude = location.altitude;
+        _horizontalAccuracy = location.horizontalAccuracy;
+        _verticalAccuracy = location.verticalAccuracy;
+        _locationReceived = YES;
+    }
+}
+
+- (void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error {
+    // Location failed, but don't block - we'll return WiFi info without coordinates
+    _locationReceived = NO;
+}
 @end
 
 // C wrapper functions callable from Go
@@ -40,14 +69,31 @@ typedef struct {
     int success;
     int auth_status;
     int auth_was_requested;
+
+    // CoreLocation data (WiFi-based positioning)
+    int has_location;
+    double latitude;
+    double longitude;
+    double altitude;
+    double horizontal_accuracy;
+    double vertical_accuracy;
 } WifiInfo;
 
-void getWifiInfo(WifiInfo *info) {
+void getWifiInfo(WifiInfo *info, int fetch_location) {
     @autoreleasepool {
+        // Initialize location fields
+        info->has_location = 0;
+        info->latitude = 0.0;
+        info->longitude = 0.0;
+        info->altitude = 0.0;
+        info->horizontal_accuracy = 0.0;
+        info->vertical_accuracy = 0.0;
+
         // On macOS, we need Location Services authorization to access WiFi SSID
         CLLocationManager *locationManager = [[CLLocationManager alloc] init];
         LocationDelegate *delegate = [[LocationDelegate alloc] init];
         locationManager.delegate = delegate;
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest;
 
         // Check current authorization status
         CLAuthorizationStatus status = [locationManager authorizationStatus];
@@ -67,9 +113,39 @@ void getWifiInfo(WifiInfo *info) {
                 timeout++;
             }
 
-            [locationManager stopUpdatingLocation];
+            // If we don't need coordinates, stop now
+            if (!fetch_location) {
+                [locationManager stopUpdatingLocation];
+            }
         } else if (status == kCLAuthorizationStatusAuthorized) {
             delegate.authorized = YES;
+
+            // Start location updates if we need coordinates
+            if (fetch_location) {
+                [locationManager startUpdatingLocation];
+            }
+        }
+
+        // If we want location coordinates and are authorized, wait for them
+        if (fetch_location && delegate.authorized) {
+            int location_timeout = 0;
+            while (!delegate.locationReceived && location_timeout < 150) {  // 15 seconds timeout
+                [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                                         beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.1]];
+                location_timeout++;
+            }
+
+            // Copy location data if received
+            if (delegate.locationReceived) {
+                info->has_location = 1;
+                info->latitude = delegate.latitude;
+                info->longitude = delegate.longitude;
+                info->altitude = delegate.altitude;
+                info->horizontal_accuracy = delegate.horizontalAccuracy;
+                info->vertical_accuracy = delegate.verticalAccuracy;
+            }
+
+            [locationManager stopUpdatingLocation];
         }
 
         // Get WiFi interface
@@ -105,16 +181,26 @@ void getWifiInfo(WifiInfo *info) {
 */
 import "C"
 import (
+	"flag"
 	"fmt"
 	"os"
 )
 
 func main() {
+	// Parse command-line flags
+	fetchLocation := flag.Bool("location", false, "Fetch CoreLocation coordinates (WiFi-based positioning, 1-15 seconds)")
+	flag.Parse()
+
+	// Call C function to get WiFi and optionally location info
 	var info C.WifiInfo
-	C.getWifiInfo(&info)
+	var fetchLoc C.int = 0
+	if *fetchLocation {
+		fetchLoc = 1
+	}
+	C.getWifiInfo(&info, fetchLoc)
 
 	debug := os.Getenv("DEBUG") != ""
-	output := ""
+	var output string
 
 	if debug {
 		authStatusNames := map[int]string{
@@ -131,6 +217,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "DEBUG: Authorization status: %s\n", statusName)
 		fmt.Fprintf(os.Stderr, "DEBUG: Authorization requested: %v\n", info.auth_was_requested == 1)
 		fmt.Fprintf(os.Stderr, "DEBUG: WiFi query success: %v\n", info.success == 1)
+		fmt.Fprintf(os.Stderr, "DEBUG: Location received: %v\n", info.has_location == 1)
+		if info.has_location == 1 {
+			fmt.Fprintf(os.Stderr, "DEBUG: Coordinates: %.6f, %.6f (±%.1fm)\n",
+				info.latitude, info.longitude, info.horizontal_accuracy)
+		}
 	}
 
 	if info.success == 1 {
@@ -138,8 +229,16 @@ func main() {
 		bssid := C.GoString(&info.bssid[0])
 		iface := C.GoString(&info.iface[0])
 
-		// Output format: ssid|bssid|interface
-		output = fmt.Sprintf("%s|%s|%s\n", ssid, bssid, iface)
+		// Base output: ssid|bssid|interface
+		output = fmt.Sprintf("%s|%s|%s", ssid, bssid, iface)
+
+		// Add location data if available
+		if info.has_location == 1 {
+			output += fmt.Sprintf("|%.6f|%.6f|%.1f|%.1f",
+				info.latitude, info.longitude,
+				info.altitude, info.horizontal_accuracy)
+		}
+		output += "\n"
 	} else {
 		// No WiFi or not connected
 		output = "||\n"

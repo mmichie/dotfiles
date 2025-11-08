@@ -285,7 +285,7 @@ location_force() {
     # Try to get location
     local lat lon city region country source source_detail confidence
 
-    # 1. Try known WiFi network
+    # 1. Try known WiFi network (instant lookup from database)
     if [[ -n "$ssid" ]]; then
         local network_info=$(_location_lookup_network "$ssid" "$bssid")
         if [[ -n "$network_info" ]]; then
@@ -294,7 +294,35 @@ location_force() {
         fi
     fi
 
-    # 2. Fall back to IP-based location
+    # 2. Try CoreLocation for WiFi-based positioning (1-5 seconds, more accurate than IP)
+    if [[ -z "$lat" ]] && [[ -n "$ssid" ]] && command -v wifi-location >/dev/null 2>&1; then
+        local coreloc_info=$(wifi-location --location 2>/dev/null)
+        if [[ -n "$coreloc_info" ]]; then
+            local cl_ssid cl_bssid cl_interface cl_lat cl_lon cl_alt cl_acc
+            IFS='|' read -r cl_ssid cl_bssid cl_interface cl_lat cl_lon cl_alt cl_acc <<< "$coreloc_info"
+
+            # If we got coordinates from CoreLocation
+            if [[ -n "$cl_lat" && -n "$cl_lon" && "$cl_lat" != "0.000000" ]]; then
+                lat="$cl_lat"
+                lon="$cl_lon"
+                source="corelocation"
+                source_detail="corelocation:wifi_positioning"
+                confidence="high"
+
+                # Reverse geocode to get city name
+                local geocode_info=$(curl -s --max-time 2 \
+                    "https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}" \
+                    2>/dev/null)
+                if [[ -n "$geocode_info" ]]; then
+                    city=$(echo "$geocode_info" | jq -r '.address.city // .address.town // .address.village // empty' 2>/dev/null)
+                    region=$(echo "$geocode_info" | jq -r '.address.state // empty' 2>/dev/null)
+                    country=$(echo "$geocode_info" | jq -r '.address.country_code // empty' 2>/dev/null | tr '[:lower:]' '[:upper:]')
+                fi
+            fi
+        fi
+    fi
+
+    # 3. Fall back to IP-based location (requires internet, less accurate)
     if [[ -z "$lat" ]] && [[ -n "$ip" ]]; then
         local ip_location=$(curl -s --max-time 3 "http://ip-api.com/json/$ip?fields=lat,lon,city,regionName,countryCode,status" 2>/dev/null)
         if echo "$ip_location" | jq -e '.status == "success"' >/dev/null 2>&1; then
@@ -309,7 +337,7 @@ location_force() {
         fi
     fi
 
-    # 3. If still no location, can't update
+    # 4. If still no location, can't update
     [[ -z "$lat" ]] && return 1
 
     # Escape single quotes in SQL values
