@@ -26,3 +26,6 @@ bin/bin/intu
 *.db-shm
 *.db-wal
 system/.config/clima/wifi-locations.conf
+
+# Build artifacts
+bin/wifi-location-go/build/
