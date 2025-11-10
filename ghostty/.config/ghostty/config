@@ -1,7 +1,7 @@
 # Ghostty Configuration
 
 # Font settings
-font-family = "Berkeley Mono UltraCondensed"
+font-family = "Myrna"
 font-size = 15
 font-thicken = true
 alpha-blending = linear-corrected
