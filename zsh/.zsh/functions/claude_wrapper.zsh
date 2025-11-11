@@ -43,8 +43,9 @@ claude() {
     )
     local exit_code=$?
 
-    # Re-enable tmux automatic rename if in tmux
+    # Re-enable tmux automatic rename and clear the custom name if in tmux
     if [[ -n "$TMUX" ]]; then
+        tmux rename-window ""
         tmux set-window-option automatic-rename on
     fi
 
