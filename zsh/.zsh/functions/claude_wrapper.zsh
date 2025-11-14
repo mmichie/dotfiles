@@ -2,6 +2,17 @@
 
 # Claude wrapper function to prevent shell exit
 claude() {
+    # Function to cleanup tmux window name and terminal title
+    local cleanup() {
+        # Re-enable tmux automatic rename and clear the custom name if in tmux
+        if [[ -n "$TMUX" ]]; then
+            tmux rename-window ""
+            tmux set-window-option automatic-rename on
+        fi
+        # Reset terminal title to zsh
+        echo -ne "\033]0;zsh\007"
+    }
+
     # Set tmux window name if in tmux
     if [[ -n "$TMUX" ]]; then
         tmux rename-window "🤖 $(basename "$PWD")"
@@ -12,7 +23,7 @@ claude() {
 
     # Save current directory
     local current_dir="$PWD"
-    
+
     # Ensure nvm is loaded
     if ! command -v node >/dev/null 2>&1; then
         # Trigger lazy nvm loading
@@ -22,7 +33,7 @@ claude() {
             source "$HOME/.nvm/nvm.sh"
         fi
     fi
-    
+
     # Find claude executable - use command to bypass any aliases/functions
     local claude_cmd=""
     # Use command -v to find the actual binary dynamically
@@ -30,9 +41,13 @@ claude() {
     if [[ -z "$claude_cmd" ]]; then
         echo "Error: claude command not found" >&2
         print -Pn "\e]0;%~\a"
+        cleanup
         return 1
     fi
-    
+
+    # Ensure cleanup happens even on timeout/interrupt
+    trap cleanup INT TERM EXIT
+
     # Run claude with proper directory and shell protection
     # Use 'command' to bypass any functions/aliases
     (
@@ -43,14 +58,10 @@ claude() {
     )
     local exit_code=$?
 
-    # Re-enable tmux automatic rename and clear the custom name if in tmux
-    if [[ -n "$TMUX" ]]; then
-        tmux rename-window ""
-        tmux set-window-option automatic-rename on
-    fi
+    trap - INT TERM EXIT
 
-    # Reset terminal title to zsh
-    echo -ne "\033]0;zsh\007"
+    # Always cleanup
+    cleanup
 
     return $exit_code
 }
