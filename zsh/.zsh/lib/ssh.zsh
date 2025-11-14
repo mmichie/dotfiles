@@ -166,12 +166,25 @@ ssh() {
         host="${host%%:*}"
         host="${host%%/*}"
 
+        # Function to cleanup tmux window name
+        local cleanup() {
+            tmux rename-window ""
+            tmux set-window-option automatic-rename on
+        }
+
         # Rename tmux window
         tmux rename-window "🔐 $host"
+
+        # Ensure cleanup happens even on timeout/interrupt
+        trap cleanup INT TERM EXIT
         command ssh "$@"
-        # Restore automatic renaming and clear the custom name when SSH exits
-        tmux rename-window ""
-        tmux set-window-option automatic-rename on
+        local exit_code=$?
+        trap - INT TERM EXIT
+
+        # Restore automatic renaming and clear the custom name
+        cleanup
+
+        return $exit_code
     else
         command ssh "$@"
     fi
