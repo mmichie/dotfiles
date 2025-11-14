@@ -2,24 +2,25 @@
 
 # Claude wrapper function to prevent shell exit
 claude() {
-    # Function to cleanup tmux window name and terminal title
+    # Function to cleanup tmux and terminal title
     local cleanup() {
-        # Re-enable tmux automatic rename and clear the custom name if in tmux
+        # Clear custom title marker in tmux
         if [[ -n "$TMUX" ]]; then
-            tmux rename-window ""
-            tmux set-window-option automatic-rename on
+            tmux set-option -p @custom_title ""
         fi
         # Reset terminal title to zsh
         echo -ne "\033]0;zsh\007"
     }
 
-    # Set tmux window name if in tmux
-    if [[ -n "$TMUX" ]]; then
-        tmux rename-window "🤖 $(basename "$PWD")"
-    fi
-
     # Set terminal title for Ghostty
     echo -ne "\033]0;claude\007"
+
+    # Store custom title in tmux pane option (hook will use this) AND rename window immediately
+    if [[ -n "$TMUX" ]]; then
+        local title="🤖 $(basename "$PWD")"
+        tmux set-option -p @custom_title "$title"
+        tmux rename-window "$title"
+    fi
 
     # Save current directory
     local current_dir="$PWD"

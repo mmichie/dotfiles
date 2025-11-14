@@ -166,22 +166,24 @@ ssh() {
         host="${host%%:*}"
         host="${host%%/*}"
 
-        # Function to cleanup tmux window name
+        # Function to cleanup tmux custom title
         local cleanup() {
-            tmux rename-window ""
-            tmux set-window-option automatic-rename on
+            tmux set-option -p @custom_title ""
         }
 
-        # Rename tmux window
-        tmux rename-window "🔐 $host"
+        # Store custom title in tmux pane option (hook will use this) AND rename window immediately
+        local title="🔐 $host"
+        tmux set-option -p @custom_title "$title"
+        tmux rename-window "$title"
 
         # Ensure cleanup happens even on timeout/interrupt
         trap cleanup INT TERM EXIT
+
+        # Run SSH
         command ssh "$@"
         local exit_code=$?
-        trap - INT TERM EXIT
 
-        # Restore automatic renaming and clear the custom name
+        trap - INT TERM EXIT
         cleanup
 
         return $exit_code
