@@ -7,16 +7,21 @@
 typeset -gA TMUX_EMOJI_MAP
 TMUX_EMOJI_MAP=(
     # Containers/Deployment
-    docker     "🐳"
-    kubectl    "☸️"
-    k9s        "☸️"
-    helm       "⎈"
+    docker          "🐳"
+    docker-compose  "🐙"
+    kubectl         "☸️"
+    k9s             "☸️"
+    helm            "⎈"
+    minikube        "🎡"
 
     # Editors
     vim        "📝"
     nvim       "📝"
     vi         "📝"
     code       "💻"
+    nano       "📄"
+    micro      "📄"
+    emacs      "📄"
 
     # Languages/REPLs
     python     "🐍"
@@ -27,6 +32,10 @@ TMUX_EMOJI_MAP=(
     ruby       "💎"
     cargo      "🦀"
     rust       "🦀"
+    go         "🐹"
+    java       "☕"
+    javac      "☕"
+    tsc        "🟦"
 
     # Development Tools
     make       "🔨"
@@ -37,17 +46,65 @@ TMUX_EMOJI_MAP=(
     npm        "📦"
     yarn       "📦"
     pnpm       "📦"
+    pip        "📦"
+    gem        "📦"
+    composer   "📦"
+    brew       "🍺"
+    gradle     "🏗️"
+    maven      "🏗️"
+    bazel      "🏗️"
+
+    # Databases
     psql       "🗄️"
     mysql      "🗄️"
     sqlite3    "🗄️"
     mongo      "🗄️"
+    mongosh    "🗄️"
     redis-cli  "🗄️"
+
+    # Monitoring/System
     htop       "📊"
     top        "📊"
     btop       "📊"
     tail       "👀"
     less       "📖"
     man        "📖"
+    journalctl "📋"
+    dmesg      "📋"
+
+    # Debugging
+    strace     "🔬"
+    ltrace     "🔬"
+    gdb        "🐛"
+    lldb       "🐛"
+    pdb        "🐛"
+
+    # Network/Transfer
+    curl       "🌐"
+    wget       "🌐"
+    ping       "📡"
+    netstat    "📡"
+    ss         "📡"
+    lsof       "📡"
+    rsync      "📤"
+    scp        "📤"
+
+    # Text Processing
+    grep       "🔍"
+    rg         "🔍"
+    ag         "🔍"
+    sed        "✂️"
+    awk        "✂️"
+    sort       "🔀"
+    uniq       "🔀"
+    jq         "🔀"
+
+    # Cloud CLIs
+    aws        "☁️"
+    gcloud     "☁️"
+    az         "☁️"
+    terraform  "🌊"
+    terragrunt "🌊"
 
     # Already handled by wrappers
     ssh        "🔐"
