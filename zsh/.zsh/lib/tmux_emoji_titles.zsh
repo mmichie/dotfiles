@@ -113,7 +113,8 @@ _tmux_emoji_precmd() {
     fi
 }
 
-# Register hooks
-autoload -Uz add-zsh-hook
-add-zsh-hook preexec _tmux_emoji_preexec
-add-zsh-hook precmd _tmux_emoji_precmd
+# Register hooks - append directly to avoid autoload issues
+typeset -ga preexec_functions
+typeset -ga precmd_functions
+preexec_functions+=(_tmux_emoji_preexec)
+precmd_functions+=(_tmux_emoji_precmd)
