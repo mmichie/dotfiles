@@ -169,6 +169,8 @@ ssh() {
         # Function to cleanup tmux custom title
         local cleanup() {
             tmux set-option -p @custom_title ""
+            tmux rename-window ""
+            tmux set-window-option automatic-rename on
         }
 
         # Store custom title in tmux pane option (hook will use this) AND rename window immediately
