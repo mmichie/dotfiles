@@ -169,13 +169,8 @@ ssh() {
         # Function to cleanup tmux custom title
         local cleanup() {
             tmux set-option -p @custom_title ""
-            # Update title based on current pane's command
-            local cmd=$(tmux display-message -p "#{pane_current_command}")
-            if [[ "$cmd" == "zsh" ]] || [[ "$cmd" == "bash" ]]; then
-                tmux rename-window "$(tmux display-message -p "#{b:pane_current_path}")"
-            else
-                tmux rename-window "$cmd"
-            fi
+            # Trigger precmd to set smart directory title
+            # (the precmd hook will handle it on next prompt)
         }
 
         # Store custom title in tmux pane option (hook will use this) AND rename window immediately
