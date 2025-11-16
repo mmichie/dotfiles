@@ -4,11 +4,9 @@
 claude() {
     # Function to cleanup tmux and terminal title
     local cleanup() {
-        # Clear custom title marker in tmux and re-enable automatic rename
+        # Clear custom title marker - hook will handle title update on next focus
         if [[ -n "$TMUX" ]]; then
             tmux set-option -p @custom_title ""
-            tmux rename-window ""
-            tmux set-window-option automatic-rename on
         fi
         # Reset terminal title to zsh
         echo -ne "\033]0;zsh\007"
