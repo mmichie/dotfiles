@@ -4,9 +4,16 @@
 claude() {
     # Function to cleanup tmux and terminal title
     local cleanup() {
-        # Clear custom title marker - hook will handle title update on next focus
+        # Clear custom title marker and update window title immediately
         if [[ -n "$TMUX" ]]; then
             tmux set-option -p @custom_title ""
+            # Update title based on current pane's command
+            local cmd=$(tmux display-message -p "#{pane_current_command}")
+            if [[ "$cmd" == "zsh" ]] || [[ "$cmd" == "bash" ]]; then
+                tmux rename-window "$(tmux display-message -p "#{b:pane_current_path}")"
+            else
+                tmux rename-window "$cmd"
+            fi
         fi
         # Reset terminal title to zsh
         echo -ne "\033]0;zsh\007"
