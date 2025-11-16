@@ -191,6 +191,8 @@ _tmux_emoji_precmd() {
         local cmd=$(tmux display-message -p "#{pane_current_command}")
         if [[ "$cmd" == "zsh" ]] || [[ "$cmd" == "bash" ]]; then
             local smart_title=$(_tmux_emoji_get_dir_title)
+            # Store in pane variable so hook can use it when switching panes
+            tmux set-option -p @dir_title "$smart_title"
             tmux rename-window "$smart_title"
         else
             tmux rename-window "$cmd"
