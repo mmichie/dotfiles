@@ -17,7 +17,7 @@ claude() {
 
     # Store custom title in tmux pane option (hook will use this) AND rename window immediately
     if [[ -n "$TMUX" ]]; then
-        local title="🤖 $(basename "$PWD")"
+        local title="✨ $(basename "$PWD")"
         tmux set-option -p @custom_title "$title"
         tmux rename-window "$title"
     fi
