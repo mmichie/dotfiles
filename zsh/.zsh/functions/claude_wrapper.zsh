@@ -4,16 +4,9 @@
 claude() {
     # Function to cleanup tmux and terminal title
     local cleanup() {
-        # Clear custom title marker and update window title immediately
+        # Clear custom title marker - precmd hook will set smart directory title
         if [[ -n "$TMUX" ]]; then
             tmux set-option -p @custom_title ""
-            # Update title based on current pane's command
-            local cmd=$(tmux display-message -p "#{pane_current_command}")
-            if [[ "$cmd" == "zsh" ]] || [[ "$cmd" == "bash" ]]; then
-                tmux rename-window "$(tmux display-message -p "#{b:pane_current_path}")"
-            else
-                tmux rename-window "$cmd"
-            fi
         fi
         # Reset terminal title to zsh
         echo -ne "\033]0;zsh\007"

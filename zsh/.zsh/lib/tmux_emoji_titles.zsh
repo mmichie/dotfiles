@@ -150,6 +150,30 @@ _tmux_emoji_preexec() {
     fi
 }
 
+# Get smart directory title with context-aware emoji
+_tmux_emoji_get_dir_title() {
+    local dir_name=$(basename "$PWD")
+    local emoji="📁"
+
+    # Home directory gets special treatment
+    if [[ "$PWD" == "$HOME" ]]; then
+        echo "🏠 ~"
+        return
+    fi
+
+    # Check if we're in a git repository
+    if git rev-parse --git-dir &>/dev/null; then
+        # Check if there are uncommitted changes
+        if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
+            emoji="📦"  # Dirty git repo
+        else
+            emoji="✓"  # Clean git repo
+        fi
+    fi
+
+    echo "$emoji $dir_name"
+}
+
 # Clear emoji title when command completes (unless it's a long-running one)
 _tmux_emoji_precmd() {
     [[ -z "$TMUX" ]] && return
@@ -160,10 +184,14 @@ _tmux_emoji_precmd() {
     # Only clear if it's NOT ssh or claude (they manage their own cleanup)
     if [[ -n "$custom_title" && "$custom_title" != 🔐* && "$custom_title" != 🤖* ]]; then
         tmux set-option -p @custom_title ""
-        # Update title based on current directory
+    fi
+
+    # If no custom title from ssh/claude, set smart directory title
+    if [[ -z "$custom_title" ]] || [[ "$custom_title" != 🔐* && "$custom_title" != 🤖* ]]; then
         local cmd=$(tmux display-message -p "#{pane_current_command}")
         if [[ "$cmd" == "zsh" ]] || [[ "$cmd" == "bash" ]]; then
-            tmux rename-window "$(tmux display-message -p "#{b:pane_current_path}")"
+            local smart_title=$(_tmux_emoji_get_dir_title)
+            tmux rename-window "$smart_title"
         else
             tmux rename-window "$cmd"
         fi
