@@ -3,8 +3,8 @@
 # Automatic emoji titles for tmux windows based on running commands
 # Requires tmux to be running
 
-# Map of commands to emojis
-typeset -A TMUX_EMOJI_MAP
+# Map of commands to emojis (must be global)
+typeset -gA TMUX_EMOJI_MAP
 TMUX_EMOJI_MAP=(
     # Containers/Deployment
     docker     "🐳"
