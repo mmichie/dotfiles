@@ -193,3 +193,45 @@ ssh() {
         command ssh "$@"
     fi
 }
+
+# Sudo wrapper to warn about persistent root shells
+unalias sudo 2>/dev/null
+sudo() {
+    # Check if this is an interactive shell invocation
+    local is_interactive=0
+    for arg in "$@"; do
+        if [[ "$arg" == "-i" ]] || [[ "$arg" == "-s" ]] || [[ "$arg" == "su" ]]; then
+            is_interactive=1
+            break
+        fi
+    done
+
+    if [[ -n "$TMUX" ]] && [[ $is_interactive -eq 1 ]]; then
+        # Function to cleanup tmux root warning
+        local cleanup() {
+            tmux set-option -p @is_root ""
+            tmux set-option -p @custom_title ""
+            # Trigger precmd to update title (will happen on next prompt)
+        }
+
+        # Set root warning marker and update window title immediately
+        tmux set-option -p @is_root "1"
+        local title="⚠️ ROOT"
+        tmux set-option -p @custom_title "$title"
+        tmux rename-window "$title"
+
+        # Ensure cleanup happens even on timeout/interrupt
+        trap cleanup INT TERM EXIT
+
+        # Run sudo
+        command sudo "$@"
+        local exit_code=$?
+
+        trap - INT TERM EXIT
+        cleanup
+
+        return $exit_code
+    else
+        command sudo "$@"
+    fi
+}

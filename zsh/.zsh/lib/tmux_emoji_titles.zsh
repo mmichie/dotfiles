@@ -157,21 +157,28 @@ _tmux_emoji_get_dir_title() {
 
     # Home directory gets special treatment
     if [[ "$PWD" == "$HOME" ]]; then
-        echo "🏠 ~"
-        return
-    fi
-
-    # Check if we're in a git repository
-    if git rev-parse --git-dir &>/dev/null; then
-        # Check if there are uncommitted changes
-        if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
-            emoji="📦"  # Dirty git repo
-        else
-            emoji="✓"  # Clean git repo
+        dir_name="~"
+        emoji="🏠"
+    else
+        # Check if we're in a git repository
+        if git rev-parse --git-dir &>/dev/null; then
+            # Check if there are uncommitted changes
+            if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
+                emoji="📦"  # Dirty git repo
+            else
+                emoji="✓"  # Clean git repo
+            fi
         fi
     fi
 
-    echo "$emoji $dir_name"
+    # Add warning prefix if running as root
+    local prefix=""
+    local is_root=$(tmux show-options -p -v @is_root 2>/dev/null)
+    if [[ "$is_root" == "1" ]]; then
+        prefix="⚠️ "
+    fi
+
+    echo "${prefix}${emoji} ${dir_name}"
 }
 
 # Clear emoji title when command completes (unless it's a long-running one)
@@ -181,13 +188,13 @@ _tmux_emoji_precmd() {
     # Check if current pane has custom title set by preexec
     local custom_title=$(tmux show-options -p -v @custom_title 2>/dev/null)
 
-    # Only clear if it's NOT ssh or claude (they manage their own cleanup)
-    if [[ -n "$custom_title" && "$custom_title" != 🔐* && "$custom_title" != 🤖* ]]; then
+    # Only clear if it's NOT ssh/claude/root (they manage their own cleanup)
+    if [[ -n "$custom_title" && "$custom_title" != 🔐* && "$custom_title" != 🤖* && "$custom_title" != ⚠️* ]]; then
         tmux set-option -p @custom_title ""
     fi
 
-    # If no custom title from ssh/claude, set smart directory title
-    if [[ -z "$custom_title" ]] || [[ "$custom_title" != 🔐* && "$custom_title" != 🤖* ]]; then
+    # If no custom title from ssh/claude/root, set smart directory title
+    if [[ -z "$custom_title" ]] || [[ "$custom_title" != 🔐* && "$custom_title" != 🤖* && "$custom_title" != ⚠️* ]]; then
         local cmd=$(tmux display-message -p "#{pane_current_command}")
         if [[ "$cmd" == "zsh" ]] || [[ "$cmd" == "bash" ]]; then
             local smart_title=$(_tmux_emoji_get_dir_title)
