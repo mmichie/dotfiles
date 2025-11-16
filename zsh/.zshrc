@@ -105,6 +105,7 @@ core_modules=(
     "shell"              # Shell configuration
     "prompt"             # Prompt setup
     "ssh"                # SSH configuration
+    "tmux_emoji_titles"  # Automatic emoji titles for tmux windows
     "utils"              # Utility functions
 )
 
