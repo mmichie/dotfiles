@@ -162,11 +162,16 @@ _tmux_emoji_get_dir_title() {
     else
         # Check if we're in a git repository
         if git rev-parse --git-dir &>/dev/null; then
+            local branch=$(git branch --show-current 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
+            local repo_name=$(basename "$PWD")
+            local modified_icon=$'\uF040'  # Font Awesome pencil icon - U+F040
             # Check if there are uncommitted changes
             if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
-                emoji="✏️"  # Dirty git repo (has edits)
+                emoji=$'\uE0A0'  # Git branch icon - U+E0A0
+                dir_name="${repo_name} ${branch} ${modified_icon}"  # Repo + branch + modified indicator
             else
-                emoji="✓"  # Clean git repo
+                emoji=$'\uE0A0'  # Git branch icon - U+E0A0
+                dir_name="${repo_name} ${branch}"  # Repo + branch when clean
             fi
         fi
     fi
