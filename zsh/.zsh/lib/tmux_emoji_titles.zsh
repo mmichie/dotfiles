@@ -168,10 +168,13 @@ _tmux_emoji_get_dir_title() {
             local modified_icon=$'\uF040'  # Font Awesome pencil icon - U+F040
             # Check if there are uncommitted changes
             if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
-                emoji=$'\uE0A0'  # Git branch icon - U+E0A0
-                dir_name="${repo_name} ${branch} ${modified_icon}"  # Repo + branch + modified indicator
+                # Muted blue git icon for modified repos
+                emoji="#[fg=colour67]"$'\uE0A0'"#[default]"  # Git branch icon with muted blue
+                # Subtle gray modified icon
+                dir_name="${repo_name} ${branch} #[fg=colour245]${modified_icon}#[default]"
             else
-                emoji=$'\uE0A0'  # Git branch icon - U+E0A0
+                # Cyan git icon for clean repos (matches Bad Wolf active colour39)
+                emoji="#[fg=colour39]"$'\uE0A0'"#[default]"  # Git branch icon with cyan
                 dir_name="${repo_name} ${branch}"  # Repo + branch when clean
             fi
         fi
