@@ -340,6 +340,37 @@ location_force() {
     # 4. If still no location, can't update
     [[ -z "$lat" ]] && return 1
 
+    # 5. Apply home radius override for low-confidence (IP-based) locations only
+    # High-confidence sources (known wifi, corelocation) are never overridden
+    local home_lat="${CLIMA_HOME_LAT:-}"
+    local home_lon="${CLIMA_HOME_LON:-}"
+    local home_radius="${CLIMA_HOME_RADIUS:-100}"
+
+    if [[ "$source" == "ip" ]] && [[ -n "$home_lat" ]] && [[ -n "$home_lon" ]]; then
+        # Calculate distance using Haversine formula
+        local distance=$(awk -v lat1="$lat" -v lon1="$lon" -v lat2="$home_lat" -v lon2="$home_lon" 'BEGIN {
+            pi = 3.14159265358979323846
+            lat1_rad = lat1 * pi / 180
+            lat2_rad = lat2 * pi / 180
+            dlat = (lat2 - lat1) * pi / 180
+            dlon = (lon2 - lon1) * pi / 180
+            a = sin(dlat/2) * sin(dlat/2) + cos(lat1_rad) * cos(lat2_rad) * sin(dlon/2) * sin(dlon/2)
+            c = 2 * atan2(sqrt(a), sqrt(1-a))
+            distance = 3959 * c
+            printf "%.0f", distance
+        }')
+
+        # If within home radius, use home coordinates instead of IP location
+        if [[ $distance -le $home_radius ]]; then
+            lat="$home_lat"
+            lon="$home_lon"
+            source="home_radius"
+            source_detail="ip:within_${distance}mi_of_home"
+            confidence="medium"
+            # Keep city from reverse geocode or leave as-is
+        fi
+    fi
+
     # Escape single quotes in SQL values
     ssid="${ssid//\'/\'\'}"
     city="${city//\'/\'\'}"
