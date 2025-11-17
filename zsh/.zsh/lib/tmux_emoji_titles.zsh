@@ -194,22 +194,26 @@ _tmux_emoji_precmd() {
     # Check if current pane has custom title set by preexec
     local custom_title=$(tmux show-options -p -v @custom_title 2>/dev/null)
 
+    # If we have a custom title from ssh/claude/root, don't touch anything
+    if [[ -n "$custom_title" && ( "$custom_title" == 🔐* || "$custom_title" == ✨* || "$custom_title" == ⚠️* ) ]]; then
+        # Keep the custom title, don't update anything
+        return
+    fi
+
     # Only clear if it's NOT ssh/claude/root (they manage their own cleanup)
-    if [[ -n "$custom_title" && "$custom_title" != 🔐* && "$custom_title" != ✨* && "$custom_title" != ⚠️* ]]; then
+    if [[ -n "$custom_title" ]]; then
         tmux set-option -p @custom_title ""
     fi
 
-    # If no custom title from ssh/claude/root, set smart directory title
-    if [[ -z "$custom_title" ]] || [[ "$custom_title" != 🔐* && "$custom_title" != ✨* && "$custom_title" != ⚠️* ]]; then
-        local cmd=$(tmux display-message -p "#{pane_current_command}")
-        if [[ "$cmd" == "zsh" ]] || [[ "$cmd" == "bash" ]]; then
-            local smart_title=$(_tmux_emoji_get_dir_title)
-            # Store in pane variable so hook can use it when switching panes
-            tmux set-option -p @dir_title "$smart_title"
-            tmux rename-window "$smart_title"
-        else
-            tmux rename-window "$cmd"
-        fi
+    # Set smart directory title
+    local cmd=$(tmux display-message -p "#{pane_current_command}")
+    if [[ "$cmd" == "zsh" ]] || [[ "$cmd" == "bash" ]]; then
+        local smart_title=$(_tmux_emoji_get_dir_title)
+        # Store in pane variable so hook can use it when switching panes
+        tmux set-option -p @dir_title "$smart_title"
+        tmux rename-window "$smart_title"
+    else
+        tmux rename-window "$cmd"
     fi
 }
 
