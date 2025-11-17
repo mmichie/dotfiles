@@ -129,6 +129,10 @@ if.app-id = 'com.jetbrains.intellij.ce'
 run = ['move-node-to-workspace 3']
 
 [[on-window-detected]]
+if.app-id = 'com.apple.FinalCut'
+run = ['move-node-to-workspace 3']
+
+[[on-window-detected]]
 if.app-id = 'com.hnc.Discord'
 run = ['move-node-to-workspace 4']
 
