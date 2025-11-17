@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS current_location (
 
 -- Location history (append-only log)
 CREATE TABLE IF NOT EXISTS location_history (
-  timestamp INTEGER PRIMARY KEY,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  timestamp INTEGER NOT NULL,
 
   -- Network
   ssid TEXT,
