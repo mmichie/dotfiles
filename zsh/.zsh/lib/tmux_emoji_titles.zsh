@@ -206,6 +206,8 @@ _tmux_emoji_precmd() {
     # Only clear if it's NOT ssh/claude/root (they manage their own cleanup)
     if [[ -n "$custom_title" ]]; then
         tmux set-option -p @custom_title ""
+        # Re-enable automatic-rename when clearing custom title
+        tmux set-window-option automatic-rename on
     fi
 
     # Set smart directory title
