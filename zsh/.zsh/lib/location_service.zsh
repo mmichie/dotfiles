@@ -112,7 +112,7 @@ _location_get_wifi() {
     local bssid=""
     local interface=""
 
-    if is_osx; then
+    if [[ "$OSTYPE" == darwin* ]]; then
         interface=$(networksetup -listallhardwareports 2>/dev/null | awk '/Wi-Fi/{getline; print $2}')
         if [[ -n "$interface" ]]; then
             # Try multiple methods for WiFi detection on macOS
@@ -177,7 +177,7 @@ _location_get_wifi() {
                 fi
             fi
         fi
-    elif is_linux; then
+    elif [[ "$OSTYPE" == linux* ]]; then
         if command -v iwgetid >/dev/null 2>&1; then
             ssid=$(iwgetid -r 2>/dev/null)
             bssid=$(iwgetid -a 2>/dev/null | awk '{print $NF}')

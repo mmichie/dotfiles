@@ -96,7 +96,12 @@ clima() {
             CATEGORY=$(echo "$WEATHER" | jq '.weather[0].id')
             TEMP="$(echo "$WEATHER" | jq .main.temp | cut -d . -f 1)$SYMBOL"
             ICON="$(icon "$CATEGORY")"
-            CITY="$(echo "$WEATHER" | jq -r .name)"
+            # Prefer reverse-geocoded city from environment over weather API city
+            if [ -n "${CLIMA_CITY:-}" ]; then
+                CITY="$CLIMA_CITY"
+            else
+                CITY="$(echo "$WEATHER" | jq -r .name)"
+            fi
             COUNTRY="$(echo "$WEATHER" | jq -r .sys.country)"
             DESCRIPTION="$(echo "$WEATHER" | jq -r '.weather[0].main')"
             FEELS_LIKE="Feels like: $(echo "$WEATHER" | jq .main.feels_like | cut -d . -f 1)$SYMBOL"
