@@ -21,7 +21,7 @@ _location_init() {
         if [[ -f "$LOCATION_SCHEMA" ]]; then
             sqlite3 "$LOCATION_DB" < "$LOCATION_SCHEMA"
         else
-            # Create minimal schema inline if schema file not found
+            # Create complete schema inline if schema file not found
             sqlite3 "$LOCATION_DB" <<EOF
 CREATE TABLE IF NOT EXISTS current_location (
   id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -42,6 +42,53 @@ CREATE TABLE IF NOT EXISTS config (
   key TEXT PRIMARY KEY, value TEXT NOT NULL,
   updated_at INTEGER DEFAULT (strftime('%s', 'now'))
 );
+CREATE TABLE IF NOT EXISTS known_networks (
+  ssid TEXT NOT NULL,
+  bssid TEXT NOT NULL DEFAULT '',
+  lat REAL NOT NULL,
+  lon REAL NOT NULL,
+  city TEXT,
+  region TEXT,
+  country_code TEXT,
+  confidence REAL DEFAULT 1.0,
+  location_variance_meters REAL DEFAULT 0,
+  source TEXT DEFAULT 'learned',
+  first_seen INTEGER NOT NULL,
+  last_seen INTEGER NOT NULL,
+  times_seen INTEGER DEFAULT 1,
+  is_portable INTEGER DEFAULT 0,
+  PRIMARY KEY (ssid, bssid)
+);
+CREATE TABLE IF NOT EXISTS location_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  timestamp INTEGER NOT NULL,
+  ssid TEXT,
+  bssid TEXT,
+  ip_address TEXT,
+  network_type TEXT,
+  network_interface TEXT,
+  lat REAL NOT NULL,
+  lon REAL NOT NULL,
+  city TEXT,
+  region TEXT,
+  country_code TEXT,
+  hostname TEXT NOT NULL,
+  source TEXT NOT NULL,
+  source_detail TEXT,
+  confidence TEXT,
+  vpn_active INTEGER DEFAULT 0,
+  timezone TEXT,
+  altitude REAL,
+  accuracy_meters REAL,
+  duration_seconds INTEGER,
+  departure_timestamp INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_known_networks_ssid ON known_networks(ssid);
+CREATE INDEX IF NOT EXISTS idx_known_networks_last_seen ON known_networks(last_seen DESC);
+CREATE INDEX IF NOT EXISTS idx_history_time ON location_history(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_history_ssid ON location_history(ssid);
+CREATE INDEX IF NOT EXISTS idx_history_hostname ON location_history(hostname);
+CREATE INDEX IF NOT EXISTS idx_history_location ON location_history(lat, lon);
 INSERT OR IGNORE INTO config VALUES ('version', '1.0', strftime('%s', 'now'));
 EOF
         fi
