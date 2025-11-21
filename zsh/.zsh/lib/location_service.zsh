@@ -16,6 +16,11 @@ _location_init() {
     local cache_dir="${LOCATION_DB:h}"
     [[ ! -d "$cache_dir" ]] && mkdir -p "$cache_dir"
 
+    # Check if sqlite3 is available
+    if ! command -v sqlite3 >/dev/null 2>&1; then
+        return 1
+    fi
+
     # Initialize database if it doesn't exist or is empty
     if [[ ! -f "$LOCATION_DB" ]] || ! sqlite3 "$LOCATION_DB" "SELECT name FROM sqlite_master WHERE type='table' AND name='current_location';" 2>/dev/null | grep -q current_location; then
         if [[ -f "$LOCATION_SCHEMA" ]]; then
@@ -105,7 +110,7 @@ EOF
 # Get current location (fast read)
 # Returns: lat lon source timestamp
 location_get() {
-    _location_init
+    _location_init || return 1
 
     local result=$(sqlite3 "$LOCATION_DB" "SELECT lat, lon, source, updated_at FROM current_location WHERE id = 1;" 2>/dev/null)
 
@@ -120,7 +125,7 @@ location_get() {
 
 # Get current location and export to environment
 location_export() {
-    _location_init
+    _location_init || return 1
 
     local result=$(sqlite3 "$LOCATION_DB" "SELECT lat, lon, city, updated_at FROM current_location WHERE id = 1;" 2>/dev/null)
 
@@ -139,7 +144,7 @@ location_export() {
 
 # Check if location is stale
 location_is_stale() {
-    _location_init
+    _location_init || return 0  # Treat as stale if init fails
 
     local updated_at=$(sqlite3 "$LOCATION_DB" "SELECT updated_at FROM current_location WHERE id = 1;" 2>/dev/null)
 
@@ -278,7 +283,7 @@ _location_lookup_network() {
     local ssid=$1
     local bssid=$2
 
-    _location_init
+    _location_init || return 1
 
     # Normalize empty bssid to empty string
     [[ -z "$bssid" ]] && bssid=""
@@ -307,7 +312,7 @@ location_update() {
 
 # Force immediate location update
 location_force() {
-    _location_init
+    _location_init || return 1
 
     local now=$(date +%s)
     local hostname=$(hostname -s 2>/dev/null || hostname)
