@@ -423,6 +423,11 @@ location_force() {
         fi
     fi
 
+    # Check if location changed (before escaping for comparison)
+    local prev_city=$(sqlite3 "$LOCATION_DB" "SELECT city FROM current_location WHERE id = 1;" 2>/dev/null)
+    local location_changed=0
+    [[ "$city" != "$prev_city" ]] && location_changed=1
+
     # Escape single quotes in SQL values
     ssid="${ssid//\'/\'\'}"
     city="${city//\'/\'\'}"
@@ -462,8 +467,10 @@ EOF
         tmux setenv -g CLIMA_LAT "$lat" 2>/dev/null
         tmux setenv -g CLIMA_LON "$lon" 2>/dev/null
         [[ -n "$city" ]] && tmux setenv -g CLIMA_CITY "$city" 2>/dev/null
-        # Clear clima cache to force refresh
-        tmux set-option -g @clima_last_update_time 0 2>/dev/null
+        # Only clear clima cache if location actually changed
+        if [[ $location_changed -eq 1 ]]; then
+            tmux set-option -g @clima_last_update_time 0 2>/dev/null
+        fi
     fi
 
     return 0
