@@ -457,6 +457,15 @@ EOF
     export CLIMA_LON="$lon"
     [[ -n "$city" ]] && export CLIMA_CITY="$city"
 
+    # Update tmux environment if running inside tmux
+    if [[ -n "$TMUX" ]]; then
+        tmux setenv -g CLIMA_LAT "$lat" 2>/dev/null
+        tmux setenv -g CLIMA_LON "$lon" 2>/dev/null
+        [[ -n "$city" ]] && tmux setenv -g CLIMA_CITY "$city" 2>/dev/null
+        # Clear clima cache to force refresh
+        tmux set-option -g @clima_last_update_time 0 2>/dev/null
+    fi
+
     return 0
 }
 
