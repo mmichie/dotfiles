@@ -81,6 +81,50 @@ get_location_coordinates() {
         '{lat: $lat, lon: $lon}')"
 }
 
+# Get holiday emoji if today is a holiday
+holiday_emoji() {
+    local month=$(date +%-m)
+    local day=$(date +%-d)
+    local dow=$(date +%u)  # 1=Monday, 7=Sunday
+
+    # Fixed date holidays
+    case "$month-$day" in
+        1-1)   echo "🎆" ;; # New Year's Day
+        2-14)  echo "💝" ;; # Valentine's Day
+        3-17)  echo "☘️" ;;  # St. Patrick's Day
+        5-5)   echo "🌮" ;; # Cinco de Mayo
+        7-4)   echo "🇺🇸" ;; # Independence Day (US)
+        10-31) echo "🎃" ;; # Halloween
+        11-11) echo "🪖" ;; # Veterans Day
+        12-24) echo "🎄" ;; # Christmas Eve
+        12-25) echo "🎅" ;; # Christmas
+        12-26) echo "🎁" ;; # Boxing Day / Day after Christmas
+        12-31) echo "🎉" ;; # New Year's Eve
+        *)
+            # Calculated holidays
+            # Memorial Day: Last Monday of May
+            if [ "$month" -eq 5 ] && [ "$dow" -eq 1 ] && [ "$day" -ge 25 ]; then
+                echo "🇺🇸"
+                return
+            fi
+            # Labor Day: First Monday of September
+            if [ "$month" -eq 9 ] && [ "$dow" -eq 1 ] && [ "$day" -le 7 ]; then
+                echo "⚒️"
+                return
+            fi
+            # Thanksgiving: 4th Thursday of November
+            if [ "$month" -eq 11 ] && [ "$dow" -eq 4 ]; then
+                # Check if it's the 4th Thursday (day 22-28)
+                if [ "$day" -ge 22 ] && [ "$day" -le 28 ]; then
+                    echo "🦃"
+                    return
+                fi
+            fi
+            echo ""
+            ;;
+    esac
+}
+
 clima() {
     NOW=$(date +%s)
     LAST_UPDATE_TIME=$(get_tmux_option @clima_last_update_time)
@@ -124,6 +168,12 @@ clima() {
             fi
 
             CLIMA=""
+
+            # Add holiday emoji if applicable
+            HOLIDAY=$(holiday_emoji)
+            if [ -n "$HOLIDAY" ]; then
+                CLIMA="$CLIMA$HOLIDAY "
+            fi
 
             if [ "$SHOW_LOCATION" == 1 ]; then
                 CLIMA="$CLIMA$CITY "
