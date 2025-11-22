@@ -396,6 +396,7 @@ location_force() {
     # High-confidence sources (known wifi, corelocation) are never overridden
     local home_lat="${CLIMA_HOME_LAT:-}"
     local home_lon="${CLIMA_HOME_LON:-}"
+    local home_city="${CLIMA_HOME_CITY:-}"
     local home_radius="${CLIMA_HOME_RADIUS:-100}"
 
     if [[ "$source" == "ip" ]] && [[ -n "$home_lat" ]] && [[ -n "$home_lon" ]]; then
@@ -419,7 +420,8 @@ location_force() {
             source="home_radius"
             source_detail="ip:within_${distance}mi_of_home"
             confidence="medium"
-            # Keep city from reverse geocode or leave as-is
+            # Override city if CLIMA_HOME_CITY is set
+            [[ -n "$home_city" ]] && city="$home_city"
         fi
     fi
 
