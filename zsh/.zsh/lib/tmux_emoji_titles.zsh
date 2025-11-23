@@ -134,6 +134,12 @@ _tmux_emoji_get_command() {
 _tmux_emoji_preexec() {
     [[ -z "$TMUX" ]] && return
 
+    # Check if window has a priority title (window-level) - if so, don't override
+    local priority_title=$(tmux show-options -w -v @priority_title 2>/dev/null)
+    if [[ -n "$priority_title" ]]; then
+        return
+    fi
+
     local full_cmd="$1"
     local base_cmd=$(_tmux_emoji_get_command "$full_cmd")
 
@@ -193,6 +199,13 @@ _tmux_emoji_get_dir_title() {
 # Clear emoji title when command completes (unless it's a long-running one)
 _tmux_emoji_precmd() {
     [[ -z "$TMUX" ]] && return
+
+    # Check if window has a priority title (window-level) - if so, don't touch anything
+    local priority_title=$(tmux show-options -w -v @priority_title 2>/dev/null)
+    if [[ -n "$priority_title" ]]; then
+        # Window has priority title (ssh/claude/root), don't update anything
+        return
+    fi
 
     # Check if current pane has custom title set by preexec
     local custom_title=$(tmux show-options -p -v @custom_title 2>/dev/null)
