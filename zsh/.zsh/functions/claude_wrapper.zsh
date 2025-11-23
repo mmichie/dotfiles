@@ -4,9 +4,10 @@
 claude() {
     # Function to cleanup tmux and terminal title
     local cleanup() {
-        # Clear custom title marker - precmd hook will set smart directory title
+        # Clear custom title marker and window-level priority title - precmd hook will set smart directory title
         if [[ -n "$TMUX" ]]; then
             tmux set-option -p @custom_title ""
+            tmux set-option -w @priority_title ""
         fi
         # Reset terminal title to zsh
         echo -ne "\033]0;zsh\007"
@@ -15,10 +16,11 @@ claude() {
     # Set terminal title for Ghostty
     echo -ne "\033]0;claude\007"
 
-    # Store custom title in tmux pane option (hook will use this) AND rename window immediately
+    # Store custom title in tmux pane option AND window-level priority title (persists across pane switches)
     if [[ -n "$TMUX" ]]; then
         local title="✨ $(basename "$PWD")"
         tmux set-option -p @custom_title "$title"
+        tmux set-option -w @priority_title "$title"
         tmux rename-window "$title"
     fi
 

@@ -169,13 +169,15 @@ ssh() {
         # Function to cleanup tmux custom title
         local cleanup() {
             tmux set-option -p @custom_title ""
+            tmux set-option -w @priority_title ""
             # Trigger precmd to set smart directory title
             # (the precmd hook will handle it on next prompt)
         }
 
-        # Store custom title in tmux pane option (hook will use this) AND rename window immediately
+        # Store custom title in tmux pane option AND window-level priority title (persists across pane switches)
         local title="🔐 $host"
         tmux set-option -p @custom_title "$title"
+        tmux set-option -w @priority_title "$title"
         tmux rename-window "$title"
 
         # Ensure cleanup happens even on timeout/interrupt
@@ -211,6 +213,7 @@ sudo() {
         local cleanup() {
             tmux set-option -p @is_root ""
             tmux set-option -p @custom_title ""
+            tmux set-option -w @priority_title ""
             # Trigger precmd to update title (will happen on next prompt)
         }
 
@@ -218,6 +221,7 @@ sudo() {
         tmux set-option -p @is_root "1"
         local title="⚠️ ROOT"
         tmux set-option -p @custom_title "$title"
+        tmux set-option -w @priority_title "$title"
         tmux rename-window "$title"
 
         # Ensure cleanup happens even on timeout/interrupt
