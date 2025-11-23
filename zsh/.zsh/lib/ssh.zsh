@@ -170,8 +170,12 @@ ssh() {
         local cleanup() {
             tmux set-option -p @custom_title ""
             tmux set-option -w @priority_title ""
-            # Trigger precmd to set smart directory title
-            # (the precmd hook will handle it on next prompt)
+            # Immediately update window title instead of waiting for precmd
+            # This ensures title updates even if user is viewing a different pane
+            local smart_title=$(_tmux_emoji_get_dir_title 2>/dev/null || echo "$(basename "$PWD")")
+            tmux set-option -p @dir_title "$smart_title"
+            tmux rename-window "$smart_title"
+            tmux set-window-option automatic-rename on
         }
 
         # Store custom title in tmux pane option AND window-level priority title (persists across pane switches)
@@ -214,7 +218,12 @@ sudo() {
             tmux set-option -p @is_root ""
             tmux set-option -p @custom_title ""
             tmux set-option -w @priority_title ""
-            # Trigger precmd to update title (will happen on next prompt)
+            # Immediately update window title instead of waiting for precmd
+            # This ensures title updates even if user is viewing a different pane
+            local smart_title=$(_tmux_emoji_get_dir_title 2>/dev/null || echo "$(basename "$PWD")")
+            tmux set-option -p @dir_title "$smart_title"
+            tmux rename-window "$smart_title"
+            tmux set-window-option automatic-rename on
         }
 
         # Set root warning marker and update window title immediately
