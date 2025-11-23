@@ -230,8 +230,12 @@ _tmux_emoji_precmd() {
         # Store in pane variable so hook can use it when switching panes
         tmux set-option -p @dir_title "$smart_title"
         tmux rename-window "$smart_title"
+        # Re-enable automatic-rename so long-running commands update the title
+        tmux set-window-option automatic-rename on
     else
         tmux rename-window "$cmd"
+        # Re-enable automatic-rename for non-shell commands
+        tmux set-window-option automatic-rename on
     fi
 }
 
