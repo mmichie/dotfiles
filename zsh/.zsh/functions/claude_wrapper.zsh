@@ -4,10 +4,16 @@
 claude() {
     # Function to cleanup tmux and terminal title
     local cleanup() {
-        # Clear custom title marker and window-level priority title - precmd hook will set smart directory title
+        # Clear custom title marker and window-level priority title
         if [[ -n "$TMUX" ]]; then
             tmux set-option -p @custom_title ""
             tmux set-option -w @priority_title ""
+            # Immediately update window title instead of waiting for precmd
+            # This ensures title updates even if user is viewing a different pane
+            local smart_title=$(_tmux_emoji_get_dir_title 2>/dev/null || echo "$(basename "$PWD")")
+            tmux set-option -p @dir_title "$smart_title"
+            tmux rename-window "$smart_title"
+            tmux set-window-option automatic-rename on
         fi
         # Reset terminal title to zsh
         echo -ne "\033]0;zsh\007"
