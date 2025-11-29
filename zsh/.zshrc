@@ -169,13 +169,11 @@ is_login_shell() {
     [[ -o login ]]
 }
 
-# Display system status synchronously (but optimize the modules)
-# Display system status only on initial login shell
-if [[ ! -f "/tmp/shell_status_shown_$$" ]]; then
+# Display system status only on login shells (not tmux panes or subshells)
+if [[ -o login ]]; then
     # Verify gum is available
     if command -v gum >/dev/null 2>&1; then
         notify_shell_status
-        touch "/tmp/shell_status_shown_$$"
 
         # Load tips module and show daily tip
         load_module "function" "tips"
