@@ -183,6 +183,8 @@ ssh() {
         tmux set-option -p @custom_title "$title"
         tmux set-option -w @priority_title "$title"
         tmux rename-window "$title"
+        # Disable automatic-rename to prevent status-interval from overwriting with @dir_title
+        tmux set-window-option automatic-rename off
 
         # Ensure cleanup happens even on timeout/interrupt
         trap cleanup INT TERM EXIT
@@ -232,6 +234,8 @@ sudo() {
         tmux set-option -p @custom_title "$title"
         tmux set-option -w @priority_title "$title"
         tmux rename-window "$title"
+        # Disable automatic-rename to prevent status-interval from overwriting with @dir_title
+        tmux set-window-option automatic-rename off
 
         # Ensure cleanup happens even on timeout/interrupt
         trap cleanup INT TERM EXIT
