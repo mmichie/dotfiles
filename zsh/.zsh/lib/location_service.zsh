@@ -346,32 +346,43 @@ location_force() {
         fi
     fi
 
-    # 2. Try CoreLocation for WiFi-based positioning (1-5 seconds, more accurate than IP)
+    # 2. Try CoreLocation for WiFi-based positioning (up to 30 seconds, more accurate than IP)
+    #    Retry up to 3 times before falling back to IP geolocation
     if [[ -z "$lat" ]] && [[ -n "$ssid" ]] && command -v wifi-location >/dev/null 2>&1; then
-        local coreloc_info=$(wifi-location --location 2>/dev/null)
-        if [[ -n "$coreloc_info" ]]; then
-            local cl_ssid cl_bssid cl_interface cl_lat cl_lon cl_alt cl_acc
-            IFS='|' read -r cl_ssid cl_bssid cl_interface cl_lat cl_lon cl_alt cl_acc <<< "$coreloc_info"
+        local coreloc_attempts=0
+        local coreloc_max_attempts=3
 
-            # If we got coordinates from CoreLocation
-            if [[ -n "$cl_lat" && -n "$cl_lon" && "$cl_lat" != "0.000000" ]]; then
-                lat="$cl_lat"
-                lon="$cl_lon"
-                source="corelocation"
-                source_detail="corelocation:wifi_positioning"
-                confidence="high"
+        while [[ -z "$lat" ]] && [[ $coreloc_attempts -lt $coreloc_max_attempts ]]; do
+            ((coreloc_attempts++))
 
-                # Reverse geocode to get city name
-                local geocode_info=$(curl -s --max-time 2 \
-                    "https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}" \
-                    2>/dev/null)
-                if [[ -n "$geocode_info" ]]; then
-                    city=$(echo "$geocode_info" | jq -r '.address.city // .address.town // .address.village // empty' 2>/dev/null)
-                    region=$(echo "$geocode_info" | jq -r '.address.state // empty' 2>/dev/null)
-                    country=$(echo "$geocode_info" | jq -r '.address.country_code // empty' 2>/dev/null | tr '[:lower:]' '[:upper:]')
+            local coreloc_info=$(wifi-location --location 2>/dev/null)
+            if [[ -n "$coreloc_info" ]]; then
+                local cl_ssid cl_bssid cl_interface cl_lat cl_lon cl_alt cl_acc
+                IFS='|' read -r cl_ssid cl_bssid cl_interface cl_lat cl_lon cl_alt cl_acc <<< "$coreloc_info"
+
+                # If we got coordinates from CoreLocation
+                if [[ -n "$cl_lat" && -n "$cl_lon" && "$cl_lat" != "0.000000" ]]; then
+                    lat="$cl_lat"
+                    lon="$cl_lon"
+                    source="corelocation"
+                    source_detail="corelocation:wifi_positioning:attempt_${coreloc_attempts}"
+                    confidence="high"
+
+                    # Reverse geocode to get city name
+                    local geocode_info=$(curl -s --max-time 2 \
+                        "https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}" \
+                        2>/dev/null)
+                    if [[ -n "$geocode_info" ]]; then
+                        city=$(echo "$geocode_info" | jq -r '.address.city // .address.town // .address.village // empty' 2>/dev/null)
+                        region=$(echo "$geocode_info" | jq -r '.address.state // empty' 2>/dev/null)
+                        country=$(echo "$geocode_info" | jq -r '.address.country_code // empty' 2>/dev/null | tr '[:lower:]' '[:upper:]')
+                    fi
                 fi
             fi
-        fi
+
+            # Brief pause before retry if we didn't get coordinates
+            [[ -z "$lat" ]] && [[ $coreloc_attempts -lt $coreloc_max_attempts ]] && sleep 1
+        done
     fi
 
     # 3. Fall back to IP-based location (requires internet, less accurate)

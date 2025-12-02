@@ -129,7 +129,7 @@ void getWifiInfo(WifiInfo *info, int fetch_location) {
         // If we want location coordinates and are authorized, wait for them
         if (fetch_location && delegate.authorized) {
             int location_timeout = 0;
-            while (!delegate.locationReceived && location_timeout < 150) {  // 15 seconds timeout
+            while (!delegate.locationReceived && location_timeout < 300) {  // 30 seconds timeout
                 [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
                                          beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.1]];
                 location_timeout++;
