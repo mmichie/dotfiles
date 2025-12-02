@@ -40,12 +40,11 @@ install: build
 	@cp -r $(BUNDLE_DIR) ~/Applications/
 	@codesign --force --deep --sign "Developer ID Application: Matthew Michie (TKW6ZHQF5Y)" ~/Applications/$(BUNDLE_NAME)
 
-	@echo "Creating wrapper script in ../bin/..."
-	@echo '#!/bin/bash' > ../bin/$(BINARY_NAME)
-	@echo '~/Applications/$(BUNDLE_NAME)/Contents/MacOS/$(BINARY_NAME) "$$@"' >> ../bin/$(BINARY_NAME)
-	@chmod +x ../bin/$(BINARY_NAME)
+	@echo "Copying wrapper script to ~/bin/..."
+	@cp launcher.sh ~/bin/$(BINARY_NAME)
+	@chmod +x ~/bin/$(BINARY_NAME)
 	@echo "✓ Installed app to ~/Applications/$(BUNDLE_NAME)"
-	@echo "✓ Installed wrapper to bin/bin/$(BINARY_NAME)"
+	@echo "✓ Installed wrapper to ~/bin/$(BINARY_NAME)"
 
 clean:
 	@echo "Cleaning build directory..."

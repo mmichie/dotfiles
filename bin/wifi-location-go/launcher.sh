@@ -1,10 +1,27 @@
 #!/bin/bash
-# Launcher that runs wifi-location with proper app bundle context
+# Wrapper for wifi-location that launches it properly via macOS LaunchServices
+# This is required for Location Services authorization on macOS Sequoia
 
-# Get the directory where this script is located
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-APP_PATH="$SCRIPT_DIR/build/wifi-location.app"
+OUTPUT_FILE="/tmp/wifi-location-$$.txt"
+trap "rm -f '$OUTPUT_FILE'" EXIT
 
-# Run the app using open and capture output
-# Use -W to wait for completion, -n to open new instance, -g to not bring to foreground
-open -W -g -n "$APP_PATH" 2>&1
+# Launch app bundle via open (required for Location Services auth)
+env OUTPUT_FILE="$OUTPUT_FILE" open ~/Applications/wifi-location.app --args "$@"
+
+# Wait for output file (max 3 seconds for fast mode, 35 seconds for --location)
+max_wait=30
+if [[ "$*" == *"--location"* ]]; then
+    max_wait=350  # 35 seconds for location mode (CoreLocation needs up to 30s)
+fi
+
+for i in $(seq 1 $max_wait); do
+    if [ -f "$OUTPUT_FILE" ]; then
+        cat "$OUTPUT_FILE"
+        exit 0
+    fi
+    sleep 0.1
+done
+
+# Timeout - return empty result
+echo "||"
+exit 1
