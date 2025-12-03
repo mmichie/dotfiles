@@ -56,9 +56,9 @@ setup_homebrew() {
         # This function only handles Homebrew-specific environment and completions
         
         # Homebrew completions
+        # Note: fpath and compinit are already set up in .zshrc
         if [[ -r "$brew_prefix/share/zsh/site-functions/_brew" ]]; then
             fpath=($fpath $brew_prefix/share/zsh/site-functions)
-            autoload -Uz compinit && compinit
         fi
     fi
 }

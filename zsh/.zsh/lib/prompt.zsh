@@ -115,25 +115,6 @@ notify_shell_status() {
         "$("$gum_cmd" style --foreground 99 "×þ Memory     [ $memory_info ]")"
 }
 
-# Helper function for system recommendations
-provide_quick_recommendations() {
-    local recommendations=()
-
-    if [[ "${memory_usage%\%}" -gt 90 ]]; then
-        recommendations+=("- High memory usage detected. Consider closing unnecessary applications.")
-    fi
-
-    if [[ $(echo "$cpu_load > $cpu_cores" | bc -l) -eq 1 ]]; then
-        recommendations+=("- High CPU load detected. Check for resource-intensive processes.")
-    fi
-
-    if [[ ${#recommendations[@]} -gt 0 ]]; then
-        printf "%s\n" "${recommendations[@]}"
-    else
-        echo "  Your system appears to be in good health. No specific recommendations at this time."
-    fi
-}
-
 # OSC 7 directory tracking
 osc7_cwd() {
     local hostname=${HOST:-$(hostname)}

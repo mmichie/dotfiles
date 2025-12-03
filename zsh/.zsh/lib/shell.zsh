@@ -124,10 +124,8 @@ setup_readline() {
 }
 
 # Setup completions
+# Note: compinit is already called in .zshrc for faster startup
 setup_completions() {
-    autoload -Uz compinit
-    compinit
-
     # Command specific completions
     compdef _command command
     compdef _signal kill
@@ -161,13 +159,8 @@ setup_pyenv() {
         # Now do full initialization
         if [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
             # Initialize pyenv without completions
+            # Note: fpath and compinit are already set up in .zshrc
             eval "$(pyenv init - --no-completion)"
-            
-            # Add custom completion directory to fpath
-            fpath=(~/.zsh/functions $fpath)
-            
-            # Reload completions
-            autoload -Uz compinit && compinit
         fi
         
         # Call the real pyenv command
@@ -451,7 +444,6 @@ setup_aliases() {
     alias ::::="cd ../../../.."
     alias :::::="cd ../../../../.."
     alias ::::::="cd ../../../../../.."
-    # alias df='df -h'  # Commented out - using duf instead
     alias du='du -h'
     alias mkdir='mkdir -p'
     alias ..='cd ..'
@@ -500,8 +492,6 @@ setup_zoxide() {
         export _ZO_RESOLVE_SYMLINKS=1 # Resolve symlinked directories to their true path
         export _ZO_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zoxide" # Set data directory
         
-        # Create aliases to teach users about functionality
-        # alias cd="z"                 # Override cd with z (commented out - was breaking PWD tracking)
         alias cdi="zi"               # Interactive directory selection
         
         # Create a function to add current directory with a custom name
