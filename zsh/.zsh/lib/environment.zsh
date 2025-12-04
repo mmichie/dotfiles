@@ -1,5 +1,26 @@
 #!/bin/zsh
 
+# Lazy loading helper function
+# Creates wrapper functions that initialize a tool on first use
+# Usage: _lazy_load <init_callback> <commands...>
+# The init_callback is called once, then the original command runs
+_lazy_load() {
+    local init_callback=$1
+    shift
+    local cmds=("$@")
+
+    # Create wrapper for each command
+    for cmd in "${cmds[@]}"; do
+        eval "
+        $cmd() {
+            unset -f ${(j: :)cmds}
+            $init_callback
+            $cmd \"\$@\"
+        }
+        "
+    done
+}
+
 # Setup PATH environment variable
 setup_path() {
     # Load the path manager
@@ -121,88 +142,21 @@ setup_python() {
 
 # Setup Node Version Manager (nvm) - lazy loading
 setup_nvm() {
-    # Set NVM_DIR to the Homebrew location
     export NVM_DIR="$HOME/.nvm"
-
-    # Create .nvm directory if it doesn't exist
     mkdir -p "$NVM_DIR"
 
-    # Only set up nvm brew path - actual loading happens lazily
     if has_capability "homebrew"; then
         export NVM_BREW_PATH="/opt/homebrew/opt/nvm"
     fi
 
-    # Define lazy loading functions
-    nvm() {
-        unset -f nvm node npm npx yarn
-        
-        # Source the nvm script
-        if [[ -s "$NVM_BREW_PATH/nvm.sh" ]]; then
-            source "$NVM_BREW_PATH/nvm.sh"
-            # Source completions 
-            [[ -s "$NVM_BREW_PATH/etc/bash_completion.d/nvm" ]] && source "$NVM_BREW_PATH/etc/bash_completion.d/nvm"
-        fi
-        
-        # Call the newly loaded nvm function with the provided arguments
-        nvm "$@"
+    # Init callback for nvm
+    _init_nvm() {
+        [[ -s "$NVM_BREW_PATH/nvm.sh" ]] && source "$NVM_BREW_PATH/nvm.sh"
+        [[ -s "$NVM_BREW_PATH/etc/bash_completion.d/nvm" ]] && source "$NVM_BREW_PATH/etc/bash_completion.d/nvm"
     }
 
-    # Lazy load proxies for common Node commands
-    node() {
-        unset -f nvm node npm npx yarn
-        
-        # Source the nvm script
-        if [[ -s "$NVM_BREW_PATH/nvm.sh" ]]; then
-            source "$NVM_BREW_PATH/nvm.sh"
-            # Source completions 
-            [[ -s "$NVM_BREW_PATH/etc/bash_completion.d/nvm" ]] && source "$NVM_BREW_PATH/etc/bash_completion.d/nvm"
-        fi
-        
-        # Call the command now
-        node "$@"
-    }
-
-    npm() {
-        unset -f nvm node npm npx yarn
-        
-        # Source the nvm script
-        if [[ -s "$NVM_BREW_PATH/nvm.sh" ]]; then
-            source "$NVM_BREW_PATH/nvm.sh"
-            # Source completions 
-            [[ -s "$NVM_BREW_PATH/etc/bash_completion.d/nvm" ]] && source "$NVM_BREW_PATH/etc/bash_completion.d/nvm"
-        fi
-        
-        # Call the command now
-        npm "$@"
-    }
-
-    npx() {
-        unset -f nvm node npm npx yarn
-        
-        # Source the nvm script
-        if [[ -s "$NVM_BREW_PATH/nvm.sh" ]]; then
-            source "$NVM_BREW_PATH/nvm.sh"
-            # Source completions 
-            [[ -s "$NVM_BREW_PATH/etc/bash_completion.d/nvm" ]] && source "$NVM_BREW_PATH/etc/bash_completion.d/nvm"
-        fi
-        
-        # Call the command now
-        npx "$@"
-    }
-
-    yarn() {
-        unset -f nvm node npm npx yarn
-        
-        # Source the nvm script
-        if [[ -s "$NVM_BREW_PATH/nvm.sh" ]]; then
-            source "$NVM_BREW_PATH/nvm.sh"
-            # Source completions 
-            [[ -s "$NVM_BREW_PATH/etc/bash_completion.d/nvm" ]] && source "$NVM_BREW_PATH/etc/bash_completion.d/nvm"
-        fi
-        
-        # Call the command now
-        yarn "$@"
-    }
+    # Create lazy loaders for nvm and related commands
+    _lazy_load _init_nvm nvm node npm npx yarn
 }
 
 # Setup development tools and environments
@@ -325,22 +279,13 @@ setup_npm_binaries() {
 
 # Setup Google Cloud SDK - lazy loading
 setup_gcloud() {
-    # Create lazy loading functions for gcloud tools
-    gcloud() {
-        unfunction gcloud gsutil bq
-        if [ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]; then
-            . "$HOME/google-cloud-sdk/path.zsh.inc"
-        fi
-        if [ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]; then
-            . "$HOME/google-cloud-sdk/completion.zsh.inc"
-        fi
-        # Rebuild PATH to ensure gcloud is properly ordered
-        path_build
-        gcloud "$@"
+    _init_gcloud() {
+        [[ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]] && source "$HOME/google-cloud-sdk/path.zsh.inc"
+        [[ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]] && source "$HOME/google-cloud-sdk/completion.zsh.inc"
+        path_build  # Rebuild PATH to ensure gcloud is properly ordered
     }
-    
-    gsutil() { gcloud "$@"; }
-    bq() { gcloud "$@"; }
+
+    _lazy_load _init_gcloud gcloud gsutil bq
 }
 
 # Main environment setup function
