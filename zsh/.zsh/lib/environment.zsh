@@ -163,13 +163,11 @@ setup_nvm() {
 setup_development() {
     # Platform-specific setup
     if is_osx; then
-        # macOS-specific development settings
-        if has_capability "homebrew"; then
-            local brew_java_home="$(/opt/homebrew/bin/brew --prefix openjdk@17 2>/dev/null)"
-            if [[ -d "$brew_java_home" ]]; then
-                export JAVA_HOME="$brew_java_home"
-                path=($JAVA_HOME/bin $path)
-            fi
+        # macOS-specific development settings - use static path to avoid slow brew call
+        local java_home="/opt/homebrew/opt/openjdk@17"
+        if [[ -d "$java_home" ]]; then
+            export JAVA_HOME="$java_home"
+            path=($JAVA_HOME/bin $path)
         fi
     elif is_linux; then
         # Linux-specific development settings

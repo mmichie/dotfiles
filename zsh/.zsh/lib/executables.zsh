@@ -50,13 +50,10 @@ setup_clipboard() {
 setup_homebrew() {
     if has_capability "homebrew"; then
         export HOMEBREW_NO_ANALYTICS=1
-        local brew_prefix=$(/opt/homebrew/bin/brew --prefix 2>/dev/null || echo "/opt/homebrew")
-        
-        # Note: PATH setup is now handled by path_manager.zsh in setup_path()
-        # This function only handles Homebrew-specific environment and completions
-        
-        # Homebrew completions
-        # Note: fpath and compinit are already set up in .zshrc
+        # Use static path to avoid slow brew call
+        local brew_prefix="/opt/homebrew"
+
+        # Homebrew completions (fpath and compinit already set up in .zshrc)
         if [[ -r "$brew_prefix/share/zsh/site-functions/_brew" ]]; then
             fpath=($fpath $brew_prefix/share/zsh/site-functions)
         fi
