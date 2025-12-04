@@ -47,20 +47,64 @@ sshtunnel() {
     fi
 }
 
-# Function to cat files and conditionally copy content to the clipboard based on the OS
-catfiles() {
-    local os_type="$SYSTEM_OS_TYPE"
-    local clip_cmd
-    local all_contents=""
-    local pattern="*"
-    local recursive=false
-    local use_find=false
-    local use_json=false
-    local json_output='{}'
-    local temp_file=$(mktemp)
-    local python_script=$(mktemp)
+# Get platform-appropriate clipboard command
+_get_clipboard_cmd() {
+    case "$SYSTEM_OS_TYPE" in
+        OSX) echo "pbcopy" ;;
+        LINUX)
+            if command -v clip.exe &>/dev/null; then echo "clip.exe"
+            elif command -v xclip &>/dev/null; then echo "xclip -selection clipboard"
+            elif command -v xsel &>/dev/null; then echo "xsel --clipboard --input"
+            fi ;;
+    esac
+}
 
-    # Parse options
+# Get file metadata as pipe-separated values
+_get_file_metadata() {
+    local file=$1
+    local file_size=$(du -h "$file" | cut -f1)
+    local last_modified=$(date -r "$file" "+%Y-%m-%d %H:%M:%S")
+    local file_type=$(file -b "$file")
+    local line_count=$(wc -l < "$file")
+    local file_extension="${file##*.}"
+    local full_path=$(realpath "$file")
+    local relative_path="${full_path#$PWD/}"
+    local checksum
+    if [[ "$SYSTEM_OS_TYPE" == "OSX" ]]; then
+        checksum=$(md5 -q "$file")
+    else
+        checksum=$(md5sum "$file" | cut -d' ' -f1)
+    fi
+    echo "${file_size}|${last_modified}|${file_type}|${line_count}|${file_extension}|${relative_path}|${checksum}"
+}
+
+# Format file with metadata as text
+_format_file_text() {
+    local file=$1 metadata=$2 content=$3
+    local size modified type lines ext path checksum
+    IFS='|' read -r size modified type lines ext path checksum <<< "$metadata"
+    cat <<EOF
+--- File Metadata ---
+Filename: $file
+Relative Path: $path
+File Size: $size
+Last Modified: $modified
+File Type: $type
+Line Count: $lines
+File Extension: $ext
+MD5 Checksum: $checksum
+--- File Contents ---
+$content
+
+EOF
+}
+
+# Cat files with metadata, optionally copy to clipboard
+# Usage: catfiles [-r] [-p pattern] [-j] [directory or files...]
+catfiles() {
+    local pattern="*" recursive=false use_find=false use_json=false
+    local all_contents="" json_output='{}'
+
     while getopts "rp:j" opt; do
         case ${opt} in
             r ) recursive=true; use_find=true ;;
@@ -71,152 +115,61 @@ catfiles() {
     done
     shift $((OPTIND -1))
 
-    # Determine the appropriate clipboard command based on the platform
-    case "$os_type" in
-        OSX)
-            clip_cmd="pbcopy"
-            ;;
-        LINUX)
-            if command -v clip.exe &>/dev/null; then
-                clip_cmd="clip.exe"
-            elif command -v xclip &>/dev/null; then
-                clip_cmd="xclip -selection clipboard"
-            elif command -v xsel &>/dev/null; then
-                clip_cmd="xsel --clipboard --input"
-            else
-                clip_cmd=""
-            fi
-            ;;
-        *)
-            clip_cmd=""
-            ;;
-    esac
+    local clip_cmd=$(_get_clipboard_cmd)
+    local temp_file=$(mktemp)
 
-    # Create Python script for JSON processing
-    cat << 'EOF' > "$python_script"
-import json
-import sys
-
-def escape_string(s):
-    return s.encode("unicode_escape").decode("utf-8").replace('"', '\\"')
-
+    # Python script for JSON processing
+    local python_script=$(mktemp)
+    cat << 'PYEOF' > "$python_script"
+import json, sys
 try:
     data = json.loads(sys.stdin.read())
-    file_content = sys.argv[1]
-    file_content = escape_string(file_content)
-    file_data = {
-        "filename": sys.argv[2],
-        "relative_path": sys.argv[3],
-        "file_size": sys.argv[4],
-        "last_modified": sys.argv[5],
-        "file_type": sys.argv[6],
-        "line_count": int(sys.argv[7]),
-        "file_extension": sys.argv[8],
-        "md5_checksum": sys.argv[9],
-        "content": file_content
+    content = sys.argv[1].encode("unicode_escape").decode("utf-8").replace('"', '\\"')
+    data[sys.argv[3]] = {
+        "filename": sys.argv[2], "relative_path": sys.argv[3], "file_size": sys.argv[4],
+        "last_modified": sys.argv[5], "file_type": sys.argv[6], "line_count": int(sys.argv[7]),
+        "file_extension": sys.argv[8], "md5_checksum": sys.argv[9], "content": content
     }
-    data[sys.argv[3]] = file_data
     print(json.dumps(data, indent=2))
 except Exception as e:
-    print(json.dumps({"error": str(e)}), file=sys.stderr)
-    sys.exit(1)
-EOF
+    print(json.dumps({"error": str(e)}), file=sys.stderr); sys.exit(1)
+PYEOF
 
-    # Function to process a single file
-    process_file() {
-        local file="$1"
-        if [[ -f "$file" ]]; then
-            local file_size=$(du -h "$file" | cut -f1)
-            local last_modified=$(date -r "$file" "+%Y-%m-%d %H:%M:%S")
-            local file_type=$(file -b "$file")
-            local line_count=$(wc -l < "$file")
-            local file_extension="${file##*.}"
-            local full_path=$(realpath "$file")
-            local relative_path=$(echo "$full_path" | sed "s|^$PWD/||")
+    # Process a single file
+    _process_file() {
+        local file=$1
+        [[ ! -f "$file" ]] && { echo "Error: $file does not exist or is a directory." >&2; return; }
 
-            # Cross-platform MD5 checksum calculation
-            local checksum
-            if [[ "$os_type" == "OSX" ]]; then
-                checksum=$(md5 -q "$file")
-            else
-                checksum=$(md5sum "$file" | cut -d' ' -f1)
-            fi
+        local metadata=$(_get_file_metadata "$file")
+        local content=$(<"$file")
+        local size modified type lines ext path checksum
+        IFS='|' read -r size modified type lines ext path checksum <<< "$metadata"
 
-            local file_content=$(<"$file")
-
-            if $use_json; then
-                python3 "$python_script" "$file_content" "$file" "$relative_path" "$file_size" "$last_modified" "$file_type" "$line_count" "$file_extension" "$checksum" <<< "$json_output" > "$temp_file"
-                if [ $? -eq 0 ]; then
-                    json_output=$(<"$temp_file")
-                else
-                    echo "Error processing file: $file" >&2
-                    cat "$temp_file" >&2
-                fi
-            else
-                all_contents+="
---- File Metadata ---
-"
-                all_contents+="Filename: $file
-"
-                all_contents+="Relative Path: $relative_path
-"
-                all_contents+="File Size: $file_size
-"
-                all_contents+="Last Modified: $last_modified
-"
-                all_contents+="File Type: $file_type
-"
-                all_contents+="Line Count: $line_count
-"
-                all_contents+="File Extension: $file_extension
-"
-                all_contents+="MD5 Checksum: $checksum
-"
-                all_contents+="--- File Contents ---
-"
-                all_contents+="$file_content
-
-"
-            fi
-            echo "Filename: $file processed."
+        if $use_json; then
+            python3 "$python_script" "$content" "$file" "$path" "$size" "$modified" "$type" "$lines" "$ext" "$checksum" <<< "$json_output" > "$temp_file"
+            [[ $? -eq 0 ]] && json_output=$(<"$temp_file") || { echo "Error processing: $file" >&2; cat "$temp_file" >&2; }
         else
-            echo "Error: File $file does not exist or is a directory."
+            all_contents+=$(_format_file_text "$file" "$metadata" "$content")
         fi
+        echo "Processed: $file"
     }
 
-    # Use find if recursive or pattern is specified, otherwise process arguments as files
+    # Iterate over files
     if $use_find; then
         local search_dir="${1:-.}"
-        local find_cmd="find \"$search_dir\""
-        if ! $recursive; then
-            find_cmd+=" -maxdepth 1"
-        fi
-        find_cmd+=" -type f -name \"$pattern\""
-
-        eval $find_cmd | while read -r file; do
-            process_file "$file"
-        done
+        local find_opts=(-type f -name "$pattern")
+        $recursive || find_opts=(-maxdepth 1 "${find_opts[@]}")
+        find "$search_dir" "${find_opts[@]}" | while read -r file; do _process_file "$file"; done
+    elif [[ $# -eq 0 ]]; then
+        for file in *(.) ; do _process_file "$file"; done
     else
-        # If no files specified, use current directory
-        if [[ $# -eq 0 ]]; then
-            for file in *(.) ; do  # This glob qualifier '(.)' ensures only regular files are matched
-                process_file "$file"
-            done
-        else
-            for file in "$@"; do
-                process_file "$file"
-            done
-        fi
+        for file in "$@"; do _process_file "$file"; done
     fi
 
-    # Finalize output
-    if $use_json; then
-        all_contents=$json_output
-    fi
-
-    # Pipe accumulated content to clipboard command or print to terminal
-    if [[ -n $clip_cmd && -n "$all_contents" ]]; then
-        echo "$all_contents" | $clip_cmd
+    # Output results
+    $use_json && all_contents=$json_output
+    if [[ -n "$clip_cmd" && -n "$all_contents" ]]; then
+        echo "$all_contents" | eval $clip_cmd
         echo "All file contents copied to clipboard."
     elif [[ -n "$all_contents" ]]; then
         echo "$all_contents"
@@ -224,7 +177,6 @@ EOF
         echo "No files were processed."
     fi
 
-    # Clean up
     rm -f "$temp_file" "$python_script"
 }
 
