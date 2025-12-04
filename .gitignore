@@ -30,5 +30,8 @@ system/.config/clima/wifi-locations.conf
 # Personal shell configuration with secrets (lives in ~/, not in repo)
 .zshrc.local
 
+# Compiled zsh files (zcompile output)
+*.zwc
+
 # Build artifacts
 bin/wifi-location-go/build/
