@@ -164,11 +164,6 @@ if [[ -f "$HOME/.bash_work_profile" ]]; then
     source "$HOME/.bash_work_profile"
 fi
 
-# Function to check if this is a login shell
-is_login_shell() {
-    [[ -o login ]]
-}
-
 # Display system status only on login shells (not tmux panes or subshells)
 if [[ -o login ]]; then
     # Verify gum is available

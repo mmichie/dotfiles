@@ -251,30 +251,6 @@ _location_get_ip() {
     echo "$ip"
 }
 
-# Reverse geocode coordinates to city/region/country
-_location_reverse_geocode() {
-    local lat=$1
-    local lon=$2
-
-    # Check if reverse geocoding is enabled
-    local enabled=$(sqlite3 "$LOCATION_DB" "SELECT value FROM config WHERE key = 'reverse_geocode';" 2>/dev/null)
-    [[ "$enabled" != "1" ]] && return 1
-
-    # Use ip-api.com for reverse geocoding (free, no key needed)
-    local result=$(curl -s --max-time 3 "http://ip-api.com/json/?lat=$lat&lon=$lon&fields=city,regionName,countryCode" 2>/dev/null)
-
-    if [[ -n "$result" ]]; then
-        local city=$(echo "$result" | jq -r .city 2>/dev/null)
-        local region=$(echo "$result" | jq -r .regionName 2>/dev/null)
-        local country=$(echo "$result" | jq -r .countryCode 2>/dev/null)
-
-        echo "$city|$region|$country"
-        return 0
-    fi
-
-    return 1
-}
-
 # Look up known network in database
 _location_lookup_network() {
     local ssid=$1
