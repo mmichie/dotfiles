@@ -145,76 +145,15 @@ setup_completions() {
 # pyenv setup - lazy loading
 setup_pyenv() {
     export PYENV_ROOT="$HOME/.pyenv"
-    
-    # Note: PATH setup for pyenv is now handled by path_manager.zsh
-    # We only set up lazy loading here
-    
-    # Export basic pyenv environment settings
     export PYENV_DISABLE_COMPLETIONS=1
-    
-    # Create lazy loading function for pyenv
-    pyenv() {
-        unset -f pyenv python python3 pip pip3
-        
-        # Now do full initialization
-        if [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
-            # Initialize pyenv without completions
-            # Note: fpath and compinit are already set up in .zshrc
-            eval "$(pyenv init - --no-completion)"
-        fi
-        
-        # Call the real pyenv command
-        pyenv "$@"
+
+    _init_pyenv() {
+        [[ -x "$PYENV_ROOT/bin/pyenv" ]] && eval "$(pyenv init - --no-completion)"
     }
-    
-    # Lazy load proxies for Python commands
-    python() {
-        unset -f pyenv python python3 pip pip3
-        
-        # Initialize pyenv
-        if [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
-            eval "$(pyenv init - --no-completion)"
-        fi
-        
-        # Call the command
-        python "$@"
-    }
-    
-    python3() {
-        unset -f pyenv python python3 pip pip3
-        
-        # Initialize pyenv
-        if [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
-            eval "$(pyenv init - --no-completion)"
-        fi
-        
-        # Call the command
-        python3 "$@"
-    }
-    
-    pip() {
-        unset -f pyenv python python3 pip pip3
-        
-        # Initialize pyenv
-        if [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
-            eval "$(pyenv init - --no-completion)"
-        fi
-        
-        # Call the command
-        pip "$@"
-    }
-    
-    pip3() {
-        unset -f pyenv python python3 pip pip3
-        
-        # Initialize pyenv
-        if [[ -x "$PYENV_ROOT/bin/pyenv" ]]; then
-            eval "$(pyenv init - --no-completion)"
-        fi
-        
-        # Call the command
-        pip3 "$@"
-    }
+
+    # Create lazy loaders for pyenv and related commands
+    # Note: _lazy_load is defined in environment.zsh which is loaded first
+    _lazy_load _init_pyenv pyenv python python3 pip pip3
 }
 
 # Use ZSH hooks instead of cron for history backup
