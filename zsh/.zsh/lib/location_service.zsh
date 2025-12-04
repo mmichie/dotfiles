@@ -158,77 +158,74 @@ location_is_stale() {
     [[ $age -gt $LOCATION_UPDATE_INTERVAL ]]
 }
 
-# Get WiFi SSID and BSSID
+# WiFi detection methods for macOS (each returns ssid|bssid|interface or empty)
+_wifi_try_go_app() {
+    command -v wifi-location >/dev/null 2>&1 || return 1
+    local info=$(wifi-location 2>/dev/null)
+    [[ -n "$info" ]] && echo "$info"
+}
+
+_wifi_try_wdutil() {
+    command -v wdutil >/dev/null 2>&1 || return 1
+    local info=$(wdutil info 2>/dev/null)
+    [[ -z "$info" ]] && return 1
+    local ssid=$(echo "$info" | awk '/SSID/ && !/BSSID/ {for(i=2;i<=NF;i++) printf "%s ", $i; print ""}' | sed 's/ $//' | head -1)
+    local bssid=$(echo "$info" | awk '/BSSID/ {print $NF}' | head -1)
+    [[ -n "$ssid" ]] && echo "${ssid}|${bssid}|"
+}
+
+_wifi_try_airport() {
+    local info=$(/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I 2>/dev/null)
+    [[ -z "$info" || "$info" == *"<redacted>"* ]] && return 1
+    local ssid=$(echo "$info" | awk -F': ' '/^ *SSID:/ {print $2}' | head -1)
+    local bssid=$(echo "$info" | awk -F': ' '/^ *BSSID:/ {print $2}' | tr -d ' ')
+    [[ -n "$ssid" ]] && echo "${ssid}|${bssid}|"
+}
+
+_wifi_try_networksetup() {
+    local interface=$1
+    [[ -z "$interface" ]] && return 1
+    local info=$(networksetup -getairportnetwork "$interface" 2>/dev/null)
+    [[ "$info" == *"not associated"* || "$info" == *"<redacted>"* ]] && return 1
+    local ssid=$(echo "$info" | awk -F': ' '{print $2}')
+    [[ -n "$ssid" ]] && echo "${ssid}||"
+}
+
+_wifi_try_applescript() {
+    command -v get-wifi-applescript >/dev/null 2>&1 || return 1
+    local info=$(get-wifi-applescript 2>/dev/null)
+    [[ -z "$info" || "$info" == "missing value"* ]] && return 1
+    local ssid bssid iface
+    IFS='|' read -r ssid bssid iface <<< "$info"
+    [[ -n "$ssid" && "$ssid" != "missing value" ]] && echo "${ssid}|${bssid}|${iface}"
+}
+
+_wifi_try_python() {
+    command -v get-wifi-ssid >/dev/null 2>&1 || return 1
+    local info=$(get-wifi-ssid 2>/dev/null)
+    [[ -n "$info" ]] && echo "$info"
+}
+
+# Get WiFi SSID and BSSID (tries multiple methods in order of reliability)
 _location_get_wifi() {
-    local ssid=""
-    local bssid=""
-    local interface=""
+    local ssid="" bssid="" interface=""
 
     if [[ "$OSTYPE" == darwin* ]]; then
         interface=$(networksetup -listallhardwareports 2>/dev/null | awk '/Wi-Fi/{getline; print $2}')
-        if [[ -n "$interface" ]]; then
-            # Try multiple methods for WiFi detection on macOS
+        [[ -z "$interface" ]] && { echo "||"; return; }
 
-            # Method 0: Try wifi-location Go app (properly signed, works on macOS Sequoia)
-            if [[ -z "$ssid" ]] && command -v wifi-location >/dev/null 2>&1; then
-                local go_info=$(wifi-location 2>/dev/null)
-                if [[ -n "$go_info" ]]; then
-                    local go_ssid go_bssid go_interface
-                    IFS='|' read -r go_ssid go_bssid go_interface <<< "$go_info"
-                    [[ -n "$go_ssid" ]] && ssid="$go_ssid"
-                    [[ -n "$go_bssid" ]] && bssid="$go_bssid"
-                    [[ -n "$go_interface" ]] && interface="$go_interface"
-                fi
+        # Try each method until one succeeds
+        local result=""
+        for method in _wifi_try_go_app _wifi_try_wdutil _wifi_try_airport \
+                      "_wifi_try_networksetup $interface" _wifi_try_applescript _wifi_try_python; do
+            result=$(eval $method 2>/dev/null)
+            if [[ -n "$result" ]]; then
+                IFS='|' read -r ssid bssid iface <<< "$result"
+                [[ -n "$iface" ]] && interface="$iface"
+                break
             fi
+        done
 
-            # Method 1: Try wdutil (works on macOS 11+, requires Full Disk Access)
-            if [[ -z "$ssid" ]] && command -v wdutil >/dev/null 2>&1; then
-                local wdutil_info=$(wdutil info 2>/dev/null)
-                ssid=$(echo "$wdutil_info" | awk '/SSID/ && !/BSSID/ {for(i=2;i<=NF;i++) printf "%s ", $i; print ""}' | sed 's/ $//' | head -1)
-                bssid=$(echo "$wdutil_info" | awk '/BSSID/ {print $NF}' | head -1)
-            fi
-
-            # Method 2: Try airport command if exists
-            if [[ -z "$ssid" ]]; then
-                local airport_info=$(/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I 2>/dev/null)
-                if [[ -n "$airport_info" ]] && [[ "$airport_info" != *"<redacted>"* ]]; then
-                    ssid=$(echo "$airport_info" | awk -F': ' '/^ *SSID:/ {print $2}' | head -1)
-                    bssid=$(echo "$airport_info" | awk -F': ' '/^ *BSSID:/ {print $2}' | tr -d ' ')
-                fi
-            fi
-
-            # Method 3: Try networksetup (often blocked by privacy settings)
-            if [[ -z "$ssid" ]]; then
-                local ns_info=$(networksetup -getairportnetwork "$interface" 2>/dev/null)
-                if [[ "$ns_info" != *"not associated"* ]] && [[ "$ns_info" != *"<redacted>"* ]]; then
-                    ssid=$(echo "$ns_info" | awk -F': ' '{print $2}')
-                fi
-            fi
-
-            # Method 4: Try AppleScript CoreWLAN (requires Location Services for osascript)
-            if [[ -z "$ssid" ]] && command -v get-wifi-applescript >/dev/null 2>&1; then
-                local as_info=$(get-wifi-applescript 2>/dev/null)
-                if [[ -n "$as_info" ]] && [[ "$as_info" != "missing value"* ]]; then
-                    local as_ssid as_bssid as_interface
-                    IFS='|' read -r as_ssid as_bssid as_interface <<< "$as_info"
-                    [[ -n "$as_ssid" && "$as_ssid" != "missing value" ]] && ssid="$as_ssid"
-                    [[ -n "$as_bssid" && "$as_bssid" != "missing value" ]] && bssid="$as_bssid"
-                    [[ -n "$as_interface" ]] && interface="$as_interface"
-                fi
-            fi
-
-            # Method 5: Try Python CoreWLAN helper (requires Location Services permission)
-            if [[ -z "$ssid" ]] && command -v get-wifi-ssid >/dev/null 2>&1; then
-                local python_info=$(get-wifi-ssid 2>/dev/null)
-                if [[ -n "$python_info" ]]; then
-                    local py_ssid py_bssid py_interface
-                    IFS='|' read -r py_ssid py_bssid py_interface <<< "$python_info"
-                    [[ -n "$py_ssid" ]] && ssid="$py_ssid"
-                    [[ -n "$py_bssid" ]] && bssid="$py_bssid"
-                    [[ -n "$py_interface" ]] && interface="$py_interface"
-                fi
-            fi
-        fi
     elif [[ "$OSTYPE" == linux* ]]; then
         if command -v iwgetid >/dev/null 2>&1; then
             ssid=$(iwgetid -r 2>/dev/null)
@@ -310,143 +307,118 @@ location_update() {
     (location_force &)
 }
 
-# Force immediate location update
-location_force() {
-    _location_init || return 1
+# Try to get location from CoreLocation (with retries)
+# Sets: lat, lon, city, region, country, source, source_detail, confidence
+_location_try_corelocation() {
+    command -v wifi-location >/dev/null 2>&1 || return 1
 
-    local now=$(date +%s)
-    local hostname=$(hostname -s 2>/dev/null || hostname)
+    local max_attempts=3
+    local attempt=0
 
-    # Get network info
-    local wifi_info=$(_location_get_wifi)
-    local ssid bssid interface
-    IFS='|' read -r ssid bssid interface <<< "$wifi_info"
+    while [[ $attempt -lt $max_attempts ]]; do
+        ((attempt++))
 
-    # Normalize empty bssid to empty string for consistency
-    [[ -z "$bssid" ]] && bssid=""
+        local info=$(wifi-location --location 2>/dev/null)
+        [[ -z "$info" ]] && { sleep 1; continue; }
 
-    local ip=$(_location_get_ip)
-    local network_type="unknown"
+        local cl_ssid cl_bssid cl_interface cl_lat cl_lon cl_alt cl_acc
+        IFS='|' read -r cl_ssid cl_bssid cl_interface cl_lat cl_lon cl_alt cl_acc <<< "$info"
 
-    if [[ -n "$ssid" ]]; then
-        network_type="wifi"
-    elif [[ -n "$ip" ]]; then
-        network_type="ethernet"
-    fi
+        # Valid coordinates?
+        [[ -z "$cl_lat" || -z "$cl_lon" || "$cl_lat" == "0.000000" ]] && { sleep 1; continue; }
 
-    # Try to get location
+        # Success - output location data
+        local geocode=$(curl -s --max-time 2 \
+            "https://nominatim.openstreetmap.org/reverse?format=json&lat=${cl_lat}&lon=${cl_lon}" 2>/dev/null)
+
+        local city="" region="" country=""
+        if [[ -n "$geocode" ]]; then
+            city=$(echo "$geocode" | jq -r '.address.city // .address.town // .address.village // empty' 2>/dev/null)
+            region=$(echo "$geocode" | jq -r '.address.state // empty' 2>/dev/null)
+            country=$(echo "$geocode" | jq -r '.address.country_code // empty' 2>/dev/null | tr '[:lower:]' '[:upper:]')
+        fi
+
+        echo "${cl_lat}|${cl_lon}|${city}|${region}|${country}|corelocation|corelocation:wifi_positioning:attempt_${attempt}|high"
+        return 0
+    done
+
+    return 1
+}
+
+# Try to get location from IP geolocation
+# Sets: lat, lon, city, region, country, source, source_detail, confidence
+_location_try_ip_geolocation() {
+    local ip=$1
+    [[ -z "$ip" ]] && return 1
+
+    local result=$(curl -s --max-time 3 "http://ip-api.com/json/$ip?fields=lat,lon,city,regionName,countryCode,status" 2>/dev/null)
+    echo "$result" | jq -e '.status == "success"' >/dev/null 2>&1 || return 1
+
+    local lat=$(echo "$result" | jq -r .lat)
+    local lon=$(echo "$result" | jq -r .lon)
+    local city=$(echo "$result" | jq -r .city)
+    local region=$(echo "$result" | jq -r .regionName)
+    local country=$(echo "$result" | jq -r .countryCode)
+
+    echo "${lat}|${lon}|${city}|${region}|${country}|ip|ip:api.com|medium"
+    return 0
+}
+
+# Calculate Haversine distance between two points (returns miles)
+_location_haversine_distance() {
+    local lat1=$1 lon1=$2 lat2=$3 lon2=$4
+
+    awk -v lat1="$lat1" -v lon1="$lon1" -v lat2="$lat2" -v lon2="$lon2" 'BEGIN {
+        pi = 3.14159265358979323846
+        lat1_rad = lat1 * pi / 180
+        lat2_rad = lat2 * pi / 180
+        dlat = (lat2 - lat1) * pi / 180
+        dlon = (lon2 - lon1) * pi / 180
+        a = sin(dlat/2) * sin(dlat/2) + cos(lat1_rad) * cos(lat2_rad) * sin(dlon/2) * sin(dlon/2)
+        c = 2 * atan2(sqrt(a), sqrt(1-a))
+        printf "%.0f", 3959 * c
+    }'
+}
+
+# Apply home radius override if within range
+# Input: lat|lon|city|region|country|source|source_detail|confidence
+# Only applies to IP-based locations
+_location_apply_home_override() {
+    local location_data=$1
     local lat lon city region country source source_detail confidence
+    IFS='|' read -r lat lon city region country source source_detail confidence <<< "$location_data"
 
-    # 1. Try known WiFi network (instant lookup from database)
-    if [[ -n "$ssid" ]]; then
-        local network_info=$(_location_lookup_network "$ssid" "$bssid")
-        if [[ -n "$network_info" ]]; then
-            IFS='|' read -r lat lon city region country confidence source <<< "$network_info"
-            source_detail="wifi:${source}"
-        fi
-    fi
+    # Only override IP-based locations
+    [[ "$source" != "ip" ]] && { echo "$location_data"; return 0; }
 
-    # 2. Try CoreLocation for WiFi-based positioning (up to 30 seconds, more accurate than IP)
-    #    Retry up to 3 times before falling back to IP geolocation
-    if [[ -z "$lat" ]] && [[ -n "$ssid" ]] && command -v wifi-location >/dev/null 2>&1; then
-        local coreloc_attempts=0
-        local coreloc_max_attempts=3
-
-        while [[ -z "$lat" ]] && [[ $coreloc_attempts -lt $coreloc_max_attempts ]]; do
-            ((coreloc_attempts++))
-
-            local coreloc_info=$(wifi-location --location 2>/dev/null)
-            if [[ -n "$coreloc_info" ]]; then
-                local cl_ssid cl_bssid cl_interface cl_lat cl_lon cl_alt cl_acc
-                IFS='|' read -r cl_ssid cl_bssid cl_interface cl_lat cl_lon cl_alt cl_acc <<< "$coreloc_info"
-
-                # If we got coordinates from CoreLocation
-                if [[ -n "$cl_lat" && -n "$cl_lon" && "$cl_lat" != "0.000000" ]]; then
-                    lat="$cl_lat"
-                    lon="$cl_lon"
-                    source="corelocation"
-                    source_detail="corelocation:wifi_positioning:attempt_${coreloc_attempts}"
-                    confidence="high"
-
-                    # Reverse geocode to get city name
-                    local geocode_info=$(curl -s --max-time 2 \
-                        "https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}" \
-                        2>/dev/null)
-                    if [[ -n "$geocode_info" ]]; then
-                        city=$(echo "$geocode_info" | jq -r '.address.city // .address.town // .address.village // empty' 2>/dev/null)
-                        region=$(echo "$geocode_info" | jq -r '.address.state // empty' 2>/dev/null)
-                        country=$(echo "$geocode_info" | jq -r '.address.country_code // empty' 2>/dev/null | tr '[:lower:]' '[:upper:]')
-                    fi
-                fi
-            fi
-
-            # Brief pause before retry if we didn't get coordinates
-            [[ -z "$lat" ]] && [[ $coreloc_attempts -lt $coreloc_max_attempts ]] && sleep 1
-        done
-    fi
-
-    # 3. Fall back to IP-based location (requires internet, less accurate)
-    if [[ -z "$lat" ]] && [[ -n "$ip" ]]; then
-        local ip_location=$(curl -s --max-time 3 "http://ip-api.com/json/$ip?fields=lat,lon,city,regionName,countryCode,status" 2>/dev/null)
-        if echo "$ip_location" | jq -e '.status == "success"' >/dev/null 2>&1; then
-            lat=$(echo "$ip_location" | jq -r .lat)
-            lon=$(echo "$ip_location" | jq -r .lon)
-            city=$(echo "$ip_location" | jq -r .city)
-            region=$(echo "$ip_location" | jq -r .regionName)
-            country=$(echo "$ip_location" | jq -r .countryCode)
-            source="ip"
-            source_detail="ip:api.com"
-            confidence="medium"
-        fi
-    fi
-
-    # 4. If still no location, can't update
-    [[ -z "$lat" ]] && return 1
-
-    # 5. Apply home radius override for low-confidence (IP-based) locations only
-    # High-confidence sources (known wifi, corelocation) are never overridden
     local home_lat="${CLIMA_HOME_LAT:-}"
     local home_lon="${CLIMA_HOME_LON:-}"
     local home_city="${CLIMA_HOME_CITY:-}"
     local home_radius="${CLIMA_HOME_RADIUS:-100}"
 
-    if [[ "$source" == "ip" ]] && [[ -n "$home_lat" ]] && [[ -n "$home_lon" ]]; then
-        # Calculate distance using Haversine formula
-        local distance=$(awk -v lat1="$lat" -v lon1="$lon" -v lat2="$home_lat" -v lon2="$home_lon" 'BEGIN {
-            pi = 3.14159265358979323846
-            lat1_rad = lat1 * pi / 180
-            lat2_rad = lat2 * pi / 180
-            dlat = (lat2 - lat1) * pi / 180
-            dlon = (lon2 - lon1) * pi / 180
-            a = sin(dlat/2) * sin(dlat/2) + cos(lat1_rad) * cos(lat2_rad) * sin(dlon/2) * sin(dlon/2)
-            c = 2 * atan2(sqrt(a), sqrt(1-a))
-            distance = 3959 * c
-            printf "%.0f", distance
-        }')
+    [[ -z "$home_lat" || -z "$home_lon" ]] && { echo "$location_data"; return 0; }
 
-        # If within home radius, use home coordinates instead of IP location
-        if [[ $distance -le $home_radius ]]; then
-            lat="$home_lat"
-            lon="$home_lon"
-            source="home_radius"
-            source_detail="ip:within_${distance}mi_of_home"
-            confidence="medium"
-            # Override city if CLIMA_HOME_CITY is set
-            [[ -n "$home_city" ]] && city="$home_city"
-        fi
+    local distance=$(_location_haversine_distance "$lat" "$lon" "$home_lat" "$home_lon")
+
+    if [[ $distance -le $home_radius ]]; then
+        [[ -n "$home_city" ]] && city="$home_city"
+        echo "${home_lat}|${home_lon}|${city}|${region}|${country}|home_radius|ip:within_${distance}mi_of_home|medium"
+    else
+        echo "$location_data"
     fi
+}
 
-    # Check if location changed (before escaping for comparison)
-    local prev_city=$(sqlite3 "$LOCATION_DB" "SELECT city FROM current_location WHERE id = 1;" 2>/dev/null)
-    local location_changed=0
-    [[ "$city" != "$prev_city" ]] && location_changed=1
+# Persist location to database
+_location_persist() {
+    local now=$1 hostname=$2 ssid=$3 bssid=$4 ip=$5 network_type=$6 interface=$7
+    local lat=$8 lon=$9 city=${10} region=${11} country=${12}
+    local source=${13} source_detail=${14} confidence=${15}
 
-    # Escape single quotes in SQL values
+    # Escape single quotes for SQL
     ssid="${ssid//\'/\'\'}"
     city="${city//\'/\'\'}"
     region="${region//\'/\'\'}"
 
-    # Update current location
     sqlite3 "$LOCATION_DB" <<EOF
 INSERT OR REPLACE INTO current_location (
   id, updated_at, ssid, bssid, ip_address, network_type, network_interface,
@@ -458,7 +430,6 @@ INSERT OR REPLACE INTO current_location (
   '$hostname', '$source', '$source_detail', '$confidence'
 );
 
--- Also log to history
 INSERT INTO location_history (
   timestamp, ssid, bssid, ip_address, network_type, network_interface,
   lat, lon, city, region, country_code,
@@ -469,8 +440,12 @@ INSERT INTO location_history (
   '$hostname', '$source', '$source_detail', '$confidence'
 );
 EOF
+}
 
-    # Export to environment
+# Export location to environment and tmux
+_location_export_env() {
+    local lat=$1 lon=$2 city=$3 location_changed=$4
+
     export CLIMA_LAT="$lat"
     export CLIMA_LON="$lon"
     [[ -n "$city" ]] && export CLIMA_CITY="$city"
@@ -480,11 +455,66 @@ EOF
         tmux setenv -g CLIMA_LAT "$lat" 2>/dev/null
         tmux setenv -g CLIMA_LON "$lon" 2>/dev/null
         [[ -n "$city" ]] && tmux setenv -g CLIMA_CITY "$city" 2>/dev/null
-        # Only clear clima cache if location actually changed
-        if [[ $location_changed -eq 1 ]]; then
-            tmux set-option -g @clima_last_update_time 0 2>/dev/null
+        [[ $location_changed -eq 1 ]] && tmux set-option -g @clima_last_update_time 0 2>/dev/null
+    fi
+}
+
+# Force immediate location update
+location_force() {
+    _location_init || return 1
+
+    local now=$(date +%s)
+    local hostname=$(hostname -s 2>/dev/null || hostname)
+
+    # Get network info
+    local wifi_info=$(_location_get_wifi)
+    local ssid bssid interface
+    IFS='|' read -r ssid bssid interface <<< "$wifi_info"
+    [[ -z "$bssid" ]] && bssid=""
+
+    local ip=$(_location_get_ip)
+    local network_type="unknown"
+    [[ -n "$ssid" ]] && network_type="wifi"
+    [[ -z "$ssid" && -n "$ip" ]] && network_type="ethernet"
+
+    # Try location sources in order of accuracy
+    local location_data=""
+    local lat lon city region country source source_detail confidence
+
+    # 1. Try known WiFi network (instant, from database)
+    if [[ -n "$ssid" ]]; then
+        local network_info=$(_location_lookup_network "$ssid" "$bssid")
+        if [[ -n "$network_info" ]]; then
+            IFS='|' read -r lat lon city region country confidence source <<< "$network_info"
+            location_data="${lat}|${lon}|${city}|${region}|${country}|${source}|wifi:${source}|${confidence}"
         fi
     fi
+
+    # 2. Try CoreLocation (high accuracy, may take time)
+    [[ -z "$location_data" && -n "$ssid" ]] && location_data=$(_location_try_corelocation)
+
+    # 3. Try IP geolocation (lower accuracy, fast)
+    [[ -z "$location_data" && -n "$ip" ]] && location_data=$(_location_try_ip_geolocation "$ip")
+
+    # No location available
+    [[ -z "$location_data" ]] && return 1
+
+    # Apply home radius override
+    location_data=$(_location_apply_home_override "$location_data")
+
+    # Parse final location
+    IFS='|' read -r lat lon city region country source source_detail confidence <<< "$location_data"
+
+    # Check if location changed
+    local prev_city=$(sqlite3 "$LOCATION_DB" "SELECT city FROM current_location WHERE id = 1;" 2>/dev/null)
+    local location_changed=0
+    [[ "$city" != "$prev_city" ]] && location_changed=1
+
+    # Persist and export
+    _location_persist "$now" "$hostname" "$ssid" "$bssid" "$ip" "$network_type" "$interface" \
+        "$lat" "$lon" "$city" "$region" "$country" "$source" "$source_detail" "$confidence"
+
+    _location_export_env "$lat" "$lon" "$city" "$location_changed"
 
     return 0
 }
