@@ -215,3 +215,5 @@ fi
 
 # Source local config (not in dotfiles repo, for secrets/machine-specific settings)
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
+
+alias gam="/Users/mim/bin/gam7/gam"

@@ -9,3 +9,5 @@ fi
 test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
 
 #CHEF.NO.SOURCE
+
+alias gam="/Users/mim/bin/gam7/gam"
