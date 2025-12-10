@@ -224,19 +224,15 @@ _tmux_emoji_precmd() {
     fi
 
     # Set smart directory title
-    local cmd=$(tmux display-message -p "#{pane_current_command}")
-    if [[ "$cmd" == "zsh" ]] || [[ "$cmd" == "bash" ]]; then
-        local smart_title=$(_tmux_emoji_get_dir_title)
-        # Store in pane variable so hook can use it when switching panes
-        tmux set-option -p @dir_title "$smart_title"
-        tmux rename-window "$smart_title"
-        # Re-enable automatic-rename so long-running commands update the title
-        tmux set-window-option automatic-rename on
-    else
-        tmux rename-window "$cmd"
-        # Re-enable automatic-rename for non-shell commands
-        tmux set-window-option automatic-rename on
-    fi
+    # Note: precmd only runs when the shell is active, so we always set the
+    # directory title here regardless of what pane_current_command reports
+    # (tmux may have a stale value from the just-finished command)
+    local smart_title=$(_tmux_emoji_get_dir_title)
+    # Store in pane variable so hook can use it when switching panes
+    tmux set-option -p @dir_title "$smart_title"
+    tmux rename-window "$smart_title"
+    # Re-enable automatic-rename so long-running commands update the title
+    tmux set-window-option automatic-rename on
 }
 
 # Register hooks - append directly to avoid autoload issues
