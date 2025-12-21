@@ -2,18 +2,27 @@
 
 # Claude wrapper function to prevent shell exit
 claude() {
+    # Capture window ID at start to ensure cleanup targets correct window
+    local window_id=""
+    local pane_id=""
+    if [[ -n "$TMUX" ]]; then
+        window_id=$(tmux display-message -p '#{window_id}')
+        pane_id=$(tmux display-message -p '#{pane_id}')
+    fi
+
     # Function to cleanup tmux and terminal title
     local cleanup() {
         # Clear custom title marker and window-level priority title
-        if [[ -n "$TMUX" ]]; then
-            tmux set-option -p @custom_title ""
-            tmux set-option -w @priority_title ""
+        # Use captured IDs to ensure we target the correct window/pane
+        if [[ -n "$TMUX" && -n "$window_id" ]]; then
+            tmux set-option -t "$pane_id" -p @custom_title ""
+            tmux set-option -t "$window_id" -w @priority_title ""
             # Immediately update window title instead of waiting for precmd
             # This ensures title updates even if user is viewing a different pane
             local smart_title=$(_tmux_emoji_get_dir_title 2>/dev/null || echo "$(basename "$PWD")")
-            tmux set-option -p @dir_title "$smart_title"
-            tmux rename-window "$smart_title"
-            tmux set-window-option automatic-rename on
+            tmux set-option -t "$pane_id" -p @dir_title "$smart_title"
+            tmux rename-window -t "$window_id" "$smart_title"
+            tmux set-window-option -t "$window_id" automatic-rename on
         fi
         # Reset terminal title to zsh
         echo -ne "\033]0;zsh\007"
@@ -25,11 +34,11 @@ claude() {
     # Store custom title in tmux pane option AND window-level priority title (persists across pane switches)
     if [[ -n "$TMUX" ]]; then
         local title="✨ $(basename "$PWD")"
-        tmux set-option -p @custom_title "$title"
-        tmux set-option -w @priority_title "$title"
-        tmux rename-window "$title"
+        tmux set-option -t "$pane_id" -p @custom_title "$title"
+        tmux set-option -t "$window_id" -w @priority_title "$title"
+        tmux rename-window -t "$window_id" "$title"
         # Disable automatic-rename to prevent status-interval from overwriting with @dir_title
-        tmux set-window-option automatic-rename off
+        tmux set-window-option -t "$window_id" automatic-rename off
     fi
 
     # Save current directory
