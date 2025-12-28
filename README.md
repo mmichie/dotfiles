@@ -1,9 +1,9 @@
 dotfiles
 ========
 
-These are my Linux dotfiles. There are many like them, but these are mine.  They
+These are my Unix dotfiles. There are many like them, but these are mine. They
 were hand tailored for me, so understand what you are doing before blindly using
-them.  No warranty provided.
+them. No warranty provided.
 
 Hopefully I don't check in something sensitive here.
 
