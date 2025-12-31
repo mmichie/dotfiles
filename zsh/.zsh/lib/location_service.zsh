@@ -10,6 +10,12 @@ LOCATION_SCHEMA="${LOCATION_SCHEMA:-$HOME/.config/location/schema.sql}"
 LOCATION_UPDATE_INTERVAL="${LOCATION_UPDATE_INTERVAL:-300}"  # 5 minutes
 LOCATION_STALE_THRESHOLD="${LOCATION_STALE_THRESHOLD:-900}"  # 15 minutes
 LOCATION_CONFIG_FILE="${LOCATION_CONFIG_FILE:-$HOME/.config/clima/wifi-locations.conf}"
+LOCATION_DB_TIMEOUT="${LOCATION_DB_TIMEOUT:-5000}"  # 5 second busy timeout
+
+# SQLite wrapper with busy timeout to prevent "database is locked" errors
+_location_sqlite() {
+    sqlite3 -cmd ".timeout $LOCATION_DB_TIMEOUT" "$LOCATION_DB" "$@" 2>/dev/null
+}
 
 # Ensure cache directory exists
 _location_init() {
@@ -22,12 +28,12 @@ _location_init() {
     fi
 
     # Initialize database if it doesn't exist or is empty
-    if [[ ! -f "$LOCATION_DB" ]] || ! sqlite3 "$LOCATION_DB" "SELECT name FROM sqlite_master WHERE type='table' AND name='current_location';" 2>/dev/null | grep -q current_location; then
+    if [[ ! -f "$LOCATION_DB" ]] || ! _location_sqlite "SELECT name FROM sqlite_master WHERE type='table' AND name='current_location';" 2>/dev/null | grep -q current_location; then
         if [[ -f "$LOCATION_SCHEMA" ]]; then
-            sqlite3 "$LOCATION_DB" < "$LOCATION_SCHEMA"
+            _location_sqlite < "$LOCATION_SCHEMA"
         else
             # Create complete schema inline if schema file not found
-            sqlite3 "$LOCATION_DB" <<EOF
+            _location_sqlite <<EOF
 CREATE TABLE IF NOT EXISTS current_location (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   updated_at INTEGER NOT NULL,
@@ -112,7 +118,7 @@ EOF
 location_get() {
     _location_init || return 1
 
-    local result=$(sqlite3 "$LOCATION_DB" "SELECT lat, lon, source, updated_at FROM current_location WHERE id = 1;" 2>/dev/null)
+    local result=$(_location_sqlite "SELECT lat, lon, source, updated_at FROM current_location WHERE id = 1;" 2>/dev/null)
 
     if [[ -n "$result" ]]; then
         echo "$result" | tr '|' ' '
@@ -127,7 +133,7 @@ location_get() {
 location_export() {
     _location_init || return 1
 
-    local result=$(sqlite3 "$LOCATION_DB" "SELECT lat, lon, city, updated_at FROM current_location WHERE id = 1;" 2>/dev/null)
+    local result=$(_location_sqlite "SELECT lat, lon, city, updated_at FROM current_location WHERE id = 1;" 2>/dev/null)
 
     if [[ -n "$result" ]]; then
         local lat lon city updated_at
@@ -146,7 +152,7 @@ location_export() {
 location_is_stale() {
     _location_init || return 0  # Treat as stale if init fails
 
-    local updated_at=$(sqlite3 "$LOCATION_DB" "SELECT updated_at FROM current_location WHERE id = 1;" 2>/dev/null)
+    local updated_at=$(_location_sqlite "SELECT updated_at FROM current_location WHERE id = 1;" 2>/dev/null)
 
     if [[ -z "$updated_at" ]]; then
         return 0  # No location = stale
@@ -263,12 +269,12 @@ _location_lookup_network() {
 
     # Try exact match first (ssid + bssid)
     if [[ -n "$bssid" ]]; then
-        local result=$(sqlite3 "$LOCATION_DB" "SELECT lat, lon, city, region, country_code, confidence, source FROM known_networks WHERE ssid = '$ssid' AND bssid = '$bssid' LIMIT 1;" 2>/dev/null)
+        local result=$(_location_sqlite "SELECT lat, lon, city, region, country_code, confidence, source FROM known_networks WHERE ssid = '$ssid' AND bssid = '$bssid' LIMIT 1;" 2>/dev/null)
         [[ -n "$result" ]] && echo "$result" && return 0
     fi
 
     # Try SSID-only match (empty bssid means any BSSID)
-    local result=$(sqlite3 "$LOCATION_DB" "SELECT lat, lon, city, region, country_code, confidence, source FROM known_networks WHERE ssid = '$ssid' AND bssid = '' LIMIT 1;" 2>/dev/null)
+    local result=$(_location_sqlite "SELECT lat, lon, city, region, country_code, confidence, source FROM known_networks WHERE ssid = '$ssid' AND bssid = '' LIMIT 1;" 2>/dev/null)
     [[ -n "$result" ]] && echo "$result" && return 0
 
     return 1
@@ -395,7 +401,7 @@ _location_persist() {
     city="${city//\'/\'\'}"
     region="${region//\'/\'\'}"
 
-    sqlite3 "$LOCATION_DB" <<EOF
+    _location_sqlite <<EOF
 INSERT OR REPLACE INTO current_location (
   id, updated_at, ssid, bssid, ip_address, network_type, network_interface,
   lat, lon, city, region, country_code,
@@ -482,7 +488,7 @@ location_force() {
     IFS='|' read -r lat lon city region country source source_detail confidence <<< "$location_data"
 
     # Check if location changed
-    local prev_city=$(sqlite3 "$LOCATION_DB" "SELECT city FROM current_location WHERE id = 1;" 2>/dev/null)
+    local prev_city=$(_location_sqlite "SELECT city FROM current_location WHERE id = 1;" 2>/dev/null)
     local location_changed=0
     [[ "$city" != "$prev_city" ]] && location_changed=1
 
@@ -519,7 +525,7 @@ _location_import_config() {
         ssid="${ssid//\'/\'\'}"
 
         # Insert into known_networks (bssid empty string means any BSSID)
-        sqlite3 "$LOCATION_DB" <<EOF
+        _location_sqlite <<EOF
 INSERT OR REPLACE INTO known_networks (
   ssid, bssid, lat, lon, confidence, source, first_seen, last_seen, times_seen
 ) VALUES (
