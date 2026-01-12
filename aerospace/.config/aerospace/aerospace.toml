@@ -35,7 +35,7 @@ cmd-y = 'layout tiles horizontal vertical'  # Changed from cmd-t to avoid confli
 cmd-u = 'layout floating tiling'           # Changed from cmd-f to avoid conflict with "Find"
 cmd-tab = 'layout tiles horizontal vertical' # Changed to avoid conflicts
 cmd-semicolon = 'layout tiles accordion floating' # Cycle through layouts (changed from cmd-space to avoid Spotlight conflict)
-cmd-shift-space = 'layout floating tiling'  # Toggle float for focused window
+cmd-shift-t = 'layout floating tiling'       # Toggle float for focused window
 cmd-shift-f = 'fullscreen'                 # Toggle fullscreen
 
 # Basic window operations (dwm-style)
@@ -118,7 +118,7 @@ run = ['layout tiling', 'move-node-to-workspace 1']
 
 [[on-window-detected]]
 if.app-id = 'com.google.Chrome'
-run = ['move-node-to-workspace 2']
+run = ['layout tiling', 'move-node-to-workspace 2']
 
 [[on-window-detected]]
 if.app-id = 'com.microsoft.VSCode'
