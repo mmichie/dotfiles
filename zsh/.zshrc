@@ -217,4 +217,4 @@ fi
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
 
 alias gam="/Users/mim/bin/gam7/gam"
-source /Users/mim/.config/op/plugins.sh
+# source /Users/mim/.config/op/plugins.sh  # disabled - use AWS SSO instead
