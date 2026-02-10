@@ -1,33 +1,37 @@
 #!/bin/bash
+set -euo pipefail
 
-# Change to the directory where the script is located
 cd "$(dirname "$0")"
 
 # Update Git submodules
 echo "Updating git submodules..."
 git submodule update --init --recursive
-if [ $? -ne 0 ]; then
-    echo "Failed to update git submodules."
-    exit 1
-fi
 
-# List of directories to stow
-stow_dirs=("utils" "tmux" "system" "ssh" "osx" "mail" "git" "fonts" "x11" "bin" "screen" "vim" "bash" "zsh" "yabai" "wezterm" "eza" "aerospace" "nvim" "ghostty" "karabiner")
+# Directories to stow (alphabetical)
+stow_dirs=(
+    aerospace
+    bin
+    ghostty
+    git
+    karabiner
+    nvim
+    osx
+    ssh
+    system
+    tmux
+    wezterm
+    zsh
+)
 
 # Stow directories
 echo "Stowing directories..."
 for dir in "${stow_dirs[@]}"; do
     if [ -d "$dir" ]; then
         stow "$dir" -t ~
-        if [ $? -eq 0 ]; then
-            echo "Successfully stowed $dir"
-        else
-            echo "Failed to stow $dir"
-        fi
+        echo "  stowed $dir"
     else
-        echo "Directory $dir does not exist, skipping..."
+        echo "  skipped $dir (not found)"
     fi
 done
 
-echo "Stow process completed."
-
+echo "Stow complete."
