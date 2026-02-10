@@ -51,7 +51,7 @@ git submodule update --init --recursive
 # Stow dotfiles
 # -----------------------------------------------------------------------------
 info "Stowing dotfiles..."
-"$DOTFILES_DIR/install_dotfiles.sh"
+"$DOTFILES_DIR/stow.sh"
 
 # -----------------------------------------------------------------------------
 # macOS defaults
