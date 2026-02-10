@@ -10,14 +10,17 @@ This is a personal dotfiles repository that uses GNU Stow for symlink management
 
 ### Installation and Setup
 ```bash
-# Install all dotfiles
-./install_dotfiles.sh
+# Full new-machine setup (Homebrew, packages, stow, macOS defaults)
+./bootstrap.sh
 
-# Install specific configuration (using stow)
+# Stow only (symlink configs to home directory)
+./stow.sh
+
+# Install specific configuration
 stow -t ~ zsh  # Example: install only zsh configs
 
-# Update git submodules
-git submodule update --init --recursive
+# Install packages from Brewfile
+brew bundle --file=brew/Brewfile
 ```
 
 ### Development Commands
@@ -58,12 +61,12 @@ Located in `zsh/.zsh/lib/path_manager.zsh`, implements a priority-based PATH man
 - Recent additions: atuin (history), vivid (ls colors)
 
 ### Installation Process
-1. `install_dotfiles.sh` updates git submodules
-2. Uses GNU Stow to create symlinks from repo directories to home directory
-3. Stows these configs: utils, tmux, system, ssh, osx, mail, git, fonts, brew, x11, bin, screen, vim, bash, zsh, yabai, wezterm, eza, aerospace, nvim
+1. `bootstrap.sh` installs Xcode CLI tools, Homebrew, and packages from `brew/Brewfile`
+2. `stow.sh` updates git submodules and symlinks configs to the home directory
+3. Stowed configs: aerospace, bin, ghostty, git, karabiner, nvim, osx, ssh, system, tmux, wezterm, zsh
 
 ## Dependencies
 - **GNU Stow**: Required for dotfile management
-- **Git submodules**: fasd, diff-so-fancy
-- **Homebrew** (macOS): Package manager for installing tools
+- **Git submodules**: diff-so-fancy
+- **Homebrew** (macOS): Package manager, packages declared in `brew/Brewfile`
 - **Platform binaries**: fzf, intu (multiple architectures in `bin/bin/`)
