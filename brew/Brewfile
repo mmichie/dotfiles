@@ -1,0 +1,345 @@
+# Brewfile - declarative package manifest
+# Install: brew bundle --file=brew/Brewfile
+# Check what's missing: brew bundle check --file=brew/Brewfile
+
+# =============================================================================
+# Taps
+# =============================================================================
+tap "homebrew/services"
+tap "nikitabobko/tap"                  # aerospace
+tap "felixkratz/formulae"              # sketchybar
+tap "mistertea/et"                     # eternal terminal
+tap "stripe/stripe-cli"
+# tap "browsh-org/browsh"              # text-mode browser
+# tap "cryfs/tap"                      # encrypted filesystem
+
+# =============================================================================
+# Core CLI & Shell
+# =============================================================================
+brew "coreutils"                       # GNU coreutils
+brew "findutils"                       # GNU find, xargs
+brew "binutils"                        # GNU binutils
+brew "moreutils"                       # sponge, parallel, etc.
+brew "gnupg"
+brew "pinentry-mac"                    # GPG pin entry for macOS
+brew "stow"                            # symlink manager
+brew "git"
+brew "gh"                              # GitHub CLI
+brew "git-filter-repo"                 # git history rewriting
+brew "curl"
+brew "wget"
+brew "watch"
+brew "pv"                              # pipe viewer
+brew "jq"                              # JSON processor
+brew "yq"                              # YAML processor
+brew "ripgrep"
+brew "fd"                              # find replacement
+brew "fzf"                             # fuzzy finder
+brew "zsh-completions"
+brew "zoxide"                          # smart cd
+brew "ssh-copy-id"
+brew "telnet"
+
+# =============================================================================
+# Shell Experience
+# =============================================================================
+brew "atuin"                           # shell history
+brew "vivid"                           # LS_COLORS generator
+brew "eza"                             # ls replacement
+brew "bat"                             # cat replacement
+brew "gum"                             # TUI scripting
+brew "duf"                             # df replacement
+brew "dust"                            # du replacement
+brew "gping"                           # ping with graph
+brew "bandwhich"                       # network monitor
+brew "moor"                            # pager
+brew "procs"                           # ps replacement
+brew "btop"                            # system monitor
+brew "htop"                            # process viewer
+brew "starship"                        # shell prompt
+brew "diff-so-fancy"                   # git diff pager
+
+# =============================================================================
+# Editors
+# =============================================================================
+brew "neovim"
+brew "vim"
+
+# =============================================================================
+# Terminal Multiplexer
+# =============================================================================
+brew "tmux"
+
+# =============================================================================
+# Development - Go
+# =============================================================================
+brew "go"
+brew "gopls"                           # Go language server
+brew "golangci-lint"                   # Go linter
+brew "staticcheck"                     # Go static analysis
+
+# =============================================================================
+# Development - Rust
+# =============================================================================
+brew "rust"
+
+# =============================================================================
+# Development - Python
+# =============================================================================
+brew "pyenv"                           # Python version manager
+brew "pipx"                            # isolated pip installs
+brew "pyright"                         # Python type checker
+brew "ruff"                            # Python linter/formatter
+brew "poetry"                          # dependency manager
+brew "uv"                              # fast pip replacement
+brew "ipython"                         # interactive Python
+# brew "pypy"                          # PyPy interpreter
+# brew "python@3.12"                   # specific Python version (pyenv preferred)
+
+# =============================================================================
+# Development - Node
+# =============================================================================
+brew "nvm"                             # Node version manager
+brew "prettier"                        # code formatter
+
+# =============================================================================
+# Development - JVM
+# =============================================================================
+# brew "openjdk@17"                    # Java 17
+# brew "kotlin"
+# brew "ktlint"                        # Kotlin linter
+# brew "gradle"                        # build tool
+# brew "clojure"
+
+# =============================================================================
+# Development - C/C++
+# =============================================================================
+brew "cmake"
+brew "clang-format"
+# brew "googletest"                    # C++ testing framework
+# brew "meson"                         # build system
+
+# =============================================================================
+# Development - Other
+# =============================================================================
+brew "shellcheck"                      # shell script linter
+brew "pre-commit"                      # git hook manager
+brew "tokei"                           # code counter
+# brew "scc"                           # code counter
+# brew "cloc"                          # code counter
+# brew "sbcl"                          # Common Lisp
+# brew "fpc"                           # Free Pascal
+
+# =============================================================================
+# Infrastructure & Cloud
+# =============================================================================
+brew "awscli"
+brew "kubernetes-cli"
+brew "helm"                            # k8s package manager
+brew "stern"                           # k8s log tailing
+brew "kind"                            # k8s in docker
+brew "minikube"                        # local k8s
+brew "docker-compose"
+brew "opentofu"                        # terraform alternative
+brew "infracost"                       # cloud cost estimates
+brew "tailscale"                       # mesh VPN
+brew "ansible"                         # configuration management
+brew "steampipe"                       # cloud query engine
+# brew "driftctl"                      # infrastructure drift detection
+# brew "stripe/stripe-cli/stripe"      # Stripe CLI
+# brew "jsonnet"                       # data templating language
+
+# =============================================================================
+# Database
+# =============================================================================
+brew "mysql-client"
+brew "mongosh"                         # MongoDB shell
+brew "redis"
+# brew "golang-migrate"                # database migrations
+
+# =============================================================================
+# Network & Security
+# =============================================================================
+brew "nmap"                            # network scanner
+brew "socat"                           # socket relay
+brew "mtr"                             # traceroute + ping
+brew "iftop"                           # network bandwidth monitor
+brew "wireshark"                       # packet capture
+brew "sslscan"                         # SSL/TLS scanner
+brew "sshuttle"                        # SSH-based VPN
+brew "mistertea/et/et"                 # eternal terminal
+# brew "nghttp2"                       # HTTP/2 tools
+# brew "tcpflow"                       # TCP flow recorder
+# brew "dns2tcp"                       # DNS tunneling
+# brew "knock"                         # port knocking
+# brew "ucspi-tcp"                     # TCP client-server tools
+
+# Pentest/CTF
+# brew "aircrack-ng"                   # wifi security
+# brew "hashcat"                       # password recovery
+# brew "hashpump"                      # hash length extension
+# brew "hcxtools"                      # wifi capture tools
+# brew "hydra"                         # login brute-force
+# brew "john"                          # password cracker
+# brew "sqlmap"                        # SQL injection
+# brew "fcrackzip"                     # zip password cracker
+# brew "foremost"                      # file carving
+# brew "cifer"                         # cipher tools
+# brew "dex2jar"                       # Android DEX to JAR
+# brew "ghidra"                        # reverse engineering
+
+# =============================================================================
+# Media & Documents
+# =============================================================================
+brew "ffmpeg"                          # video/audio processing
+brew "imagemagick"                     # image processing
+brew "pandoc"                          # document converter
+brew "yt-dlp"                          # video downloader
+# brew "povray"                        # ray tracer
+# brew "plantuml"                      # UML diagrams
+# brew "hugo"                          # static site generator
+
+# =============================================================================
+# Misc CLI
+# =============================================================================
+brew "rclone"                          # cloud storage sync
+brew "restic"                          # backups
+brew "pstree"                          # process tree
+brew "dos2unix"                        # line ending conversion
+brew "p7zip"                           # 7zip
+brew "xz"                              # compression
+brew "mmv"                             # bulk rename
+brew "glow"                            # markdown viewer
+brew "terminal-notifier"               # macOS notifications
+brew "osx-cpu-temp"                    # CPU temperature
+brew "asciinema"                       # terminal recorder
+brew "agg"                             # asciinema gif renderer
+brew "vhs"                             # terminal recorder
+brew "cheat"                           # cheatsheets
+brew "expect"                          # interactive automation
+brew "speedtest-cli"
+brew "tree"                            # directory listing
+brew "ack"                             # text search
+# brew "ranger"                        # file manager
+# brew "pass"                          # password manager (GPG-based)
+# brew "pass-otp"                      # OTP for pass
+# brew "ffind"                         # file finder
+# brew "neofetch"                      # system info (unmaintained)
+# brew "cointop"                       # crypto ticker
+# brew "beancount"                     # plain text accounting
+# brew "dosbox-staging"                # DOS emulator
+# brew "dosbox-x"                      # DOS emulator (extended)
+# brew "dwm"                           # X11 window manager
+# brew "qemu"                          # machine emulator
+# brew "upx"                           # binary packer
+# brew "unshield"                      # CAB extractor
+# brew "msitools"                      # MSI tools
+# brew "ent"                           # entropy testing
+# brew "act"                           # GitHub Actions local runner
+# brew "cvs"                           # version control
+# brew "tidy-html5"                    # HTML formatter
+# brew "pngcheck"                      # PNG validator
+# brew "zenity"                        # GTK dialogs
+# brew "claudekit"                     # Claude macOS integration
+# brew "chawan"                        # text browser
+# brew "glances"                       # system monitor
+# brew "ollama"                        # local LLM runtime
+# brew "cryfs/tap/cryfs"              # encrypted filesystem
+# brew "pam-reattach"                  # tmux + Touch ID
+# brew "macfuse"                       # FUSE for macOS
+# brew "felixkratz/formulae/sketchybar"  # macOS status bar
+# brew "xcodegen"                      # Xcode project generator
+# brew "transcrypt"                    # git encryption
+# brew "bfg"                           # git history cleaner
+# brew "graphviz"                      # graph visualization
+
+# =============================================================================
+# Casks - GUI Applications
+# =============================================================================
+
+# Browsers
+cask "google-chrome"
+# cask "brave-browser"                 # privacy-focused browser
+
+# Terminals
+cask "ghostty"                         # primary terminal
+cask "wezterm"                         # backup terminal
+# cask "alacritty"                     # GPU-accelerated terminal
+# cask "kitty"                         # GPU-accelerated terminal
+
+# Development
+cask "docker-desktop"
+cask "zed"                             # editor
+# cask "sourcetree"                    # Git GUI
+# cask "http-toolkit"                  # HTTP debugging proxy
+# cask "postman"                       # API client
+# cask "ngrok"                         # tunnel to localhost
+
+# Productivity
+cask "obsidian"                        # notes
+cask "slack"
+cask "zoom"
+cask "1password-cli"
+# cask "notion"                        # notes/wiki
+# cask "evernote"                      # notes
+# cask "microsoft-teams"               # chat
+# cask "maccy"                         # clipboard manager
+
+# Window Management
+cask "nikitabobko/tap/aerospace"       # tiling window manager
+cask "karabiner-elements"              # keyboard customization
+# cask "amethyst"                      # tiling window manager
+# cask "moom"                          # window manager
+
+# Media
+cask "vlc"                             # media player
+cask "spotify"
+# cask "handbrake-app"                 # video transcoder
+# cask "gimp"                          # image editor
+# cask "inkscape"                      # vector graphics editor
+
+# Utilities
+cask "keka"                            # archive tool
+# cask "cyberduck"                     # FTP/S3 client
+# cask "kindle"                        # ebook reader
+# cask "transmission"                  # torrent client
+# cask "multipass"                     # Ubuntu VMs
+# cask "osquery"                       # system analytics
+# cask "rar"                           # archive tool
+# cask "monodraw"                      # ASCII art editor
+
+# Gaming
+# cask "steam"                         # game store
+# cask "dosbox"                        # DOS emulator
+# cask "wine-stable"                   # Windows compatibility
+
+# Crypto
+# cask "trezor-suite"                  # hardware wallet
+
+# Fonts
+cask "font-hack-nerd-font"
+cask "font-iosevka"
+
+# Other
+# cask "basictex"                      # minimal LaTeX
+# cask "xquartz"                       # X11 for macOS
+# cask "session-manager-plugin"        # AWS SSM
+# cask "kiro-cli"                      # Amazon Kiro IDE
+
+# =============================================================================
+# VS Code Extensions
+# =============================================================================
+# vscode "vscodevim.vim"
+# vscode "github.copilot"
+# vscode "github.copilot-chat"
+# vscode "golang.go"
+# vscode "rust-lang.rust-analyzer"
+# vscode "ms-python.python"
+# vscode "hashicorp.terraform"
+# vscode "redhat.vscode-yaml"
+# vscode "ms-azuretools.vscode-docker"
+# vscode "esbenp.prettier-vscode"
+# vscode "charliermarsh.ruff"
+# vscode "tamasfe.even-better-toml"
+# vscode "github.vscode-github-actions"
+# vscode "github.vscode-pull-request-github"
