@@ -50,6 +50,14 @@ info "Installing packages from Brewfile..."
 brew bundle --file="$DOTFILES_DIR/brew/Brewfile"
 
 # -----------------------------------------------------------------------------
+# Claude Code
+# -----------------------------------------------------------------------------
+if ! command -v claude &>/dev/null; then
+    info "Installing Claude Code..."
+    curl -fsSL https://claude.ai/install.sh | bash
+fi
+
+# -----------------------------------------------------------------------------
 # Git submodules
 # -----------------------------------------------------------------------------
 info "Updating git submodules..."
