@@ -148,18 +148,6 @@ defaults write com.apple.dock mru-spaces -bool false
 defaults write com.apple.spaces spans-displays -bool true
 
 ###############################################################################
-# Safari                                                                      #
-###############################################################################
-
-# Enable the Develop menu and Web Inspector
-defaults write com.apple.Safari IncludeDevelopMenu -bool true
-defaults write com.apple.Safari WebKitDeveloperExtrasEnabledPreferenceKey -bool true
-defaults write com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled -bool true
-
-# Add a context menu item for showing the Web Inspector in web views
-defaults write NSGlobalDomain WebKitDeveloperExtras -bool true
-
-###############################################################################
 # Activity Monitor                                                            #
 ###############################################################################
 
@@ -170,7 +158,7 @@ defaults write com.apple.ActivityMonitor ShowCategory -int 109
 # Kill affected applications                                                  #
 ###############################################################################
 
-for app in "Dock" "Finder" "Safari" "SystemUIServer"; do
+for app in "Dock" "Finder" "SystemUIServer"; do
     killall "$app" > /dev/null 2>&1
 done
 echo "Done. Some changes require a logout or restart to take effect."

@@ -52,7 +52,7 @@ brew bundle --file="$DOTFILES_DIR/brew/Brewfile"
 # -----------------------------------------------------------------------------
 # Claude Code
 # -----------------------------------------------------------------------------
-if ! command -v claude &>/dev/null; then
+if ! command -v claude &>/dev/null && [ ! -x "$HOME/.local/bin/claude" ]; then
     info "Installing Claude Code..."
     curl -fsSL https://claude.ai/install.sh | bash
 fi

@@ -7,6 +7,7 @@ readonly ONEPASSWORD_SOCKET="$HOME/Library/Group Containers/2BUA8C4S2C.com.1pass
 
 # List of hostnames where SSH agent should be started
 readonly SSH_HOSTNAMES=(
+    "mim-moab"
     "mattmichie-mbp"
     "matt-pc"
     "miley"
