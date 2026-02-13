@@ -11,6 +11,7 @@ git submodule update --init --recursive
 stow_dirs=(
     aerospace
     bin
+    claude
     ghostty
     git
     karabiner
