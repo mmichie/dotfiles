@@ -272,6 +272,7 @@ cask "zed"                             # editor
 
 # Productivity
 cask "obsidian"                        # notes
+cask "discord"
 cask "signal"                          # encrypted messaging
 cask "slack"
 cask "zoom"
