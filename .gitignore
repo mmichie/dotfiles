@@ -17,6 +17,7 @@ bin/bin/gam7/
 
 # Claude-specific files
 .claude/
+!claude/.claude/
 *.claudecontext
 .claude-cache/
 .claude-session/
