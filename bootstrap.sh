@@ -47,7 +47,7 @@ brew update
 # Brew Bundle (install packages from Brewfile)
 # -----------------------------------------------------------------------------
 info "Installing packages from Brewfile..."
-brew bundle --file="$DOTFILES_DIR/brew/Brewfile" --no-lock
+brew bundle --file="$DOTFILES_DIR/brew/Brewfile"
 
 # -----------------------------------------------------------------------------
 # Git submodules
