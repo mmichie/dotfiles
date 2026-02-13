@@ -5,7 +5,6 @@
 # =============================================================================
 # Taps
 # =============================================================================
-tap "homebrew/services"
 tap "nikitabobko/tap"                  # aerospace
 tap "felixkratz/formulae"              # sketchybar
 tap "mistertea/et"                     # eternal terminal
