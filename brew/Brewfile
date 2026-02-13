@@ -140,7 +140,7 @@ brew "minikube"                        # local k8s
 brew "docker-compose"
 brew "opentofu"                        # terraform alternative
 brew "infracost"                       # cloud cost estimates
-brew "tailscale"                       # mesh VPN
+# brew "tailscale"                     # mesh VPN (CLI only, prefer cask)
 brew "ansible"                         # configuration management
 brew "steampipe"                       # cloud query engine
 # brew "driftctl"                      # infrastructure drift detection
@@ -297,6 +297,8 @@ cask "spotify"
 # cask "inkscape"                      # vector graphics editor
 
 # Utilities
+cask "tailscale"                       # mesh VPN
+cask "scroll-reverser"                 # independent scroll direction per device
 cask "keka"                            # archive tool
 # cask "cyberduck"                     # FTP/S3 client
 # cask "kindle"                        # ebook reader
