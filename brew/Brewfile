@@ -274,6 +274,7 @@ cask "zed"                             # editor
 cask "obsidian"                        # notes
 cask "slack"
 cask "zoom"
+cask "1password"
 cask "1password-cli"
 # cask "notion"                        # notes/wiki
 # cask "evernote"                      # notes
