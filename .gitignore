@@ -34,5 +34,8 @@ system/.config/clima/wifi-locations.conf
 # Compiled zsh files (zcompile output)
 *.zwc
 
+# Brew bundle lockfile
+Brewfile.lock.json
+
 # Build artifacts
 bin/wifi-location-go/build/
