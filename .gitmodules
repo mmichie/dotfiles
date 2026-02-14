@@ -1,9 +1,6 @@
 [submodule "utils/fasd"]
 	path = bin/bin/fasd
 	url = https://github.com/clvv/fasd
-[submodule "bin/bin/diff-so-fancy"]
-	path = bin/bin/diff-so-fancy
-	url = https://github.com/so-fancy/diff-so-fancy
 [submodule "tmux/.config/tmux/plugins/tpm"]
 	path = tmux/.config/tmux/plugins/tpm
 	url = https://github.com/tmux-plugins/tpm
