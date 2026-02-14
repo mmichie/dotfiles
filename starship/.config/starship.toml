@@ -59,13 +59,13 @@ format = "$symbol"
 
 [custom.path]
 when = "true"
-command = "~/.config/starship/path.sh"
+command = "~/.config/starship/starship-segments path"
 format = "$output"
 shell = ["bash", "--noprofile", "--norc"]
 
 [custom.gitstatus]
 when = "git rev-parse --is-inside-work-tree 2>/dev/null"
-command = "~/.config/starship/gitstatus.sh"
+command = "~/.config/starship/starship-segments git"
 format = "$output"
 shell = ["bash", "--noprofile", "--norc"]
 
