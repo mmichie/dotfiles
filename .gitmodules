@@ -1,6 +1,3 @@
-[submodule "utils/fasd"]
-	path = bin/bin/fasd
-	url = https://github.com/clvv/fasd
 [submodule "tmux/.config/tmux/plugins/tpm"]
 	path = tmux/.config/tmux/plugins/tpm
 	url = https://github.com/tmux-plugins/tpm
