@@ -84,6 +84,7 @@ brew "rust"
 # =============================================================================
 # Development - Python
 # =============================================================================
+brew "mise"                            # runtime version manager
 brew "pyenv"                           # Python version manager
 brew "pipx"                            # isolated pip installs
 brew "pyright"                         # Python type checker
@@ -144,7 +145,7 @@ brew "infracost"                       # cloud cost estimates
 brew "ansible"                         # configuration management
 brew "steampipe"                       # cloud query engine
 # brew "driftctl"                      # infrastructure drift detection
-# brew "stripe/stripe-cli/stripe"      # Stripe CLI
+brew "stripe/stripe-cli/stripe"
 # brew "jsonnet"                       # data templating language
 
 # =============================================================================
@@ -244,7 +245,7 @@ brew "ack"                             # text search
 # brew "macfuse"                       # FUSE for macOS
 # brew "felixkratz/formulae/sketchybar"  # macOS status bar
 # brew "xcodegen"                      # Xcode project generator
-# brew "transcrypt"                    # git encryption
+brew "transcrypt"                      # git encryption
 # brew "bfg"                           # git history cleaner
 # brew "graphviz"                      # graph visualization
 
@@ -292,16 +293,17 @@ cask "karabiner-elements"              # keyboard customization
 # Media
 cask "vlc"                             # media player
 cask "spotify"
-# cask "handbrake-app"                 # video transcoder
+cask "handbrake"                       # video transcoder
 # cask "gimp"                          # image editor
 # cask "inkscape"                      # vector graphics editor
 
 # Utilities
 cask "tailscale"                       # mesh VPN
+cask "hazeover"                        # window dimming
 cask "scroll-reverser"                 # independent scroll direction per device
 cask "keka"                            # archive tool
 # cask "cyberduck"                     # FTP/S3 client
-# cask "kindle"                        # ebook reader
+cask "kindle"                          # ebook reader
 # cask "transmission"                  # torrent client
 # cask "multipass"                     # Ubuntu VMs
 # cask "osquery"                       # system analytics
@@ -309,7 +311,7 @@ cask "keka"                            # archive tool
 # cask "monodraw"                      # ASCII art editor
 
 # Gaming
-# cask "steam"                         # game store
+cask "steam"                           # game store
 # cask "dosbox"                        # DOS emulator
 # cask "wine-stable"                   # Windows compatibility
 
