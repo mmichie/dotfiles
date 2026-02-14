@@ -67,6 +67,5 @@ Located in `zsh/.zsh/lib/path_manager.zsh`, implements a priority-based PATH man
 
 ## Dependencies
 - **GNU Stow**: Required for dotfile management
-- **Git submodules**: diff-so-fancy
 - **Homebrew** (macOS): Package manager, packages declared in `brew/Brewfile`
 - **Platform binaries**: fzf, intu (multiple architectures in `bin/bin/`)

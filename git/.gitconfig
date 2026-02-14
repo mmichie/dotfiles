@@ -5,7 +5,18 @@
 
 [core]
 	excludesfile = ~/.gitignore_global
-	pager = ~/bin/diff-so-fancy/diff-so-fancy | less --tabs=4 -RFX
+	pager = delta
+
+[interactive]
+	diffFilter = delta --color-only
+
+[delta]
+	navigate = true
+	line-numbers = true
+	syntax-theme = Dracula
+
+[merge]
+	conflictstyle = zdiff3
 
 [color]
 	branch = on

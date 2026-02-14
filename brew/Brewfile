@@ -56,7 +56,7 @@ brew "procs"                           # ps replacement
 brew "btop"                            # system monitor
 brew "htop"                            # process viewer
 brew "starship"                        # shell prompt
-brew "diff-so-fancy"                   # git diff pager
+brew "git-delta"                       # git diff pager
 
 # =============================================================================
 # Editors
