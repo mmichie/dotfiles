@@ -8,12 +8,8 @@ $python\
 $username\
 [](fg:240 bg:238)\
 $hostname\
-[](fg:238 bg:31)\
-$directory\
-${custom.git_clean}\
-${custom.git_dirty}\
-$git_state\
-$git_status\
+${custom.path}\
+${custom.gitstatus}\
 ${custom.dir_end}\
 $status\
 $cmd_duration\
@@ -29,16 +25,12 @@ format = "[ $user ]($style)"
 
 [hostname]
 ssh_only = false
-ssh_symbol = " "
+ssh_symbol = " "
 style = "bg:238 fg:250"
 format = "[ $ssh_symbol$hostname ]($style)"
 
 [directory]
-style = "bg:31 fg:15"
-read_only = " "
-read_only_style = "bg:31 fg:yellow"
-format = "[ $path ]($style)[$read_only]($read_only_style)"
-truncation_length = 5
+disabled = true
 
 [git_branch]
 disabled = true
@@ -47,22 +39,10 @@ disabled = true
 disabled = true
 
 [git_state]
-style = "bg:161 fg:yellow"
-format = "[ $state( $progress_current/$progress_total)]($style)"
-
+disabled = true
 
 [git_status]
-format = """([ $ahead_behind$staged$modified$untracked$conflicted$stashed](bg:161)[](fg:161 bg:236))"""
-ahead = "[${count}⬆](fg:15 bg:161) "
-behind = "[${count}⬇](fg:15 bg:161) "
-diverged = "[${ahead_count}⬆ ${behind_count}⬇](fg:15 bg:161) "
-staged = "[${count}✔](fg:15 bg:161) "
-modified = "[${count}✎](fg:15 bg:161) "
-untracked = "[${count}+](fg:15 bg:161) "
-conflicted = "[${count}✼](fg:15 bg:161) "
-stashed = "[${count}⚑](fg:15 bg:161) "
-renamed = ""
-deleted = ""
+disabled = true
 
 [python]
 format = '([\($virtualenv\) ](fg:green))'
@@ -77,21 +57,21 @@ success_symbol = "[ \\$ ](bg:236 fg:15)"
 error_symbol = "[ \\$ ](bg:236 fg:red)"
 format = "$symbol"
 
-[custom.git_clean]
-when = 'git diff --quiet --ignore-submodules HEAD 2>/dev/null && test -z "$(git status --porcelain 2>/dev/null)"'
-command = "git branch --show-current 2>/dev/null || git rev-parse --short HEAD"
-format = "[](fg:31 bg:148)[  $output ](fg:0 bg:148)[](fg:148 bg:236)"
+[custom.path]
+when = "true"
+command = "~/.config/starship/path.sh"
+format = "$output"
 shell = ["bash", "--noprofile", "--norc"]
 
-[custom.git_dirty]
-when = 'git rev-parse --is-inside-work-tree 2>/dev/null && ! (git diff --quiet --ignore-submodules HEAD 2>/dev/null && test -z "$(git status --porcelain 2>/dev/null)")'
-command = "git branch --show-current 2>/dev/null || git rev-parse --short HEAD"
-format = "[](fg:31 bg:161)[  $output ](fg:15 bg:161)"
+[custom.gitstatus]
+when = "git rev-parse --is-inside-work-tree 2>/dev/null"
+command = "~/.config/starship/gitstatus.sh"
+format = "$output"
 shell = ["bash", "--noprofile", "--norc"]
 
 [custom.dir_end]
 when = "! git rev-parse --is-inside-work-tree 2>/dev/null"
-format = "[](fg:31 bg:236)"
+format = "[](fg:237 bg:236)"
 shell = ["bash", "--noprofile", "--norc"]
 
 # Disable unused modules for speed
