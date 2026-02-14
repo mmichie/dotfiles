@@ -12,6 +12,8 @@ $hostname\
 $directory\
 ([](fg:31 bg:161)\
 $git_branch\
+$git_commit\
+$git_state\
 $git_status\
 [](fg:161 bg:236))\
 ${custom.dir_end}\
@@ -39,6 +41,17 @@ truncation_length = 5
 [git_branch]
 style = "bg:161 fg:15"
 format = "[  $branch ]($style)"
+
+[git_commit]
+style = "bg:161 fg:15"
+format = "[ $hash]($style)"
+only_detached = true
+tag_disabled = false
+tag_symbol = "  "
+
+[git_state]
+style = "bg:161 fg:yellow"
+format = "[ $state( $progress_current/$progress_total)]($style)"
 
 [git_status]
 style = "bg:161 fg:15"
