@@ -12,6 +12,7 @@ $hostname\
 $directory\
 ${custom.git_clean}\
 ${custom.git_dirty}\
+$git_state\
 $git_status\
 ${custom.dir_end}\
 $status\
@@ -27,8 +28,9 @@ format = "[ $user ]($style)"
 
 [hostname]
 ssh_only = false
+ssh_symbol = " "
 style = "bg:238 fg:250"
-format = "[ $hostname ]($style)"
+format = "[ $ssh_symbol$hostname ]($style)"
 
 [directory]
 style = "bg:31 fg:15"
@@ -42,7 +44,8 @@ disabled = true
 disabled = true
 
 [git_state]
-disabled = true
+style = "bg:161 fg:yellow"
+format = "[ $state( $progress_current/$progress_total)]($style)"
 
 
 [git_status]
