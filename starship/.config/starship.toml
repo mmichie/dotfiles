@@ -1,0 +1,87 @@
+# Starship prompt - powerline-go style
+# Matches: venv, user, host, cwd, git, exit, prompt
+
+add_newline = false
+
+format = """
+$python\
+[](fg:240)\
+$username\
+[](fg:240 bg:238)\
+$hostname\
+[](fg:238 bg:31)\
+$directory\
+([](fg:31 bg:161)\
+$git_branch\
+$git_status\
+[](fg:161 bg:236))\
+${custom.dir_end}\
+$status\
+$character\
+[](fg:236) """
+
+[username]
+show_always = true
+style_user = "bg:240 fg:250"
+style_root = "bg:240 fg:red bold"
+format = "[ $user ]($style)"
+
+[hostname]
+ssh_only = false
+style = "bg:238 fg:250"
+format = "[ $hostname ]($style)"
+
+[directory]
+style = "bg:31 fg:15"
+format = "[ $path ]($style)"
+truncation_length = 5
+
+[git_branch]
+style = "bg:161 fg:15"
+format = "[  $branch ]($style)"
+
+[git_status]
+style = "bg:161 fg:15"
+format = "([ $all_status$ahead_behind]($style))"
+
+[python]
+format = '([\($virtualenv\) ](fg:green))'
+
+[status]
+disabled = false
+style = "bg:red fg:15"
+format = "[](fg:236 bg:red)[ $int ]($style)[](fg:red bg:236)"
+
+[character]
+success_symbol = "[ \\$ ](bg:236 fg:15)"
+error_symbol = "[ \\$ ](bg:236 fg:red)"
+format = "$symbol"
+
+[custom.dir_end]
+when = "! git rev-parse --is-inside-work-tree 2>/dev/null"
+format = "[](fg:31 bg:236)"
+shell = ["bash", "--noprofile", "--norc"]
+
+# Disable unused modules for speed
+[aws]
+disabled = true
+[gcloud]
+disabled = true
+[nodejs]
+disabled = true
+[rust]
+disabled = true
+[golang]
+disabled = true
+[java]
+disabled = true
+[package]
+disabled = true
+[docker_context]
+disabled = true
+[cmd_duration]
+disabled = true
+[line_break]
+disabled = true
+[jobs]
+disabled = true

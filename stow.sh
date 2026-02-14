@@ -18,6 +18,7 @@ stow_dirs=(
     nvim
     osx
     ssh
+    starship
     system
     tmux
     wezterm
