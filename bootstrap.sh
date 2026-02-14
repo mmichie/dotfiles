@@ -58,6 +58,14 @@ if ! command -v claude &>/dev/null && [ ! -x "$HOME/.local/bin/claude" ]; then
 fi
 
 # -----------------------------------------------------------------------------
+# Beads CLI
+# -----------------------------------------------------------------------------
+if ! command -v beads &>/dev/null; then
+    info "Installing Beads CLI..."
+    curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
+fi
+
+# -----------------------------------------------------------------------------
 # Git submodules
 # -----------------------------------------------------------------------------
 info "Updating git submodules..."
