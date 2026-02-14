@@ -8,41 +8,10 @@ green="[32m"
 yellow="[33m"
 blue="[34m"
 
-# Cache the powerline-go path
-_cached_powerline_cmd=""
-
-# Detect the appropriate powerline command only once
-_detect_powerline_cmd() {
-    if [[ -z "$_cached_powerline_cmd" ]]; then
-        if is_osx; then
-            if is_arm; then
-                _cached_powerline_cmd="$HOME/bin/powerline-go-darwin-arm64"
-            else
-                _cached_powerline_cmd="$HOME/bin/powerline-go-darwin-amd64"
-            fi
-        elif is_linux; then
-            if is_arm; then
-                _cached_powerline_cmd="$HOME/bin/powerline-go-linux-arm64"
-            else
-                _cached_powerline_cmd="$HOME/bin/powerline-go-linux-amd64"
-            fi
-        fi
-        
-        # If not executable, set to empty
-        if [[ -n "$_cached_powerline_cmd" ]] && [[ ! -x "$_cached_powerline_cmd" ]]; then
-            _cached_powerline_cmd=""
-        fi
-    fi
-}
-
-# Initialize powerline command on load
-_detect_powerline_cmd
-
-# Update PS1 prompt
-update_ps1() {
-    # Check if the powerline_cmd is available
-    if [[ -n "$_cached_powerline_cmd" ]]; then
-        PS1="$($_cached_powerline_cmd -error $? -jobs $(jobs -p | wc -l))"
+# Initialize starship prompt
+_init_starship() {
+    if command -v starship &>/dev/null; then
+        eval "$(starship init zsh)"
     else
         PS1="[%n@%m %~]%# "
     fi
@@ -127,5 +96,5 @@ init_prompt() {
     # Set up precmd hooks only once
     autoload -Uz add-zsh-hook
     add-zsh-hook precmd osc7_cwd
-    [[ $TERM == (xterm*|screen*|tmux*) ]] && add-zsh-hook precmd update_ps1
+    _init_starship
 }
