@@ -1,4 +1,10 @@
-{ pkgs, lib, config, self, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  self,
+  ...
+}:
 
 let
   dotfiles = "${config.home.homeDirectory}/src/dotfiles/configs";
@@ -15,10 +21,8 @@ in
   ];
 
   # Aerospace (macOS tiling WM)
-  xdg.configFile."aerospace".source =
-    config.lib.file.mkOutOfStoreSymlink "${dotfiles}/aerospace";
+  xdg.configFile."aerospace".source = config.lib.file.mkOutOfStoreSymlink "${dotfiles}/aerospace";
 
   # Karabiner (macOS keyboard customization)
-  xdg.configFile."karabiner".source =
-    config.lib.file.mkOutOfStoreSymlink "${dotfiles}/karabiner";
+  xdg.configFile."karabiner".source = config.lib.file.mkOutOfStoreSymlink "${dotfiles}/karabiner";
 }

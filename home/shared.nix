@@ -1,4 +1,10 @@
-{ pkgs, config, self, starship-segments, ... }:
+{
+  pkgs,
+  config,
+  self,
+  starship-segments,
+  ...
+}:
 
 let
   dotfiles = "${config.home.homeDirectory}/src/dotfiles";
@@ -16,8 +22,7 @@ in
   ];
 
   # ~/bin — scripts and platform binaries
-  home.file."bin".source =
-    config.lib.file.mkOutOfStoreSymlink "${dotfiles}/bin/bin";
+  home.file."bin".source = config.lib.file.mkOutOfStoreSymlink "${dotfiles}/bin/bin";
 
   # System-level dotfiles
   home.file.".inputrc".source =
