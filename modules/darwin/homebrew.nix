@@ -25,6 +25,7 @@
 
       # Development
       "docker-desktop"
+      "vmware-fusion"
       "zed"
 
       # Productivity
