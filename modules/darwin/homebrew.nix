@@ -43,10 +43,10 @@
       # Media
       "vlc"
       "spotify"
-      "handbrake"
+      "handbrake-app"
 
       # Utilities
-      "tailscale"
+      "tailscale-app"
       "hazeover"
       "scroll-reverser"
       "keka"
