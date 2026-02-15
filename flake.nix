@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-25.05";
 
     nix-darwin = {
       url = "github:LnL7/nix-darwin";
@@ -21,11 +22,18 @@
     {
       self,
       nixpkgs,
+      nixpkgs-stable,
       nix-darwin,
       home-manager,
       crane,
     }:
     let
+      # Overlay: exposes pkgs.stable.* for pinning packages to the stable channel
+      # Usage in modules: pkgs.stable.ansible (if unstable breaks it, etc.)
+      stableOverlay = system: final: prev: {
+        stable = nixpkgs-stable.legacyPackages.${system};
+      };
+
       # Helper to build starship-segments for a given system
       starshipSegmentsFor =
         system:
@@ -68,6 +76,7 @@
           starship-segments = starshipSegmentsFor "aarch64-darwin";
         };
         modules = [
+          { nixpkgs.overlays = [ (stableOverlay "aarch64-darwin") ]; }
           ./hosts/mims-mbp/configuration.nix
           home-manager.darwinModules.home-manager
           {
@@ -88,7 +97,10 @@
 
       # ── Linux (standalone home-manager) ────────────────────────────
       homeConfigurations."mim@linux" = home-manager.lib.homeManagerConfiguration {
-        pkgs = nixpkgs.legacyPackages.x86_64-linux;
+        pkgs = import nixpkgs {
+          system = "x86_64-linux";
+          overlays = [ (stableOverlay "x86_64-linux") ];
+        };
         extraSpecialArgs = {
           inherit self;
           starship-segments = starshipSegmentsFor "x86_64-linux";
