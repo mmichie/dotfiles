@@ -25,7 +25,7 @@
 
       # Development
       "docker-desktop"
-      "vmware-fusion"
+      # "vmware-fusion"  # Broadcom download server broken
       "zed"
 
       # Productivity
