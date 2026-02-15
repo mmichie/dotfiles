@@ -34,7 +34,16 @@ setup_path() {
         "$HOME/bin" \
         "$HOME/.local/bin" \
         "$HOME/.claude/local"
-    
+
+    # Nix profile paths (high priority, after user)
+    if [[ -d "/nix" ]]; then
+        path_add --user \
+            "$HOME/.nix-profile/bin" \
+            "/etc/profiles/per-user/${USER}/bin" \
+            "/run/current-system/sw/bin" \
+            "/nix/var/nix/profiles/default/bin"
+    fi
+
     # Language paths
     path_add --language \
         "${GOBIN:-$HOME/workspace/go/bin}" \

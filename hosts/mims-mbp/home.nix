@@ -1,10 +1,10 @@
-{ pkgs, config, self, ... }:
+{ pkgs, lib, config, self, ... }:
 
 let
   dotfiles = "${config.home.homeDirectory}/src/dotfiles/configs";
 in
 {
-  home.homeDirectory = "/Users/mim";
+  home.homeDirectory = lib.mkForce "/Users/mim";
 
   # macOS-specific home-manager settings
 
