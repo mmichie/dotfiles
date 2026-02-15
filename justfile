@@ -3,7 +3,7 @@
 # Apply system configuration
 switch:
     @if [ "$(uname)" = "Darwin" ]; then \
-        darwin-rebuild switch --flake .#mims-mbp; \
+        sudo darwin-rebuild switch --flake .#mims-mbp; \
     else \
         home-manager switch --flake .#mim@linux; \
     fi
