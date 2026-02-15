@@ -75,6 +75,7 @@
     # ── Development — Other ────────────────────────────────────────────
     shellcheck
     pre-commit
+    lefthook
     tokei
     hyperfine
     just
