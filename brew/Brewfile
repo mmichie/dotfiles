@@ -27,11 +27,13 @@ brew "gh"                              # GitHub CLI
 brew "git-filter-repo"                 # git history rewriting
 brew "curl"
 brew "wget"
+brew "xh"                              # HTTP client (httpie in Rust)
 brew "watch"
 brew "pv"                              # pipe viewer
 brew "jq"                              # JSON processor
 brew "yq"                              # YAML processor
 brew "ripgrep"
+brew "sd"                              # sed replacement
 brew "fd"                              # find replacement
 brew "fzf"                             # fuzzy finder
 brew "zsh-completions"
@@ -57,6 +59,7 @@ brew "btop"                            # system monitor
 brew "htop"                            # process viewer
 brew "starship"                        # shell prompt
 brew "git-delta"                       # git diff pager
+brew "difftastic"                      # structural/syntax-aware diffs
 
 # =============================================================================
 # Editors
@@ -124,6 +127,9 @@ brew "clang-format"
 brew "shellcheck"                      # shell script linter
 brew "pre-commit"                      # git hook manager
 brew "tokei"                           # code counter
+brew "hyperfine"                       # command-line benchmarking
+brew "just"                            # command runner
+brew "watchexec"                       # run commands on file changes
 # brew "scc"                           # code counter
 # brew "cloc"                          # code counter
 # brew "sbcl"                          # Common Lisp
@@ -202,6 +208,8 @@ brew "rclone"                          # cloud storage sync
 brew "restic"                          # backups
 brew "pstree"                          # process tree
 brew "dos2unix"                        # line ending conversion
+brew "hexyl"                           # hex viewer
+brew "tealdeer"                        # fast tldr pages
 brew "p7zip"                           # 7zip
 brew "xz"                              # compression
 brew "mmv"                             # bulk rename
@@ -214,8 +222,8 @@ brew "vhs"                             # terminal recorder
 brew "cheat"                           # cheatsheets
 brew "expect"                          # interactive automation
 brew "speedtest-cli"
-brew "tree"                            # directory listing
-brew "ack"                             # text search
+# brew "tree"                           # directory listing (eza --tree preferred)
+# brew "ack"                            # text search (ripgrep preferred)
 # brew "ranger"                        # file manager
 # brew "pass"                          # password manager (GPG-based)
 # brew "pass-otp"                      # OTP for pass
