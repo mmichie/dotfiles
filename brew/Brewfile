@@ -311,7 +311,7 @@ cask "hazeover"                        # window dimming
 cask "scroll-reverser"                 # independent scroll direction per device
 cask "keka"                            # archive tool
 # cask "cyberduck"                     # FTP/S3 client
-cask "kindle"                          # ebook reader
+# cask "kindle"                         # ebook reader (discontinued)
 # cask "transmission"                  # torrent client
 # cask "multipass"                     # Ubuntu VMs
 # cask "osquery"                       # system analytics
