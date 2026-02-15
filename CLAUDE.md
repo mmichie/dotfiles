@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a personal dotfiles repository managed by **Nix** — nix-darwin on macOS and standalone home-manager on Linux. Config files live in `configs/` and are symlinked into the home directory via `mkOutOfStoreSymlink` (mutable, like stow — edits are live immediately).
+Personal dotfiles managed by **Nix** — nix-darwin on macOS, standalone home-manager on Linux. Config files live in `configs/` and are symlinked into `$HOME` via `mkOutOfStoreSymlink` (mutable — edits take effect immediately without rebuilding).
+
+- **~120 CLI tools** declared in `modules/home/packages.nix`
+- **~25 macOS GUI apps** as Homebrew casks in `modules/darwin/homebrew.nix`
+- **macOS defaults** in `modules/darwin/defaults.nix`
+- **Custom Rust binary** (`starship-segments`) built via Crane in `flake.nix`
 
 ## Common Commands
 
@@ -51,23 +56,28 @@ source ~/.zshrc
 path_show        # Shows PATH entries grouped by priority
 path_which       # Shows order in PATH
 
-# Build starship-segments
+# Build starship-segments binary
 just build-starship
+
+# Dry-run to see what would change
+just dry-run
 ```
 
 ## Architecture
 
 ### Directory Structure
 ```
-flake.nix                    # Entry point
-hosts/mims-mbp/              # nix-darwin system config + macOS home-manager
-home/                        # shared.nix (cross-platform), linux.nix
-modules/darwin/              # homebrew.nix (casks), defaults.nix (macOS prefs)
-modules/home/                # packages, shell, git, editor, terminal modules
-configs/                     # Raw config files (symlinked by home-manager)
-bin/                         # Scripts + platform binaries
-starship-segments/           # Rust source (built by Crane)
-justfile                     # `just switch` / `just update`
+flake.nix                     # Entry point — darwinConfigurations + homeConfigurations
+flake.lock                    # Pinned input versions
+justfile                      # just switch / just update / just check / just dry-run
+hosts/mims-mbp/               # nix-darwin system config + macOS home-manager overrides
+home/                         # shared.nix (cross-platform), linux.nix
+modules/darwin/               # homebrew.nix (casks), defaults.nix (macOS prefs)
+modules/home/                 # packages, shell, git, editor, terminal modules
+configs/                      # Raw config files (symlinked by home-manager)
+  aerospace/ ghostty/ git/ karabiner/ nvim/ ssh/ starship/ system/ tmux/ wezterm/ zsh/
+bin/                          # Scripts + platform binaries
+starship-segments/            # Rust source (built by Crane)
 ```
 
 ### Key Design Decisions
@@ -87,18 +97,27 @@ Located in `configs/zsh/.zsh/lib/path_manager.zsh`, implements a priority-based 
 #### Environment Setup
 `configs/zsh/.zsh/lib/environment.zsh` configures:
 - User paths: `$HOME/bin`, `$HOME/.local/bin`, `$HOME/.claude/local`
+- Nix profile paths: `~/.nix-profile/bin`, `/etc/profiles/per-user/$USER/bin`
 - Language paths: Go, Rust, Python (via pyenv)
 - Lazy loading for: Homebrew, nvm, gcloud SDK
 
 #### Shell Configuration
-`.zshrc` uses a modular design with optimized startup:
+`configs/zsh/.zshrc` uses a modular design with optimized startup:
 - Core libraries loaded in order: path_manager → environment → shell functions
-- Lazy loading for heavy tools to improve startup time
+- Lazy loading for heavy tools (nvm, gcloud) to improve startup time
+- Cached init for atuin and vivid in `~/.cache/zsh/`
 - Tools: atuin (history), vivid (ls colors), starship (prompt), fzf, zoxide
 
+## Platform Targets
+
+| Target | System | Entry point | Command |
+|--------|--------|-------------|---------|
+| macOS (mims-mbp) | aarch64-darwin | `darwinConfigurations."mims-mbp"` | `darwin-rebuild switch --flake .#mims-mbp` |
+| Linux | x86_64-linux | `homeConfigurations."mim@linux"` | `home-manager switch --flake .#mim@linux` |
+
 ## Dependencies
-- **Nix**: Package manager (Determinate Systems installer recommended)
+- **Nix**: Package manager (Determinate Systems installer)
 - **nix-darwin** (macOS): System-level config + Homebrew cask management
 - **home-manager**: User-level config, packages, and symlinks
-- **Homebrew** (macOS): Only for GUI app casks
+- **Homebrew** (macOS only): GUI app casks — CLI tools come from nixpkgs
 - **Crane**: Builds the starship-segments Rust binary
