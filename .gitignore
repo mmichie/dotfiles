@@ -3,7 +3,6 @@
 [._]s[a-w][a-z]
 # session
 Session.vim
-vim/.vim/viminfo
 # temporary
 .netrwhist
 *~
@@ -11,6 +10,8 @@ vim/.vim/viminfo
 tags
 undo*
 .DS_Store
+
+# Platform symlinks in bin/
 bin/bin/fzf
 bin/bin/intu
 bin/bin/gam7/
@@ -27,7 +28,7 @@ bin/bin/gam7/
 *.db-journal
 *.db-shm
 *.db-wal
-system/.config/clima/wifi-locations.conf
+configs/system/clima/wifi-locations.conf
 
 # Personal shell configuration with secrets (lives in ~/, not in repo)
 .zshrc.local
@@ -35,8 +36,10 @@ system/.config/clima/wifi-locations.conf
 # Compiled zsh files (zcompile output)
 *.zwc
 
-# Brew bundle lockfile
-Brewfile.lock.json
+# Nix
+result
+result-*
 
 # Build artifacts
 bin/wifi-location-go/build/
+starship-segments/target/
