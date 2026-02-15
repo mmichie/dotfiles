@@ -24,6 +24,14 @@ dry-run:
         home-manager build --flake .#mim@linux; \
     fi
 
+# Format all nix files
+fmt:
+    nix fmt
+
 # Build starship-segments
 build-starship:
     nix build .#starship-segments
+
+# Garbage collect old generations
+gc:
+    nix-collect-garbage -d

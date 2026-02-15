@@ -17,10 +17,18 @@
     crane.url = "github:ipetkov/crane";
   };
 
-  outputs = { self, nixpkgs, nix-darwin, home-manager, crane }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nix-darwin,
+      home-manager,
+      crane,
+    }:
     let
       # Helper to build starship-segments for a given system
-      starshipSegmentsFor = system:
+      starshipSegmentsFor =
+        system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
           craneLib = crane.mkLib pkgs;
@@ -28,8 +36,14 @@
         craneLib.buildPackage {
           src = craneLib.cleanCargoSource ./starship-segments;
           strictDeps = true;
-          nativeBuildInputs = [ pkgs.pkg-config pkgs.cmake ];
-          buildInputs = [ pkgs.openssl ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+          nativeBuildInputs = [
+            pkgs.pkg-config
+            pkgs.cmake
+          ];
+          buildInputs = [
+            pkgs.openssl
+          ]
+          ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
             pkgs.apple-sdk_15
             pkgs.libiconv
           ];
@@ -64,7 +78,9 @@
                 inherit self;
                 starship-segments = starshipSegmentsFor "aarch64-darwin";
               };
-              users.mim = { imports = sharedHomeModules ++ [ ./hosts/mims-mbp/home.nix ]; };
+              users.mim = {
+                imports = sharedHomeModules ++ [ ./hosts/mims-mbp/home.nix ];
+              };
             };
           }
         ];
@@ -84,6 +100,12 @@
       packages = {
         aarch64-darwin.starship-segments = starshipSegmentsFor "aarch64-darwin";
         x86_64-linux.starship-segments = starshipSegmentsFor "x86_64-linux";
+      };
+
+      # ── Formatter ────────────────────────────────────────────────────
+      formatter = {
+        aarch64-darwin = nixpkgs.legacyPackages.aarch64-darwin.nixfmt-tree;
+        x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
       };
     };
 }
