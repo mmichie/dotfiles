@@ -18,6 +18,10 @@
     git
   ];
 
+  # Touch ID for sudo (reattach fixes it inside tmux)
+  security.pam.services.sudo_local.touchIdAuth = true;
+  security.pam.services.sudo_local.reattach = true;
+
   # Enable zsh as default shell
   programs.zsh.enable = true;
 
