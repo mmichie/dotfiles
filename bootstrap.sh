@@ -11,6 +11,18 @@ warn()  { printf '\033[1;33m==> %s\033[0m\n' "$*"; }
 error() { printf '\033[1;31m==> %s\033[0m\n' "$*"; exit 1; }
 
 # -----------------------------------------------------------------------------
+# Sudo
+# -----------------------------------------------------------------------------
+# Some casks (e.g. tailscale) require sudo for kernel extensions / installers.
+# Ask once upfront and keep the credential cached for the duration of bootstrap.
+info "Requesting sudo access (needed for some cask installs)..."
+sudo -v
+# Keep sudo alive in the background until this script exits
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+SUDO_KEEPALIVE_PID=$!
+trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null' EXIT
+
+# -----------------------------------------------------------------------------
 # Platform detection
 # -----------------------------------------------------------------------------
 OS="$(uname -s)"
@@ -47,7 +59,10 @@ brew update
 # Brew Bundle (install packages from Brewfile)
 # -----------------------------------------------------------------------------
 info "Installing packages from Brewfile..."
-brew bundle --file="$DOTFILES_DIR/brew/Brewfile"
+if ! brew bundle --file="$DOTFILES_DIR/brew/Brewfile"; then
+    warn "Some Brewfile dependencies failed to install (see above)."
+    warn "You can retry later with: brew bundle --file=brew/Brewfile"
+fi
 
 # -----------------------------------------------------------------------------
 # Claude Code
