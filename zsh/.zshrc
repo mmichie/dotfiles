@@ -197,7 +197,12 @@ fi
 # Initialize atuin for better shell history (only if available)
 # Use atuin for history storage but disable its key bindings to use fzf instead
 if command -v atuin >/dev/null 2>&1; then
-  eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
+  local cache="$SHELL_CACHE_DIR/atuin-init.zsh"
+  local atuin_bin="${commands[atuin]}"
+  if [[ ! -f "$cache" || "$atuin_bin" -nt "$cache" ]]; then
+    atuin init zsh --disable-up-arrow --disable-ctrl-r > "$cache"
+  fi
+  source "$cache"
 fi
 
 # macOS path_helper fix: Login shells may have PATH reset by /etc/zprofile
@@ -208,7 +213,12 @@ fi
 
 # Set up vivid for better ls colors (only if available)
 if command -v vivid >/dev/null 2>&1; then
-  export LS_COLORS="$(vivid generate tokyonight-night)"
+  local cache="$SHELL_CACHE_DIR/vivid-ls-colors"
+  local vivid_bin="${commands[vivid]}"
+  if [[ ! -f "$cache" || "$vivid_bin" -nt "$cache" ]]; then
+    vivid generate tokyonight-night > "$cache"
+  fi
+  export LS_COLORS="$(<"$cache")"
 fi
 
 # Note: Google Cloud SDK lazy loading is now handled in environment.zsh

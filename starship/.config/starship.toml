@@ -10,7 +10,6 @@ $username\
 $hostname\
 ${custom.path}\
 ${custom.gitstatus}\
-${custom.dir_end}\
 $status\
 $cmd_duration\
 $jobs\
@@ -64,14 +63,9 @@ format = "$output"
 shell = ["bash", "--noprofile", "--norc"]
 
 [custom.gitstatus]
-when = "git rev-parse --is-inside-work-tree 2>/dev/null"
+when = "true"
 command = "~/.config/starship/starship-segments git"
 format = "$output"
-shell = ["bash", "--noprofile", "--norc"]
-
-[custom.dir_end]
-when = "! git rev-parse --is-inside-work-tree 2>/dev/null"
-format = "[](fg:237 bg:236)"
 shell = ["bash", "--noprofile", "--norc"]
 
 # Disable unused modules for speed
