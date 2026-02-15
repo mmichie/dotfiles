@@ -33,7 +33,7 @@
     bat
     gum
     duf
-    du-dust
+    dust
     gping
     bandwhich
     procs
@@ -63,7 +63,6 @@
     uv
     ruff
     pyright
-    poetry
 
     # ── Development — Node ─────────────────────────────────────────────
     fnm
