@@ -42,6 +42,11 @@
   virtualisation.vmware.guest.enable = true;
   virtualisation.vmware.guest.headless = false; # Include X11/GTK guest tools (auto-resize)
 
+  environment.etc."vmware-tools/tools.conf".text = ''
+    [vmblock]
+    fuseMountPoint = /run/vmblock-fuse
+  '';
+
   # ── Graphics (VMware 3D acceleration + Mesa OpenGL) ────────────
   hardware.graphics.enable = true;
 
@@ -84,8 +89,9 @@
     xrandr --addmode Virtual-1 3440x1440_60 2>/dev/null
     xrandr --output Virtual-1 --mode 3440x1440_60 2>/dev/null
 
-    # Auto-resize VM display
-    vmware-user-suid-wrapper &
+    # Auto-resize VM display (set locale first to avoid GTK crash)
+    export LC_ALL=C
+    /run/wrappers/bin/vmware-user-suid-wrapper &
 
     while true; do
       xsetroot -name "$(date '+%a %d %b %R') | $(cat /proc/loadavg | cut -d' ' -f1-3)"
