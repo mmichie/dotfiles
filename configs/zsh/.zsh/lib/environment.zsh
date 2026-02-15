@@ -40,6 +40,7 @@ setup_path() {
         path_add --user \
             "$HOME/.nix-profile/bin" \
             "/etc/profiles/per-user/${USER}/bin" \
+            "/run/wrappers/bin" \
             "/run/current-system/sw/bin" \
             "/nix/var/nix/profiles/default/bin"
     fi

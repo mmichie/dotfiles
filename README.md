@@ -1,6 +1,6 @@
 # dotfiles
 
-Personal dotfiles managed by [Nix](https://nixos.org/) — nix-darwin on macOS, standalone home-manager on Linux. Config files live in `configs/` and are symlinked into `$HOME` via `mkOutOfStoreSymlink` (mutable — edits take effect immediately, no rebuild needed).
+Personal dotfiles managed by [Nix](https://nixos.org/) — nix-darwin on macOS, full NixOS in a VM, standalone home-manager on Linux. Config files live in `configs/` and are symlinked into `$HOME` via `mkOutOfStoreSymlink` (mutable — edits take effect immediately, no rebuild needed).
 
 ## Quick Start
 
@@ -17,12 +17,15 @@ nix run nix-darwin -- switch --flake .#mims-mbp
 
 # Linux
 nix run home-manager -- switch --flake .#mim@linux
+
+# NixOS VM (after minimal NixOS install in VMware Fusion)
+sudo nixos-rebuild switch --flake ~/src/dotfiles#vm-aarch64
 ```
 
 After the initial bootstrap, apply changes with:
 
 ```bash
-just switch    # auto-detects macOS vs Linux
+just switch    # auto-detects macOS vs Linux vs NixOS
 just update    # update flake inputs
 just check     # validate flake
 ```
@@ -47,6 +50,7 @@ zsh with priority-based PATH management, lazy loading for slow tools (nvm, gclou
 flake.nix                     # Entry point — darwinConfigurations + homeConfigurations
 justfile                      # just switch / just update / just check
 hosts/mims-mbp/               # nix-darwin system config + macOS home-manager overrides
+hosts/vm-aarch64/             # NixOS VM (DWM + VMware Fusion on Apple Silicon)
 home/                         # shared.nix (cross-platform), linux.nix
 modules/
   darwin/                     # homebrew.nix (casks), defaults.nix (macOS prefs)
@@ -73,6 +77,42 @@ starship-segments/            # Rust source for custom prompt segments (built by
 - **CLI from Nix, GUI from Homebrew**: Nix handles all command-line tools cross-platform. macOS GUI apps stay as Homebrew casks because `.app` bundles don't work well from the Nix store.
 - **Crane for Rust**: The custom `starship-segments` binary is built as a Nix derivation via Crane, with pinned libgit2 — no more broken dylib links when Homebrew updates.
 - **Declarative cleanup**: `homebrew.onActivation.cleanup = "zap"` removes any cask not in the config. The declared list is the source of truth.
+
+## NixOS VM (VMware Fusion on Apple Silicon)
+
+A full NixOS dev environment running DWM, inside VMware Fusion on your M-series Mac.
+
+### Setup
+
+1. Download the NixOS aarch64 minimal ISO from [nixos.org](https://nixos.org/download)
+2. Create a new VM in VMware Fusion (4GB+ RAM, 50GB+ disk recommended)
+3. Boot the ISO and install a minimal NixOS (partition disk, `nixos-install`, reboot)
+4. Clone and apply:
+
+```bash
+git clone https://github.com/mmichie/dotfiles ~/src/dotfiles
+cd ~/src/dotfiles
+sudo nixos-rebuild switch --flake .#vm-aarch64
+# Reboot — DWM + full dev environment ready
+```
+
+### Daily use
+
+`just switch` auto-detects NixOS via `/etc/NIXOS`. Pull config changes from git and re-run.
+
+### DWM keybindings
+
+| Key | Action |
+|-----|--------|
+| `Mod+Enter` | Open terminal (st) |
+| `Mod+p` | dmenu launcher |
+| `Mod+j/k` | Focus next/prev window |
+| `Mod+Shift+c` | Close window |
+| `Mod+Shift+q` | Quit DWM |
+| `Mod+1-9` | Switch tag |
+| `Mod+t/f/m` | Tiled/floating/monocle layout |
+
+`Mod` is `Alt` by default in DWM.
 
 ## See Also
 

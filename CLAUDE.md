@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Personal dotfiles managed by **Nix** — nix-darwin on macOS, standalone home-manager on Linux. Config files live in `configs/` and are symlinked into `$HOME` via `mkOutOfStoreSymlink` (mutable — edits take effect immediately without rebuilding).
+Personal dotfiles managed by **Nix** — nix-darwin on macOS, full NixOS in a VM, standalone home-manager on Linux. Config files live in `configs/` and are symlinked into `$HOME` via `mkOutOfStoreSymlink` (mutable — edits take effect immediately without rebuilding).
 
 - **~120 CLI tools** declared in `modules/home/packages.nix`
 - **~25 macOS GUI apps** as Homebrew casks in `modules/darwin/homebrew.nix`
@@ -15,14 +15,20 @@ Personal dotfiles managed by **Nix** — nix-darwin on macOS, standalone home-ma
 
 ### Apply Configuration
 ```bash
-# Apply everything (auto-detects macOS vs Linux)
+# Apply everything (auto-detects macOS vs Linux vs NixOS)
 just switch
 
 # macOS explicitly
 darwin-rebuild switch --flake .#mims-mbp
 
+# NixOS VM explicitly
+sudo nixos-rebuild switch --flake .#vm-aarch64
+
 # Linux explicitly
 home-manager switch --flake .#mim@linux
+
+# Build NixOS VM config from macOS host
+just vm-build
 
 # Update flake inputs
 just update
@@ -71,6 +77,7 @@ flake.nix                     # Entry point — darwinConfigurations + homeConfi
 flake.lock                    # Pinned input versions
 justfile                      # just switch / just update / just check / just dry-run
 hosts/mims-mbp/               # nix-darwin system config + macOS home-manager overrides
+hosts/vm-aarch64/             # NixOS VM config (DWM, VMware, aarch64-linux)
 home/                         # shared.nix (cross-platform), linux.nix
 modules/darwin/               # homebrew.nix (casks), defaults.nix (macOS prefs)
 modules/home/                 # packages, shell, git, editor, terminal modules
@@ -113,6 +120,7 @@ Located in `configs/zsh/.zsh/lib/path_manager.zsh`, implements a priority-based 
 | Target | System | Entry point | Command |
 |--------|--------|-------------|---------|
 | macOS (mims-mbp) | aarch64-darwin | `darwinConfigurations."mims-mbp"` | `darwin-rebuild switch --flake .#mims-mbp` |
+| NixOS VM (vm-aarch64) | aarch64-linux | `nixosConfigurations."vm-aarch64"` | `sudo nixos-rebuild switch --flake .#vm-aarch64` |
 | Linux | x86_64-linux | `homeConfigurations."mim@linux"` | `home-manager switch --flake .#mim@linux` |
 
 ## Dependencies
