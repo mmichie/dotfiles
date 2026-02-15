@@ -95,6 +95,33 @@
         ];
       };
 
+      # ── NixOS VM (VMware Fusion on Apple Silicon) ─────────────────
+      nixosConfigurations."vm-aarch64" = nixpkgs.lib.nixosSystem {
+        system = "aarch64-linux";
+        specialArgs = {
+          inherit self;
+          starship-segments = starshipSegmentsFor "aarch64-linux";
+        };
+        modules = [
+          { nixpkgs.overlays = [ (stableOverlay "aarch64-linux") ]; }
+          ./hosts/vm-aarch64/configuration.nix
+          home-manager.nixosModules.home-manager
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              extraSpecialArgs = {
+                inherit self;
+                starship-segments = starshipSegmentsFor "aarch64-linux";
+              };
+              users.mim = {
+                imports = sharedHomeModules ++ [ ./hosts/vm-aarch64/home.nix ];
+              };
+            };
+          }
+        ];
+      };
+
       # ── Linux (standalone home-manager) ────────────────────────────
       homeConfigurations."mim@linux" = home-manager.lib.homeManagerConfiguration {
         pkgs = import nixpkgs {
@@ -111,12 +138,14 @@
       # ── Packages ───────────────────────────────────────────────────
       packages = {
         aarch64-darwin.starship-segments = starshipSegmentsFor "aarch64-darwin";
+        aarch64-linux.starship-segments = starshipSegmentsFor "aarch64-linux";
         x86_64-linux.starship-segments = starshipSegmentsFor "x86_64-linux";
       };
 
       # ── Formatter ────────────────────────────────────────────────────
       formatter = {
         aarch64-darwin = nixpkgs.legacyPackages.aarch64-darwin.nixfmt-tree;
+        aarch64-linux = nixpkgs.legacyPackages.aarch64-linux.nixfmt-tree;
         x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
       };
     };

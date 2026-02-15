@@ -108,3 +108,6 @@
 
 [url "git@github.com:shiprock/"]
 	insteadOf = https://github.com/shiprock/
+
+[include]
+	path = ~/.gitconfig.local

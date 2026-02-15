@@ -209,6 +209,9 @@ ssh() {
 
 # Sudo wrapper to warn about persistent root shells
 unalias sudo 2>/dev/null
+# Resolve the real sudo binary once — NixOS needs /run/wrappers/bin/sudo (setuid)
+_sudo_bin="${commands[sudo]:-sudo}"
+[[ -x /run/wrappers/bin/sudo ]] && _sudo_bin=/run/wrappers/bin/sudo
 sudo() {
     # Check if this is an interactive shell invocation
     local is_interactive=0
@@ -250,7 +253,7 @@ sudo() {
         trap cleanup INT TERM EXIT
 
         # Run sudo
-        command sudo "$@"
+        $_sudo_bin "$@"
         local exit_code=$?
 
         trap - INT TERM EXIT
@@ -258,6 +261,6 @@ sudo() {
 
         return $exit_code
     else
-        command sudo "$@"
+        $_sudo_bin "$@"
     fi
 }
