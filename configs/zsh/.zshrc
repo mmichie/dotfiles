@@ -61,7 +61,7 @@ mkdir -p "$SHELL_CACHE_DIR"
 if [[ -n "$ZSH_INITIALIZED" ]]; then
     return 0
 fi
-export ZSH_INITIALIZED=1
+ZSH_INITIALIZED=1
 
 # Lazy load Homebrew - only when brew command is first used
 if [[ -x "/opt/homebrew/bin/brew" ]] && [[ -z "$HOMEBREW_PREFIX" ]]; then

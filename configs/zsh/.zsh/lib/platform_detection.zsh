@@ -30,12 +30,12 @@ detect_platform() {
 
     # Check if cache exists and is recent
     if [[ -f "$PLATFORM_CACHE_FILE" ]]; then
-        # Platform-independent stat command
-        if [[ "$OSTYPE" == darwin* ]]; then
-            cache_age=$(($(date +%s) - $(stat -f %m "$PLATFORM_CACHE_FILE" 2>/dev/null)))
-        else
-            cache_age=$(($(date +%s) - $(stat -c %Y "$PLATFORM_CACHE_FILE" 2>/dev/null)))
-        fi
+        # Try GNU stat first (Nix coreutils), fall back to macOS stat
+        local mtime
+        mtime=$(stat -c %Y "$PLATFORM_CACHE_FILE" 2>/dev/null) || \
+        mtime=$(/usr/bin/stat -f %m "$PLATFORM_CACHE_FILE" 2>/dev/null) || \
+        mtime=0
+        cache_age=$(($(date +%s) - mtime))
     fi
 
     # Return cached results if they exist and are recent

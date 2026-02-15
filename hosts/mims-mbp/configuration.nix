@@ -6,11 +6,8 @@
     ../../modules/darwin/homebrew.nix
   ];
 
-  # Nix settings
-  nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
-    trusted-users = [ "mim" ];
-  };
+  # Determinate Systems manages the Nix daemon — disable nix-darwin's management
+  nix.enable = false;
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
@@ -23,6 +20,9 @@
 
   # Enable zsh as default shell
   programs.zsh.enable = true;
+
+  # Primary user (required for user-scoped defaults, homebrew, etc.)
+  system.primaryUser = "mim";
 
   # Networking
   networking.hostName = "mims-mbp";

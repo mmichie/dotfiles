@@ -1,12 +1,16 @@
 #!/bin/bash
 
-TMUX=/opt/homebrew/bin/tmux
-
 # Source environment variables (including OPEN_WEATHER_API_KEY for tmux-clima)
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
 
-# Export PATH for tmux to include Homebrew and other tools
-export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+# Include Nix and Homebrew paths so tmux can be found regardless of install method
+export PATH="/etc/profiles/per-user/$USER/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+
+TMUX=$(command -v tmux)
+if [ -z "$TMUX" ]; then
+    echo "tmux not found in PATH"
+    exit 1
+fi
 
 # Count active tmux sessions
 session_count=$($TMUX list-sessions 2>/dev/null | wc -l | tr -d ' ')
