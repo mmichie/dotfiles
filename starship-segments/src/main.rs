@@ -87,7 +87,11 @@ fn render_path() {
 fn render_git() {
     let mut repo = match Repository::discover(".") {
         Ok(r) => r,
-        Err(_) => return,
+        Err(_) => {
+            // Not in a git repo — just output the closing arrow (dir_end)
+            print!("{}{}{}{}", fg(237), bg(236), ARROW, RST);
+            return;
+        }
     };
 
     // Get branch name
