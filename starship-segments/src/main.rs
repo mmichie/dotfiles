@@ -275,14 +275,88 @@ fn get_ahead_behind(repo: &Repository) -> (u32, u32) {
         .unwrap_or((0, 0))
 }
 
+// Font Awesome pencil icon
+const PENCIL_ICON: &str = "\u{F040}";
+
+fn render_tmux_title() {
+    let home = env::var("HOME").unwrap_or_default();
+    let pwd = env::current_dir()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_default();
+
+    // Home directory
+    if pwd == home {
+        println!("\u{1F3E0} ~");
+        return;
+    }
+
+    let dir_name = std::path::Path::new(&pwd)
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| pwd.clone());
+
+    // Try to open git repo
+    let repo = match Repository::discover(".") {
+        Ok(r) => r,
+        Err(_) => {
+            println!("\u{1F4C1} {}", dir_name);
+            return;
+        }
+    };
+
+    // Get branch name
+    let branch = if repo.head_detached().unwrap_or(false) {
+        repo.head()
+            .ok()
+            .and_then(|h| h.peel_to_commit().ok())
+            .map(|c| c.id().to_string()[..7].to_string())
+            .unwrap_or_else(|| "HEAD".to_string())
+    } else {
+        repo.head()
+            .ok()
+            .and_then(|h| h.shorthand().map(|s| s.to_string()))
+            .unwrap_or_else(|| "HEAD".to_string())
+    };
+
+    // Get repo name from workdir
+    let repo_name = repo
+        .workdir()
+        .and_then(|p| p.file_name())
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| dir_name);
+
+    // Check if dirty (any status entries = dirty)
+    let mut opts = StatusOptions::new();
+    opts.show(StatusShow::IndexAndWorkdir);
+    opts.include_untracked(true);
+
+    let dirty = repo
+        .statuses(Some(&mut opts))
+        .map(|statuses| !statuses.is_empty())
+        .unwrap_or(false);
+
+    if dirty {
+        println!(
+            "#[fg=colour67]{}#[default] {} {} #[fg=colour245]{}#[default]",
+            BRANCH_ICON, repo_name, branch, PENCIL_ICON
+        );
+    } else {
+        println!(
+            "#[fg=colour39]{}#[default] {} {}",
+            BRANCH_ICON, repo_name, branch
+        );
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     match args.get(1).map(|s| s.as_str()) {
         Some("path") => render_path(),
         Some("git") => render_git(),
+        Some("tmux-title") => render_tmux_title(),
         _ => {
-            eprintln!("Usage: starship-segments <path|git>");
+            eprintln!("Usage: starship-segments <path|git|tmux-title>");
             std::process::exit(1);
         }
     }

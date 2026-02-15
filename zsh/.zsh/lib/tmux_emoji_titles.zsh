@@ -158,42 +158,20 @@ _tmux_emoji_preexec() {
 
 # Get smart directory title with context-aware emoji
 _tmux_emoji_get_dir_title() {
-    local dir_name=$(basename "$PWD")
-    local emoji="📁"
-
-    # Home directory gets special treatment
-    if [[ "$PWD" == "$HOME" ]]; then
-        dir_name="~"
-        emoji="🏠"
-    else
-        # Check if we're in a git repository
-        if git rev-parse --git-dir &>/dev/null; then
-            local branch=$(git branch --show-current 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
-            local repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
-            local repo_name=$(basename "$repo_root")
-            local modified_icon=$'\uF040'  # Font Awesome pencil icon - U+F040
-            # Check if there are uncommitted changes
-            if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
-                # Muted blue git icon for modified repos
-                emoji="#[fg=colour67]"$'\uE0A0'"#[default]"  # Git branch icon with muted blue
-                # Subtle gray modified icon
-                dir_name="${repo_name} ${branch} #[fg=colour245]${modified_icon}#[default]"
-            else
-                # Cyan git icon for clean repos (matches Bad Wolf active colour39)
-                emoji="#[fg=colour39]"$'\uE0A0'"#[default]"  # Git branch icon with cyan
-                dir_name="${repo_name} ${branch}"  # Repo + branch when clean
-            fi
-        fi
+    local title
+    title=$(~/.config/starship/starship-segments tmux-title 2>/dev/null)
+    if [[ -z "$title" ]]; then
+        # Fallback if binary fails
+        title="📁 $(basename "$PWD")"
     fi
 
     # Add warning prefix if running as root
-    local prefix=""
     local is_root=$(tmux show-options -p -v @is_root 2>/dev/null)
     if [[ "$is_root" == "1" ]]; then
-        prefix="⚠️ "
+        title="⚠️ ${title}"
     fi
 
-    echo "${prefix}${emoji} ${dir_name}"
+    echo "$title"
 }
 
 # Clear emoji title when command completes (unless it's a long-running one)
