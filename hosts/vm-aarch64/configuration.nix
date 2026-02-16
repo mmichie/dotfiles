@@ -168,7 +168,7 @@
   # ── User ───────────────────────────────────────────────────────
   users.users.mim = {
     isNormalUser = true;
-    initialPassword = "nixos";
+    initialPassword = "nixos"; # Change after first login with `passwd`
     extraGroups = [
       "wheel"
       "networkmanager"
@@ -180,12 +180,25 @@
     ];
   };
 
-  users.users.root.initialPassword = "nixos";
+  users.mutableUsers = true; # Allow passwd changes; remove initialPassword
 
   programs.zsh.enable = true;
 
   # ── SSH ─────────────────────────────────────────────────────────
-  services.openssh.enable = true;
+  services.openssh = {
+    enable = true;
+    settings = {
+      PasswordAuthentication = false; # Key-only — no brute-force risk
+      PermitRootLogin = "no"; # Root can't SSH in
+      KbdInteractiveAuthentication = false;
+    };
+  };
+
+  # ── Firewall ────────────────────────────────────────────────────
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 22 ]; # SSH only
+  };
 
   # ── Security ───────────────────────────────────────────────────
   security.sudo.wheelNeedsPassword = false; # Single-user dev VM
