@@ -34,17 +34,16 @@ setup_path() {
         path_add --tools \
             "$brew_prefix/bin" \
             "$brew_prefix/sbin"
-        
-        # Java from Homebrew
-        if [[ -d "$brew_prefix/opt/openjdk@17" ]]; then
-            path_add --tools "$brew_prefix/opt/openjdk@17/bin"
-            export JAVA_HOME="$brew_prefix/opt/openjdk@17"
-        fi
     elif is_linux && has_capability "homebrew"; then
         # Linuxbrew paths
         path_add --tools \
             "/home/linuxbrew/.linuxbrew/bin" \
             "/home/linuxbrew/.linuxbrew/sbin"
+    fi
+
+    # Java (from nix)
+    if command -v javac &>/dev/null; then
+        export JAVA_HOME="$(dirname $(dirname $(readlink -f $(which javac))))"
     fi
     
     # System overrides
@@ -116,22 +115,12 @@ setup_python() {
 # Setup development tools and environments
 setup_development() {
     # Platform-specific setup
-    if is_osx; then
-        # macOS-specific development settings - use static path to avoid slow brew call
-        local java_home="/opt/homebrew/opt/openjdk@17"
-        if [[ -d "$java_home" ]]; then
-            export JAVA_HOME="$java_home"
-            path=($JAVA_HOME/bin $path)
-        fi
-    elif is_linux; then
-        # Linux-specific development settings
+    if is_linux; then
         export NO_AT_BRIDGE=1
-        export GCC_COLORS="error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01"
     fi
 
     # Common development settings
     export FZF_DEFAULT_OPTS="--height 40% --border"
-    export VAGRANT_DEFAULT_PROVIDER="aws"
     export GCC_COLORS="error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01"
     export ENV_DISABLE_DONATION_MSG=1
 }
