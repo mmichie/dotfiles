@@ -46,15 +46,6 @@ autoload -Uz compinit
 # Skip security check for faster startup
 compinit -C
 
-# Load compctl module if available
-if ! zmodload -e zsh/compctl; then
-    zmodload zsh/compctl 2>/dev/null
-fi
-
-# Basic autoloads
-autoload -Uz compctl
-
-# Create necessary directories
 mkdir -p "$SHELL_CACHE_DIR"
 
 # Prevent multiple sourcing
@@ -62,15 +53,6 @@ if [[ -n "$ZSH_INITIALIZED" ]]; then
     return 0
 fi
 ZSH_INITIALIZED=1
-
-# Lazy load Homebrew - only when brew command is first used
-if [[ -x "/opt/homebrew/bin/brew" ]] && [[ -z "$HOMEBREW_PREFIX" ]]; then
-    brew() {
-        unfunction brew
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-        brew "$@"
-    }
-fi
 
 # Source global definitions if available
 [[ -f /etc/zshrc ]] && source /etc/zshrc
@@ -158,17 +140,10 @@ if [[ -f "$HOME/.bash_work_profile" ]]; then
 fi
 
 # Display system status only on login shells (not tmux panes or subshells)
-if [[ -o login ]]; then
-    # Verify gum is available
-    if command -v gum >/dev/null 2>&1; then
-        notify_shell_status
-
-        # Load tips module and show daily tip
-        load_module "function" "tips"
-        show_daily_tip
-    else
-        echo "Warning: 'gum' command not found. Please install it via: brew install gum"
-    fi
+if [[ -o login ]] && command -v gum &>/dev/null; then
+    notify_shell_status
+    load_module "function" "tips"
+    show_daily_tip
 fi
 
 # Final cleanup
@@ -193,9 +168,9 @@ if command -v atuin &>/dev/null; then
 fi
 
 # macOS path_helper fix: Login shells may have PATH reset by /etc/zprofile
-# Simply rebuild to ensure our custom paths are in the correct order
+# Re-run setup_path to ensure our paths are in the correct order
 if is_osx && [[ -o login ]]; then
-    path_build
+    setup_path
 fi
 
 # Vivid ls colors
@@ -207,4 +182,3 @@ fi
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
 
 alias gam="/Users/mim/bin/gam7/gam"
-# source /Users/mim/.config/op/plugins.sh  # disabled - use AWS SSO instead
