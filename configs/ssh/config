@@ -1,5 +1,10 @@
 Include config.local
 
+Host vm
+    HostName 172.16.188.128
+    User mim
+    IdentityFile ~/.ssh/personal.pub
+
 Host *
     IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
     AddKeysToAgent no
