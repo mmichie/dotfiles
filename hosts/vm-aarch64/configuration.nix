@@ -21,6 +21,15 @@
       "root"
       "mim"
     ];
+    auto-optimise-store = true; # Deduplicate identical files in /nix/store
+    max-jobs = "auto"; # Use all CPU cores for builds
+  };
+
+  # ── Nix garbage collection ───────────────────────────────────
+  nix.gc = {
+    automatic = true;
+    dates = "daily";
+    options = "--delete-older-than 7d";
   };
 
   nixpkgs.config.allowUnfree = true;
