@@ -33,7 +33,7 @@ just check     # validate flake
 ## What's Managed
 
 **~120 CLI tools** via nixpkgs (`modules/home/packages.nix`):
-ripgrep, fd, fzf, bat, eza, zoxide, atuin, delta, difftastic, starship, neovim, tmux, go, rustup, pyenv, kubectl, ansible, ffmpeg, and more.
+ripgrep, fd, fzf, bat, eza, zoxide, atuin, delta, difftastic, starship, neovim, tmux, go, cargo, nodejs, kubectl, ansible, ffmpeg, and more.
 
 **~25 macOS GUI apps** via Homebrew casks (`modules/darwin/homebrew.nix`):
 Ghostty, AeroSpace, 1Password, Docker Desktop, Chrome, Obsidian, Spotify, etc.
@@ -42,7 +42,7 @@ Ghostty, AeroSpace, 1Password, Docker Desktop, Chrome, Obsidian, Spotify, etc.
 Dock, Finder, keyboard, screenshots, spaces — applied on every `darwin-rebuild switch`.
 
 **Shell** (`configs/zsh/`):
-zsh with priority-based PATH management, lazy loading for slow tools (nvm, gcloud), cached init for atuin and vivid, custom starship prompt with a Rust binary for git status.
+zsh with modular config, custom starship prompt with a Rust binary for git status, atuin history, vivid ls colors.
 
 ## Repo Layout
 
@@ -112,7 +112,7 @@ sudo nixos-rebuild switch --flake .#vm-aarch64
 | `Mod+1-9` | Switch tag |
 | `Mod+t/f/m` | Tiled/floating/monocle layout |
 
-`Mod` is `Alt` by default in DWM.
+`Mod` is `Super` (Command key on Mac keyboard via VMware Fusion).
 
 ## See Also
 

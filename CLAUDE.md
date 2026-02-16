@@ -58,10 +58,6 @@ nix run home-manager -- switch --flake .#mim@linux
 # Reload zsh configuration
 source ~/.zshrc
 
-# Check PATH configuration
-path_show        # Shows PATH entries grouped by priority
-path_which       # Shows order in PATH
-
 # Build starship-segments binary
 just build-starship
 
@@ -83,7 +79,7 @@ modules/darwin/               # homebrew.nix (casks), defaults.nix (macOS prefs)
 modules/home/                 # packages, shell, git, editor, terminal modules
 configs/                      # Raw config files (symlinked by home-manager)
   aerospace/ ghostty/ git/ karabiner/ nvim/ ssh/ starship/ system/ tmux/ wezterm/ zsh/
-bin/                          # Scripts + platform binaries
+bin/                          # Personal scripts
 starship-segments/            # Rust source (built by Crane)
 ```
 
@@ -95,24 +91,16 @@ starship-segments/            # Rust source (built by Crane)
 
 ### Key Components
 
-#### PATH Management System
-Located in `configs/zsh/.zsh/lib/path_manager.zsh`, implements a priority-based PATH management:
-- Groups: user (1), language (2), tools (3), system (4), default (5)
-- Functions: `path_add`, `path_build`, `path_show`, `path_which`
-- Handles macOS path_helper issues by rebuilding PATH for login shells
-
-#### Environment Setup
-`configs/zsh/.zsh/lib/environment.zsh` configures:
+#### Environment & PATH
+`configs/zsh/.zsh/lib/environment.zsh` configures PATH via `typeset -U path` (zsh native dedup):
 - User paths: `$HOME/bin`, `$HOME/.local/bin`, `$HOME/.claude/local`
 - Nix profile paths: `~/.nix-profile/bin`, `/etc/profiles/per-user/$USER/bin`
-- Language paths: Go, Rust, Python (via pyenv)
-- Lazy loading for: Homebrew, nvm, gcloud SDK
+- Language paths: Go
+- Re-runs `setup_path` on macOS login shells to fix path_helper reordering
 
 #### Shell Configuration
 `configs/zsh/.zshrc` uses a modular design with optimized startup:
-- Core libraries loaded in order: path_manager → environment → shell functions
-- Lazy loading for heavy tools (nvm, gcloud) to improve startup time
-- Cached init for atuin and vivid in `~/.cache/zsh/`
+- Core libraries loaded in order: platform_detection → environment → shell → prompt
 - Tools: atuin (history), vivid (ls colors), starship (prompt), fzf, zoxide
 
 ## Platform Targets
