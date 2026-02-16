@@ -46,6 +46,25 @@
     "com.apple.springing.delay" = 0.5;
   };
 
+  # ── Firewall ──────────────────────────────────────────────────────
+  networking.applicationFirewall = {
+    enable = true; # Enable firewall
+    enableStealthMode = true; # Stealth mode — drop unsolicited inbound
+    allowSignedApp = true; # Allow signed apps through
+  };
+
+  # ── Login window ─────────────────────────────────────────────────
+  system.defaults.loginwindow = {
+    GuestEnabled = false; # Disable guest account
+    DisableConsoleAccess = true; # Disable >console login
+  };
+
+  # ── Screensaver / Lock ──────────────────────────────────────────
+  system.defaults.screensaver = {
+    askForPassword = true; # Require password after screensaver
+    askForPasswordDelay = 0; # No grace period
+  };
+
   # ── Dock ───────────────────────────────────────────────────────────
   system.defaults.dock = {
     tilesize = 57;
