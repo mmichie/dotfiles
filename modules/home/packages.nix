@@ -55,17 +55,19 @@
     golangci-lint
 
     # ── Development — Rust ─────────────────────────────────────────────
-    rustup
+    cargo
+    rustc
+    rustfmt
+    clippy
 
     # ── Development — Python ───────────────────────────────────────────
-    pyenv
     pipx
     uv
     ruff
     pyright
 
     # ── Development — Node ─────────────────────────────────────────────
-    fnm
+    nodejs
     nodePackages.prettier
 
     # ── Development — C/C++ ────────────────────────────────────────────
@@ -105,6 +107,9 @@
     imagemagick
     pandoc
     yt-dlp
+
+    # ── AI ────────────────────────────────────────────────────────────
+    claude-code
 
     # ── Misc CLI ───────────────────────────────────────────────────────
     rclone
