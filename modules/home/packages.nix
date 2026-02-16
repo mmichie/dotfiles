@@ -84,6 +84,7 @@
     watchexec
 
     # ── Infrastructure & Cloud ─────────────────────────────────────────
+    google-cloud-sdk
     awscli2
     kubectl
     kubernetes-helm
