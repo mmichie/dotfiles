@@ -42,6 +42,12 @@
   virtualisation.vmware.guest.enable = true;
   # Note: vmware-user (clipboard/auto-resize) doesn't work on ARM guests per Broadcom docs
 
+  # ── Shared folders (open-vm-tools auto-mounts at /mnt/hgfs) ───
+  # Symlink ~/src → /mnt/hgfs/src so shared files appear in home dir
+  systemd.tmpfiles.rules = [
+    "L /home/mim/src - - - - /mnt/hgfs/src"
+  ];
+
   # ── Graphics (VMware 3D acceleration + Mesa OpenGL) ────────────
   hardware.graphics.enable = true;
 
@@ -51,7 +57,24 @@
     xkb.layout = "us";
     dpi = 96; # Native resolution (no HiDPI scaling)
 
-    windowManager.dwm.enable = true;
+    windowManager.dwm = {
+      enable = true;
+      package = pkgs.dwm.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [
+          # Use Super (Windows) key instead of Alt as modifier
+          # Mac keyboards in VMware Fusion map Command→Super, so this
+          # lets you use the key next to Space as the DWM mod key
+          (pkgs.writeText "modkey.patch" ''
+            diff --git a/config.def.h b/config.def.h
+            --- a/config.def.h
+            +++ b/config.def.h
+            @@ -48,1 +48,1 @@
+            -#define MODKEY Mod1Mask
+            +#define MODKEY Mod4Mask
+          '')
+        ];
+      });
+    };
 
     # Auto-login — single-user VM, skip the login screen
     displayManager.lightdm.enable = true;
