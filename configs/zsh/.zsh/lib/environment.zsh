@@ -1,26 +1,5 @@
 #!/bin/zsh
 
-# Lazy loading helper function
-# Creates wrapper functions that initialize a tool on first use
-# Usage: _lazy_load <init_callback> <commands...>
-# The init_callback is called once, then the original command runs
-_lazy_load() {
-    local init_callback=$1
-    shift
-    local cmds=("$@")
-
-    # Create wrapper for each command
-    for cmd in "${cmds[@]}"; do
-        eval "
-        $cmd() {
-            unset -f ${(j: :)cmds}
-            $init_callback
-            $cmd \"\$@\"
-        }
-        "
-    done
-}
-
 # Setup PATH environment variable
 setup_path() {
     # Load the path manager
@@ -67,10 +46,6 @@ setup_path() {
             "/home/linuxbrew/.linuxbrew/bin" \
             "/home/linuxbrew/.linuxbrew/sbin"
     fi
-    
-    # Add lazy-loaded tool paths
-    path_add_lazy tools \
-        "$HOME/google-cloud-sdk/bin"
     
     # System overrides
     path_add --system \
@@ -155,6 +130,7 @@ setup_development() {
     fi
 
     # Common development settings
+    export FZF_DEFAULT_OPTS="--height 40% --border"
     export VAGRANT_DEFAULT_PROVIDER="aws"
     export GCC_COLORS="error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01"
     export ENV_DISABLE_DONATION_MSG=1
@@ -221,18 +197,6 @@ load_env_file() {
     done < "$env_file"
 }
 
-
-# Setup Google Cloud SDK - lazy loading
-setup_gcloud() {
-    _init_gcloud() {
-        [[ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]] && source "$HOME/google-cloud-sdk/path.zsh.inc"
-        [[ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]] && source "$HOME/google-cloud-sdk/completion.zsh.inc"
-        path_build  # Rebuild PATH to ensure gcloud is properly ordered
-    }
-
-    _lazy_load _init_gcloud gcloud gsutil bq
-}
-
 # Main environment setup function
 setup_environment() {
     setup_xdg
@@ -240,7 +204,6 @@ setup_environment() {
     setup_locale
     setup_editors
     setup_python
-    setup_gcloud
     setup_development
     setup_terminal
     setup_misc

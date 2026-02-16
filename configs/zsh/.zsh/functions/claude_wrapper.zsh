@@ -44,16 +44,6 @@ claude() {
     # Save current directory
     local current_dir="$PWD"
 
-    # Ensure nvm is loaded
-    if ! command -v node >/dev/null 2>&1; then
-        # Trigger lazy nvm loading
-        if type nvm >/dev/null 2>&1; then
-            nvm use default >/dev/null 2>&1
-        elif [[ -f "$HOME/.nvm/nvm.sh" ]]; then
-            source "$HOME/.nvm/nvm.sh"
-        fi
-    fi
-
     # Find claude executable - use command to bypass any aliases/functions
     local claude_cmd=""
     # Use command -v to find the actual binary dynamically

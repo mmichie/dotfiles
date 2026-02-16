@@ -97,7 +97,6 @@ load_module() {
 # Load core library modules in specific order
 core_modules=(
     "platform_detection" # Must be first for platform detection
-    "platform_utils"     # Platform-specific utilities
     "executables"        # Executable setup
     "environment"        # Environment setup
     "location_service"   # Location service (SQLite backend)
@@ -148,15 +147,9 @@ setup_environment
 init_shell
 init_prompt
 
-# Load FZF immediately for key bindings but minimize impact
-if [[ -x "$HOME/bin/fzf" ]]; then
-    # Source the zsh integration script (includes keybindings)
-    source <("$HOME/bin/fzf" --zsh)
-fi
-
-# Setup pyenv if available
-if [[ -d "$HOME/.pyenv" ]]; then
-    setup_pyenv
+# FZF key bindings and completion (fzf from nix)
+if command -v fzf &>/dev/null; then
+    source <(fzf --zsh)
 fi
 
 # Load work profile if it exists
@@ -194,15 +187,9 @@ if [[ -n "$PROFILE_STARTUP" ]]; then
   zprof
 fi
 
-# Initialize atuin for better shell history (only if available)
-# Use atuin for history storage but disable its key bindings to use fzf instead
-if command -v atuin >/dev/null 2>&1; then
-  local cache="$SHELL_CACHE_DIR/atuin-init.zsh"
-  local atuin_bin="${commands[atuin]}"
-  if [[ ! -f "$cache" || "$atuin_bin" -nt "$cache" ]]; then
-    atuin init zsh --disable-up-arrow --disable-ctrl-r > "$cache"
-  fi
-  source "$cache"
+# Atuin shell history (disable keybindings — fzf handles Ctrl-R)
+if command -v atuin &>/dev/null; then
+    eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
 fi
 
 # macOS path_helper fix: Login shells may have PATH reset by /etc/zprofile
@@ -211,17 +198,10 @@ if is_osx && [[ -o login ]]; then
     path_build
 fi
 
-# Set up vivid for better ls colors (only if available)
-if command -v vivid >/dev/null 2>&1; then
-  local cache="$SHELL_CACHE_DIR/vivid-ls-colors"
-  local vivid_bin="${commands[vivid]}"
-  if [[ ! -f "$cache" || "$vivid_bin" -nt "$cache" ]]; then
-    vivid generate tokyonight-night > "$cache"
-  fi
-  export LS_COLORS="$(<"$cache")"
+# Vivid ls colors
+if command -v vivid &>/dev/null; then
+    export LS_COLORS="$(vivid generate tokyonight-night)"
 fi
-
-# Note: Google Cloud SDK lazy loading is now handled in environment.zsh
 
 # Source local config (not in dotfiles repo, for secrets/machine-specific settings)
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
