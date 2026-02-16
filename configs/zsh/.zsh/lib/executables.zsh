@@ -1,18 +1,5 @@
 #!/bin/zsh
 
-# Setup FZF for the current platform
-setup_fzf() {
-    setup_platform_binary "fzf" && \
-    export FZF_DEFAULT_OPTS="--height 40% --border"
-}
-
-
-# Setup Intu for the current platform
-setup_intu() {
-    setup_platform_binary "intu" && \
-    alias intu="$HOME/bin/intu"
-}
-
 # Setup clipboard functionality for the current platform
 setup_clipboard() {
     local clip_cmd
@@ -62,9 +49,6 @@ setup_homebrew() {
 
 # Main setup function for all platform-specific executables
 setup_platform_executables() {
-    # Setup common executables
-    setup_fzf
-    setup_intu
     setup_clipboard
 
     # Platform-specific setups

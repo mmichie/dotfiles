@@ -142,20 +142,6 @@ setup_completions() {
     compdef _jobs fg bg disown jobs
 }
 
-# pyenv setup - lazy loading
-setup_pyenv() {
-    export PYENV_ROOT="$HOME/.pyenv"
-    export PYENV_DISABLE_COMPLETIONS=1
-
-    _init_pyenv() {
-        [[ -x "$PYENV_ROOT/bin/pyenv" ]] && eval "$(pyenv init - --no-completion)"
-    }
-
-    # Create lazy loaders for pyenv and related commands
-    # Note: _lazy_load is defined in environment.zsh which is loaded first
-    _lazy_load _init_pyenv pyenv python python3 pip pip3
-}
-
 # Use ZSH hooks instead of cron for history backup
 setup_history_backup_hooks() {
     # Create a function that will be called when the shell exits

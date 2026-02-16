@@ -10,11 +10,7 @@ blue="[34m"
 
 # Initialize starship prompt
 _init_starship() {
-    if command -v starship &>/dev/null; then
-        eval "$(starship init zsh)"
-    else
-        PS1="[%n@%m %~]%# "
-    fi
+    eval "$(starship init zsh)"
 }
 
 # Display system status and information
