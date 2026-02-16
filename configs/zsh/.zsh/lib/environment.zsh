@@ -47,13 +47,7 @@ setup_path() {
 
     # Language paths
     path_add --language \
-        "${GOBIN:-$HOME/workspace/go/bin}" \
-        "$HOME/.cargo/bin"
-    
-    # Add lazy-loaded language paths (may not exist yet)
-    path_add_lazy language \
-        "$HOME/.pyenv/shims" \
-        "$HOME/.pyenv/bin"
+        "${GOBIN:-$HOME/workspace/go/bin}"
     
     # Development tools
     if is_osx && has_capability "homebrew"; then
@@ -110,8 +104,6 @@ setup_path() {
     export GOBIN="${GOBIN:-$GOPATH/bin}"
     export GOPROXY="${GOPROXY:-https://proxy.golang.org,direct}"
     
-    # Set up pyenv root if directory exists
-    [[ -d "$HOME/.pyenv" ]] && export PYENV_ROOT="$HOME/.pyenv"
 }
 
 # Setup locale and timezone settings
@@ -143,30 +135,7 @@ setup_editors() {
 
 # Setup Python environment
 setup_python() {
-    # Python development settings
     export PYTHONUNBUFFERED=1
-    
-    # Other Python settings can be added here
-    # pyenv is now lazy loaded in setup_pyenv()
-}
-
-# Setup Node Version Manager (nvm) - lazy loading
-setup_nvm() {
-    export NVM_DIR="$HOME/.nvm"
-    mkdir -p "$NVM_DIR"
-
-    if has_capability "homebrew"; then
-        export NVM_BREW_PATH="/opt/homebrew/opt/nvm"
-    fi
-
-    # Init callback for nvm
-    _init_nvm() {
-        [[ -s "$NVM_BREW_PATH/nvm.sh" ]] && source "$NVM_BREW_PATH/nvm.sh"
-        [[ -s "$NVM_BREW_PATH/etc/bash_completion.d/nvm" ]] && source "$NVM_BREW_PATH/etc/bash_completion.d/nvm"
-    }
-
-    # Create lazy loaders for nvm and related commands
-    _lazy_load _init_nvm nvm node npm npx yarn
 }
 
 # Setup development tools and environments
@@ -252,38 +221,6 @@ load_env_file() {
     done < "$env_file"
 }
 
-# Setup npm-installed binaries with lazy loading
-setup_npm_binaries() {
-    # Create function to handle any npm-installed binary that's not found
-    function command_not_found_handler() {
-        local cmd="$1"
-        
-        # Check if the command might be in the npm bin directory
-        local npm_bin_path="$HOME/.npm/bin"
-        local node_modules_bin="$HOME/node_modules/.bin"
-        local npm_binary=""
-        
-        # If npm is already initialized, these paths should already be in PATH
-        if ! command -v "$cmd" &>/dev/null; then
-            # Try initializing npm once
-            if ! command -v npm &>/dev/null || [[ "$(type npm)" == *"function"* ]]; then
-                # Run npm to ensure it's fully initialized
-                npm --version &>/dev/null
-                
-                # Now check if the command exists
-                if command -v "$cmd" &>/dev/null; then
-                    # Command is now available, execute it
-                    "$cmd" "${@:2}"
-                    return $?
-                fi
-            fi
-        fi
-        
-        # If we get here, command wasn't found even after npm initialization
-        echo "zsh: command not found: $cmd" >&2
-        return 127
-    }
-}
 
 # Setup Google Cloud SDK - lazy loading
 setup_gcloud() {
@@ -303,8 +240,6 @@ setup_environment() {
     setup_locale
     setup_editors
     setup_python
-    setup_nvm
-    setup_npm_binaries
     setup_gcloud
     setup_development
     setup_terminal

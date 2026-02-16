@@ -42,7 +42,19 @@
   virtualisation.vmware.guest.enable = true;
   # Note: vmware-user (clipboard/auto-resize) doesn't work on ARM guests per Broadcom docs
 
-  # ── Shared folders (open-vm-tools auto-mounts at /mnt/hgfs) ───
+  # ── Shared folders (VMware hgfs mounted as mim user) ──────────
+  fileSystems."/mnt/hgfs" = {
+    device = ".host:/";
+    fsType = "fuse.vmhgfs-fuse";
+    options = [
+      "uid=1000"
+      "gid=100"
+      "allow_other"
+      "auto_unmount"
+      "defaults"
+    ];
+  };
+
   # Symlink ~/src → /mnt/hgfs/src so shared files appear in home dir
   systemd.tmpfiles.rules = [
     "L /home/mim/src - - - - /mnt/hgfs/src"
