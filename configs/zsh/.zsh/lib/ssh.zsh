@@ -5,34 +5,20 @@ readonly AGENT_SOCKET="$HOME/.ssh/.ssh-agent-socket"
 readonly AGENT_INFO="$HOME/.ssh/.ssh-agent-info"
 readonly ONEPASSWORD_SOCKET="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 
-# List of hostnames where SSH agent should be started
-readonly SSH_HOSTNAMES=(
-    "mim-moab"
-    "mattmichie-mbp"
-    "matt-pc"
-    "miley"
-    "matt-pc-wsl"
-)
-
-# Checks if the current hostname is in the list of SSH hostnames
-is_ssh_host() {
-    local current_host=$(hostname)
-    [[ " ${SSH_HOSTNAMES[*]} " == *" ${current_host} "* ]]
-}
-
 # Handles the initialization and maintenance of an SSH agent
 handle_ssh_agent() {
-    # Skip if not on a designated SSH host
-    is_ssh_host || return 0
-
-    # First try to use 1Password SSH agent
+    # Use 1Password SSH agent if available (macOS)
     if [[ -S "$ONEPASSWORD_SOCKET" ]]; then
         export SSH_AUTH_SOCK="$ONEPASSWORD_SOCKET"
         return 0
     fi
 
-    # Fall back to traditional SSH agent if 1Password is not available
-    # Load existing agent configuration if available
+    # On Linux with a forwarded agent, keep it
+    if [[ -n "$SSH_AUTH_SOCK" ]] && [[ -S "$SSH_AUTH_SOCK" ]]; then
+        return 0
+    fi
+
+    # Fall back to traditional SSH agent
     if [[ -s "$AGENT_INFO" ]]; then
         source "$AGENT_INFO"
     fi
@@ -148,7 +134,7 @@ init_ssh() {
     mkdir -p "$(dirname "$AGENT_SOCKET")" "$(dirname "$AGENT_INFO")"
     chmod 700 "$(dirname "$AGENT_SOCKET")" "$(dirname "$AGENT_INFO")"
 
-    # Set up the SSH agent if on a designated host
+    # Set up the SSH agent
     handle_ssh_agent
 }
 
