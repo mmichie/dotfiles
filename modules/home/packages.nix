@@ -99,6 +99,7 @@
     ansible
 
     # ── Network & Security ─────────────────────────────────────────────
+    keybase
     nmap
     socat
     mtr
