@@ -5,6 +5,12 @@ Host vm
     User mim
     IdentityFile ~/.ssh/personal.pub
 
+Host wintermute
+    HostName 192.168.1.202
+    User mim
+    IdentityFile ~/.ssh/personal.pub
+    ForwardAgent yes
+
 Host *
     IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
     AddKeysToAgent no
