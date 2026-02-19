@@ -106,6 +106,9 @@ TMUX_EMOJI_MAP=(
     terraform  "🌊"
     terragrunt "🌊"
 
+    # Misc
+    sleep      "💤"
+
     # Already handled by wrappers
     ssh        "🔐"
     claude     "✨"
