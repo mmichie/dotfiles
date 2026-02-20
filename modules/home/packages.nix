@@ -106,11 +106,16 @@
     iftop
     wireshark-cli
     sshuttle
+    sslscan
+    ipmitool
+    sshpass
+    stable.samba
 
     # ── Media & Documents ──────────────────────────────────────────────
     ffmpeg
     imagemagick
     pandoc
+    texliveSmall
     yt-dlp
 
     # ── AI ────────────────────────────────────────────────────────────

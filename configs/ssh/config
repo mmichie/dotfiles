@@ -11,8 +11,14 @@ Host wintermute
     IdentityFile ~/.ssh/personal.pub
     ForwardAgent yes
 
+Host homelab
+    HostName 192.168.1.178
+    User mim
+    ForwardAgent yes
+    IdentityFile ~/.ssh/1password-twisted.pub
+
 Host *
-    IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+    IdentityAgent "/Users/mim/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
     AddKeysToAgent no
     IdentitiesOnly yes
     ServerAliveInterval 60
