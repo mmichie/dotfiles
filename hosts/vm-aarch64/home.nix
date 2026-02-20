@@ -17,20 +17,20 @@ in
     xsel
   ];
 
-  # ── Git: override 1Password SSH signing (not available in VM) ──
+  # ── Git: use ssh-keygen for signing (works with forwarded 1Password agent) ──
   home.file.".gitconfig.local".text = ''
     [gpg "ssh"]
     	program = /run/current-system/sw/bin/ssh-keygen
 
     [commit]
-    	gpgsign = false
+    	gpgsign = true
   '';
 
-  # ── SSH: override 1Password IdentityAgent ──────────────────────
+  # ── SSH: use forwarded agent from 1Password ────────────────────
   home.file.".ssh/config.local".text = ''
-    # VM override — use standard SSH agent instead of 1Password
+    # VM override — use forwarded 1Password SSH agent via SSH_AUTH_SOCK
     Host *
-    	IdentityAgent ~/.ssh/agent.sock
+    	IdentityAgent $SSH_AUTH_SOCK
     	IdentitiesOnly no
   '';
 }
