@@ -6,7 +6,7 @@ Host vm
     IdentityFile ~/.ssh/personal.pub
 
 Host wintermute
-    HostName 192.168.1.202
+    HostName 192.168.1.178
     User mim
     IdentityFile ~/.ssh/personal.pub
     ForwardAgent yes
