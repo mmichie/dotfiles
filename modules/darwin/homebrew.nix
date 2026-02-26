@@ -49,7 +49,7 @@
       "handbrake-app"
 
       # Utilities
-      "wireshark"
+      "wireshark-app"
       "tailscale-app"
       "hazeover"
       "scroll-reverser"
@@ -57,6 +57,7 @@
 
       # Gaming
       "steam"
+      "nvidia-geforce-now"
 
       # Fonts
       "font-hack-nerd-font"
