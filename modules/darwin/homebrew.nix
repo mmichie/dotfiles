@@ -43,10 +43,13 @@
 
       # Media
       "vlc"
+      "iina"
+      "obs"
       "spotify"
       "handbrake-app"
 
       # Utilities
+      "wireshark"
       "tailscale-app"
       "hazeover"
       "scroll-reverser"
