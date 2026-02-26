@@ -135,6 +135,7 @@ in
     ipmitool
     sshpass
     stable.samba
+    doggo
 
     # ── Media & Documents ──────────────────────────────────────────────
     ffmpeg
@@ -148,6 +149,8 @@ in
     beads
 
     # ── Misc CLI ───────────────────────────────────────────────────────
+    tree
+    direnv
     rclone
     restic
     pstree
