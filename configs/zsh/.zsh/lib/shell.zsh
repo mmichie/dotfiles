@@ -19,6 +19,7 @@ setup_history() {
     setopt HIST_SAVE_NO_DUPS      # Don't write duplicate entries to history file
     setopt HIST_VERIFY            # Show command with history expansion before running it
     setopt HIST_FCNTL_LOCK        # Use fcntl locking (recommended for concurrent shells)
+    setopt HIST_NO_STORE          # Don't store history/fc commands in history
     
     # Add functions for better history searching and management
     
@@ -114,6 +115,13 @@ setup_readline() {
     bindkey '^E' end-of-line
     bindkey '^D' delete-char
     bindkey '^L' clear-screen
+    bindkey '^W' backward-kill-word
+
+    # Word navigation (Alt+Left/Right)
+    bindkey '^[b' backward-word
+    bindkey '^[f' forward-word
+    bindkey '^[[1;3D' backward-word   # Alt+Left in most terminals
+    bindkey '^[[1;3C' forward-word    # Alt+Right in most terminals
 
     # History search bindings
     bindkey '^R' history-incremental-search-backward
@@ -124,6 +132,20 @@ setup_readline() {
 # Setup completions
 # Note: compinit is already called in .zshrc for faster startup
 setup_completions() {
+    # Completion caching
+    zstyle ':completion:*' use-cache on
+    zstyle ':completion:*' cache-path "$HOME/.cache/zsh/compcache"
+
+    # Case-insensitive and partial-word completion matching
+    zstyle ':completion:*' matcher-list \
+        'm:{a-zA-Z}={A-Za-z}' \
+        'r:|[._-]=* r:|=*' \
+        'l:|=* r:|=*'
+
+    # Menu selection (arrow keys to navigate completions)
+    zstyle ':completion:*' menu select
+    zmodload zsh/complist
+
     # Command specific completions
     compdef _command command
     compdef _signal kill
@@ -213,15 +235,16 @@ setup_shell_options() {
     setopt interactive_comments
     setopt long_list_jobs
     setopt prompt_subst
-    setopt rm_star_silent
     setopt AUTO_CD              # If command is a directory name, cd into it
     setopt AUTO_PUSHD          # Make cd push old directory onto directory stack
     setopt PUSHD_IGNORE_DUPS   # Don't push multiple copies of same directory
     setopt PUSHD_SILENT        # Don't print directory stack after pushd/popd
     setopt EXTENDED_GLOB       # Use extended globbing syntax
+    setopt GLOB_DOTS            # Include dotfiles in glob matches without needing .*
     setopt NO_CASE_GLOB        # Case insensitive globbing
     setopt NUMERIC_GLOB_SORT   # Sort filenames numerically when possible
     setopt NO_BEEP             # Don't beep on error
+    setopt NO_FLOW_CONTROL     # Disable Ctrl-S/Ctrl-Q flow control (frees those keys)
     setopt CORRECT             # Command correction prompt
     setopt COMPLETE_IN_WORD    # Complete from both ends of word
     setopt ALWAYS_TO_END       # Move cursor to end of word after completion
