@@ -72,7 +72,7 @@ check_ssh_agent() {
 
 check_fzf_setup() {
     _init_status_temp_dir
-    if [[ -x "$HOME/bin/fzf" ]]; then
+    if command -v fzf &>/dev/null; then
         echo -e "  ${yellow}fzf Setup:${reset} Properly Set Up" > "$_STATUS_TEMP_DIR/fzf"
     else
         echo -e "  ${yellow}fzf Setup:${reset} Not Set Up ${red}(Action: Install fzf)${reset}" > "$_STATUS_TEMP_DIR/fzf"
