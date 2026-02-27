@@ -5,22 +5,20 @@
 setup_history() {
     # History file configuration
     export HISTFILE="$HOME/.zsh_history"
-    export HISTSIZE=1000000       # Very large history in memory
-    export SAVEHIST=1000000       # Very large history on disk
+    export HISTSIZE=600000        # 20% larger than SAVEHIST for HIST_EXPIRE_DUPS_FIRST cushion
+    export SAVEHIST=500000        # History entries saved to disk
 
     # Enhanced history options
     setopt SHARE_HISTORY          # Share history between all sessions
-    setopt INC_APPEND_HISTORY_TIME # Add timestamps to history
     setopt EXTENDED_HISTORY       # Save timestamp and duration of command
     setopt HIST_EXPIRE_DUPS_FIRST # Expire duplicate entries first when trimming history
-    setopt HIST_IGNORE_ALL_DUPS   # Ignore duplicated entries
-    setopt HIST_IGNORE_DUPS       # Don't record a command that's a duplicate of the previous command
-    setopt HIST_REDUCE_BLANKS     # Remove superfluous blanks
+    setopt HIST_IGNORE_ALL_DUPS   # Remove older duplicate from anywhere in history
+    setopt HIST_REDUCE_BLANKS     # Remove superfluous blanks (aids deduplication)
     setopt HIST_IGNORE_SPACE      # Don't record an entry starting with a space
     setopt HIST_FIND_NO_DUPS      # Do not display duplicates in history search
     setopt HIST_SAVE_NO_DUPS      # Don't write duplicate entries to history file
     setopt HIST_VERIFY            # Show command with history expansion before running it
-    setopt HIST_FCNTL_LOCK        # Use better file locking for the history file
+    setopt HIST_FCNTL_LOCK        # Use fcntl locking (recommended for concurrent shells)
     
     # Add functions for better history searching and management
     
