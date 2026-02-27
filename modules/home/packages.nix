@@ -151,6 +151,7 @@ in
     # ── Misc CLI ───────────────────────────────────────────────────────
     tree
     direnv
+    nix-direnv
     rclone
     restic
     pstree

@@ -173,6 +173,11 @@ if is_osx && [[ -o login ]]; then
     setup_path
 fi
 
+# Direnv hook (per-directory environment variables)
+if command -v direnv &>/dev/null; then
+    eval "$(direnv hook zsh)"
+fi
+
 # Vivid ls colors
 if command -v vivid &>/dev/null; then
     export LS_COLORS="$(vivid generate tokyonight-night)"
