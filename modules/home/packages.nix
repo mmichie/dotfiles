@@ -57,6 +57,8 @@ in
     eza
     bat
     gum
+    figlet
+    toilet
     duf
     dust
     gping
