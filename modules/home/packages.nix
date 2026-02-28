@@ -43,6 +43,7 @@ in
     pv
     jq
     yq
+    sops
     ripgrep
     sd
     fd
