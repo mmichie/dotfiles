@@ -84,6 +84,7 @@ core_modules=(
     "location_service"   # Location service (SQLite backend)
     "wifi_location"      # WiFi-based location detection with precmd hook
     "shell"              # Shell configuration
+    "banner"             # BBS-style login banner generator
     "prompt"             # Prompt setup
     "ssh"                # SSH configuration
     "tmux_emoji_titles"  # Automatic emoji titles for tmux windows
@@ -139,8 +140,9 @@ if [[ -f "$HOME/.bash_work_profile" ]]; then
     source "$HOME/.bash_work_profile"
 fi
 
-# Display system status only on login shells (not tmux panes or subshells)
-if [[ -o login ]] && command -v gum &>/dev/null; then
+# Display system status on first shell (login or first interactive, not subshells)
+if [[ -o login || -z "$INFLUX_SHOWN" ]] && command -v gum &>/dev/null; then
+    export INFLUX_SHOWN=1
     notify_shell_status
     load_module "function" "tips"
     show_daily_tip

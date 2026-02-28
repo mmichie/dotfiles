@@ -32,24 +32,8 @@ notify_shell_status() {
     local os_type="$SYSTEM_OS_TYPE"
     local arch_type="$SYSTEM_ARCH"
     
-    # Use optimized/simplified display for better performance
-    "$gum_cmd" style \
-        --align center \
-        --width 70 \
-        --border double \
-        --margin "1" \
-        --padding "1" \
-        --foreground 212 \
-"░▒▓█▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█▓▒░
-░▒▓█  ▄█ █▄  █ ▄▀▀▀▀█ █      █   █ ▀▄  ▄▀  █▓▒░
-░▒▓█   █ █ █ █ █▄▄▄▄  █      █   █  ▀▄▄▀   █▓▒░
-░▒▓█   █ █ █ █ █      █      █   █   ▄▀▄   █▓▒░
-░▒▓█  ▄█ █  ██ █      █▄▄▄▄  █▄▄▄█ ▄▀  ▀▄  █▓▒░
-░▒▓█▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█▓▒░
-  ╔═-» [ Terminal Underground Division ] «-═╗
-  ║    [×] proudly serving the scene [×]    ║
-  ╚════-» [ fido.net.scene.2024.MAIN ] «-═══╝" \
-      "$("$gum_cmd" style --foreground 99 'DISTRIBUTION NODE: 4:920/35')"
+    # Generate and display random BBS banner
+    generate_login_banner
 
     # Get minimal system info quickly
     local system_name=$(uname -s)
