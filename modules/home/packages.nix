@@ -90,6 +90,7 @@ in
     rustc
     rustfmt
     clippy
+    rust-analyzer
 
     # ── Development — Python ───────────────────────────────────────────
     pipx
