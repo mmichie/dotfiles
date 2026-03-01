@@ -84,6 +84,8 @@ in
     # ── Development — Go ───────────────────────────────────────────────
     go
     gopls
+    gofumpt
+    delve
     golangci-lint
 
     # ── Development — Rust ─────────────────────────────────────────────

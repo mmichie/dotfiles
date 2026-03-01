@@ -18,21 +18,14 @@ vim.g.mapleader = ","
 vim.g.maplocalleader = ","
 
 -- General settings
-vim.opt.compatible = false
-vim.opt.encoding = 'utf-8'
 vim.opt.modelines = 0
-vim.opt.autoindent = true
 vim.opt.showmode = true
 vim.opt.showcmd = true
 vim.opt.hidden = true
 vim.opt.visualbell = true
 vim.opt.cursorline = true
-vim.opt.ttyfast = true
-vim.opt.ruler = true
-vim.opt.backspace = 'indent,eol,start'
 vim.opt.number = true
 vim.opt.relativenumber = true
-vim.opt.laststatus = 2
 vim.opt.history = 1000
 vim.opt.undofile = true
 vim.opt.splitbelow = true
@@ -55,9 +48,7 @@ vim.opt.formatoptions = 'qrn1'
 -- Search Settings
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
-vim.opt.incsearch = true
 vim.opt.showmatch = true
-vim.opt.hlsearch = true
 vim.opt.gdefault = true
 
 -- File Management
@@ -125,7 +116,10 @@ local gitcommit = augroup('gitcommit_settings', { clear = true })
 autocmd('FileType', {
     group = gitcommit,
     pattern = 'gitcommit',
-    command = 'setlocal textwidth=100'
+    callback = function()
+        vim.opt_local.textwidth = 100
+        vim.cmd('normal! gg')
+    end
 })
 
 -- Python settings
@@ -164,17 +158,6 @@ vim.api.nvim_create_autocmd("BufWritePre", {
   group = format_sync_grp,
 })
 
--- Git commit message settings
-autocmd('FileType', {
-    pattern = 'gitcommit',
-    callback = function()
-        -- Set cursor to the top
-        vim.cmd('normal! gg')
-        -- Set text width for git commits
-        vim.opt_local.textwidth = 100
-    end
-})
-
 -- Remember cursor position (but not for git commits)
 autocmd('BufReadPost', {
     pattern = '*',
@@ -189,4 +172,6 @@ autocmd('BufReadPost', {
 })
 
 -- Load plugins
-require("lazy").setup("plugins")
+require("lazy").setup("plugins", {
+    install = { colorscheme = { "nord" } },
+})

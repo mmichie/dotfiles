@@ -5,35 +5,7 @@ return {
         tag = "stable"
     },
 
-    -- Color schemes
-    {
-        "rebelot/kanagawa.nvim",
-        priority = 1000,
-        config = function()
-            require('kanagawa').setup({
-                compile = false,
-                undercurl = true,
-                commentStyle = { italic = true },
-                functionStyle = {},
-                keywordStyle = { italic = true},
-                statementStyle = { bold = true },
-                typeStyle = {},
-                transparent = false,
-                dimInactive = false,
-                terminalColors = true,
-                colors = {
-                    theme = {
-                        all = {
-                            ui = {
-                                bg_gutter = "none"
-                            }
-                        }
-                    }
-                }
-            })
-            vim.cmd([[colorscheme kanagawa]])
-        end
-    },
+    -- Color scheme
     {
         "gbprod/nord.nvim",
         lazy = false,
@@ -42,9 +14,6 @@ return {
             require("nord").setup({})
             vim.cmd.colorscheme("nord")
         end,
-    },
-    install = {
-        colorscheme = { "nord" },
     },
 
     -- Status line
@@ -97,14 +66,6 @@ return {
         build = ':TSUpdate',
         config = function()
             require('nvim-treesitter').setup({})
-            -- ensure parsers are installed
-            vim.api.nvim_create_autocmd("VimEnter", {
-                once = true,
-                callback = function()
-                    local parsers = { "lua", "vim", "vimdoc", "python", "javascript", "markdown", "go" }
-                    vim.cmd("TSInstall! " .. table.concat(parsers, " "))
-                end,
-            })
         end,
     },
 
@@ -137,7 +98,31 @@ return {
 
             -- Configure LSP servers
             vim.lsp.config('pyright', { capabilities = capabilities })
-            vim.lsp.config('gopls', { capabilities = capabilities })
+            vim.lsp.config('gopls', {
+                capabilities = capabilities,
+                settings = {
+                    gopls = {
+                        gofumpt = true,
+                        analyses = {
+                            nilness = true,
+                            shadow = true,
+                            unusedparams = true,
+                            unusedwrite = true,
+                        },
+                        staticcheck = true,
+                        usePlaceholders = true,
+                        hints = {
+                            assignVariableTypes = true,
+                            compositeLiteralFields = true,
+                            compositeLiteralTypes = true,
+                            constantValues = true,
+                            functionTypeParameters = true,
+                            parameterNames = true,
+                            rangeVariableTypes = true,
+                        },
+                    },
+                },
+            })
             vim.lsp.enable({ 'pyright', 'gopls' })
 
             -- Completion setup
@@ -176,15 +161,16 @@ return {
             { "<leader>e", "<cmd>Neotree toggle<CR>", desc = "Toggle Neo-tree" },
         },
         config = function()
-            -- If you want icons for diagnostic errors, you'll need to define them somewhere:
-            vim.fn.sign_define("DiagnosticSignError",
-                {text = " ", texthl = "DiagnosticSignError"})
-            vim.fn.sign_define("DiagnosticSignWarn",
-                {text = " ", texthl = "DiagnosticSignWarn"})
-            vim.fn.sign_define("DiagnosticSignInfo",
-                {text = " ", texthl = "DiagnosticSignInfo"})
-            vim.fn.sign_define("DiagnosticSignHint",
-                {text = "󰌵", texthl = "DiagnosticSignHint"})
+            vim.diagnostic.config({
+                signs = {
+                    text = {
+                        [vim.diagnostic.severity.ERROR] = " ",
+                        [vim.diagnostic.severity.WARN] = " ",
+                        [vim.diagnostic.severity.INFO] = " ",
+                        [vim.diagnostic.severity.HINT] = "󰌵",
+                    },
+                },
+            })
 
             require("neo-tree").setup({
                 close_if_last_window = false,
@@ -262,7 +248,7 @@ return {
                 },
             })
 
-            vim.cmd([[nnoremap \ :Neotree reveal<cr>]])
+            vim.keymap.set('n', '\\', '<cmd>Neotree reveal<CR>')
         end
     },
 
@@ -325,45 +311,18 @@ return {
         },
         config = function()
             require("go").setup({
-                -- Go configuration
-                go = 'go', -- Go binary path
-                gofmt = 'gofumpt', -- Formatting tool
-                -- max_line_len = 120, -- Only effective when using golines as formatter
+                go = 'go',
+                gofmt = 'gofumpt',
                 tag_transform = false,
-                test_template = '', -- default to testify if not set
+                test_template = '',
                 test_template_dir = '',
                 comment_placeholder = '',
                 icons = { breakpoint = '🧘', currentpos = '🏃' },
                 verbose = false,
-                lsp_cfg = true, -- false: use your own lspconfig
-                lsp_gofumpt = true, -- true: set default gofmt in gopls format to gofumpt
-                lsp_on_attach = true, -- use on_attach from go.nvim
+                lsp_cfg = false, -- gopls managed by native vim.lsp.config
+                lsp_gofumpt = false,
+                lsp_on_attach = false,
                 dap_debug = true,
-                -- Additional gopls settings
-                lsp_cfg = {
-                    settings = {
-                        gopls = {
-                            gofumpt = true, -- Use gofumpt formatting
-                            analyses = {
-                                nilness = true,
-                                shadow = true,
-                                unusedparams = true,
-                                unusedwrite = true,
-                            },
-                            staticcheck = true,
-                            usePlaceholders = true,
-                            hints = {
-                                assignVariableTypes = true,
-                                compositeLiteralFields = true,
-                                compositeLiteralTypes = true,
-                                constantValues = true,
-                                functionTypeParameters = true,
-                                parameterNames = true,
-                                rangeVariableTypes = true,
-                            },
-                        }
-                    }
-                }
             })
         end,
         event = {"CmdlineEnter"},
@@ -383,8 +342,8 @@ return {
             local dap = require('dap')
             local dapui = require('dapui')
 
-            -- Python debugger setup
-            require('dap-python').setup('~/.virtualenvs/debugpy/bin/python')
+            -- Python debugger setup (debugpy must be installed in the Python environment)
+            require('dap-python').setup(vim.fn.exepath('python3'))
 
             -- Debugger UI
             dapui.setup()
