@@ -21,7 +21,6 @@
 
       # Terminals
       "ghostty"
-      "wezterm"
 
       # Development
       "docker-desktop"

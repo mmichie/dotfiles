@@ -31,6 +31,26 @@
   # Networking
   networking.hostName = "mims-mbp";
 
+  # Copy nix apps to /Applications so Spotlight can index them
+  # (symlinks into /nix/store are invisible to Spotlight)
+  system.activationScripts.applications.text =
+    let
+      apps = pkgs.buildEnv {
+        name = "system-apps";
+        paths = with pkgs; [ wezterm ];
+        pathsToLink = [ "/Applications" ];
+      };
+    in
+    pkgs.lib.mkForce ''
+      echo "setting up /Applications/Nix Apps..." >&2
+      app_dir="/Applications/Nix Apps"
+      rm -rf "$app_dir"
+      mkdir -p "$app_dir"
+      for app in ${apps}/Applications/*; do
+        cp -rL "$app" "$app_dir/$(basename "$app")"
+      done
+    '';
+
   # Used for backwards compatibility
   system.stateVersion = 6;
 
