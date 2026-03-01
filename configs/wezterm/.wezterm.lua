@@ -2,7 +2,7 @@ local wezterm = require 'wezterm'
 local c = wezterm.config_builder()
 
 -- Keep existing font and window configuration
-c.font = wezterm.font("Hack")
+c.font = wezterm.font("Hack Nerd Font")
 c.font_size = 15
 c.tab_bar_at_bottom = false
 c.use_fancy_tab_bar = false
