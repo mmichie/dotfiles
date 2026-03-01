@@ -11,6 +11,13 @@ Host wintermute
     IdentityFile ~/.ssh/personal.pub
     ForwardAgent yes
 
+Host claude-dev
+    HostName 10.10.2.90
+    User mim
+    ProxyJump wintermute
+    ForwardAgent yes
+    IdentityFile ~/.ssh/personal.pub
+
 Host homelab
     HostName 192.168.1.178
     User mim
