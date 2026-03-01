@@ -96,44 +96,70 @@ return {
         'nvim-treesitter/nvim-treesitter',
         build = ':TSUpdate',
         config = function()
-            require('nvim-treesitter.configs').setup({
-                ensure_installed = { "lua", "vim", "python", "javascript", "markdown", "go" },
-                highlight = { enable = true },
-                indent = { enable = true },
+            require('nvim-treesitter').setup({})
+            -- ensure parsers are installed
+            vim.api.nvim_create_autocmd("VimEnter", {
+                once = true,
+                callback = function()
+                    local parsers = { "lua", "vim", "vimdoc", "python", "javascript", "markdown", "go" }
+                    vim.cmd("TSInstall! " .. table.concat(parsers, " "))
+                end,
             })
         end,
     },
 
     -- LSP Support
     {
-        'VonHeikemen/lsp-zero.nvim',
-        branch = 'v3.x',
+        'neovim/nvim-lspconfig',
         dependencies = {
-            'neovim/nvim-lspconfig',
             'hrsh7th/nvim-cmp',
             'hrsh7th/cmp-nvim-lsp',
             'L3MON4D3/LuaSnip',
         },
         config = function()
-            local lsp_zero = require('lsp-zero')
+            -- LSP keymaps on attach
+            vim.api.nvim_create_autocmd('LspAttach', {
+                callback = function(args)
+                    local opts = { buffer = args.buf }
+                    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
+                    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+                    vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
+                    vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
+                    vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+                    vim.keymap.set('n', '<leader>f', function()
+                        vim.lsp.buf.format({ async = true })
+                    end, opts)
+                end,
+            })
 
-            lsp_zero.on_attach(function(client, bufnr)
-                -- LSP keymaps
-                local opts = {buffer = bufnr}
-                vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-                vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
-                vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
-                vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
-                vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
-                vim.keymap.set('n', '<leader>f', function()
-                    vim.lsp.buf.format({ async = true })
-                end, opts)
-            end)
+            -- Add cmp-nvim-lsp capabilities
+            local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
-            -- Configure Python LSP
-            require('lspconfig').pyright.setup({})
-            -- Configure Go LSP
-            require('lspconfig').gopls.setup({})
+            -- Configure LSP servers
+            vim.lsp.config('pyright', { capabilities = capabilities })
+            vim.lsp.config('gopls', { capabilities = capabilities })
+            vim.lsp.enable({ 'pyright', 'gopls' })
+
+            -- Completion setup
+            local cmp = require('cmp')
+            local luasnip = require('luasnip')
+            cmp.setup({
+                snippet = {
+                    expand = function(args)
+                        luasnip.lsp_expand(args.body)
+                    end,
+                },
+                mapping = cmp.mapping.preset.insert({
+                    ['<C-Space>'] = cmp.mapping.complete(),
+                    ['<CR>'] = cmp.mapping.confirm({ select = true }),
+                    ['<C-n>'] = cmp.mapping.select_next_item(),
+                    ['<C-p>'] = cmp.mapping.select_prev_item(),
+                }),
+                sources = cmp.config.sources({
+                    { name = 'nvim_lsp' },
+                    { name = 'luasnip' },
+                }),
+            })
         end
     },
 
@@ -256,7 +282,7 @@ return {
     -- Fuzzy finder
     {
         'nvim-telescope/telescope.nvim',
-        tag = '0.1.5',
+        tag = '0.1.8',
         dependencies = { 'nvim-lua/plenary.nvim' },
         config = function()
             local builtin = require('telescope.builtin')
@@ -375,10 +401,10 @@ return {
 
     -- Code outline/symbols
     {
-        'simrat39/symbols-outline.nvim',
+        'hedyhli/outline.nvim',
         config = function()
-            require('symbols-outline').setup()
-            vim.keymap.set('n', '<leader>so', ':SymbolsOutline<CR>')
+            require('outline').setup()
+            vim.keymap.set('n', '<leader>so', ':Outline<CR>')
         end
     },
 

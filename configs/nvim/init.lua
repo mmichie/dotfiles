@@ -1,6 +1,6 @@
 -- Bootstrap lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
+if not vim.uv.fs_stat(lazypath) then
   vim.fn.system({
     "git",
     "clone",
@@ -62,9 +62,9 @@ vim.opt.gdefault = true
 
 -- File Management
 local function ensure_dir(path)
-    local ok, err = vim.loop.fs_stat(path)
+    local ok, err = vim.uv.fs_stat(path)
     if not ok then
-        vim.loop.fs_mkdir(path, 511)  -- 511 = 0777 in octal
+        vim.uv.fs_mkdir(path, 511)  -- 511 = 0777 in octal
     end
 end
 
