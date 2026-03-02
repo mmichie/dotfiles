@@ -149,7 +149,7 @@ in
     imagemagick
     pandoc
     texliveSmall
-    yt-dlp
+    stable.yt-dlp
 
     # ── AI ────────────────────────────────────────────────────────────
     claude-code
