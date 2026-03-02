@@ -376,6 +376,8 @@ setup_aliases() {
         alias bw="sudo bandwhich"
     fi
     alias screen="tmux"
+    # Nested tmux on a separate socket — gets orange theme via TMUX_LEVEL
+    tnest() { TMUX= tmux -L nested new-session -A -s nested "$@"; }
     alias ssh="ssh -A -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -o VisualHostKey=yes -o IdentitiesOnly=yes"
     alias nsr="netstat -rn"
     alias nsa="netstat -an | sed -n '1,/Active UNIX domain sockets/p'"
