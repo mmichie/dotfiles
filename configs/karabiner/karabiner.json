@@ -91,6 +91,20 @@
                 "conditions": [{"type": "frontmost_application_if", "bundle_identifiers": ["^com\\.mitchellh\\.ghostty$"]}]
               }
             ]
+          },
+          {
+            "description": "Ghostty: Cmd+; to Option+; (tmux nested toggle)",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "semicolon",
+                  "modifiers": {"mandatory": ["command"]}
+                },
+                "to": [{"key_code": "semicolon", "modifiers": ["option"]}],
+                "conditions": [{"type": "frontmost_application_if", "bundle_identifiers": ["^com\\.mitchellh\\.ghostty$"]}]
+              }
+            ]
           }
         ]
       },
