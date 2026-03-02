@@ -94,6 +94,11 @@ setup_environment() {
     export GCC_COLORS="error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01"
     is_linux && export NO_AT_BRIDGE=1
 
+    # ── Tmux nesting ──────────────────────────────────────────────
+    # Shells inside tmux export TMUX_LEVEL so a nested tmux server
+    # can detect it at startup and apply different styling.
+    [[ -n "$TMUX" ]] && export TMUX_LEVEL=1
+
     # ── Terminal ─────────────────────────────────────────────────
     export COLORTERM="${COLORTERM:-truecolor}"
     export LESS="-R -F -X"
