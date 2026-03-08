@@ -8,9 +8,7 @@ $python\
 $username\
 [](fg:240 bg:238)\
 $hostname\
-${custom.nixshell}\
-${custom.path}\
-${custom.gitstatus}\
+${custom.plx}\
 $status\
 $cmd_duration\
 $jobs\
@@ -57,21 +55,9 @@ success_symbol = "[ \\$ ](bg:236 fg:15)"
 error_symbol = "[ \\$ ](bg:236 fg:red)"
 format = "$symbol"
 
-[custom.path]
+[custom.plx]
 when = "true"
-command = "plx path 20"
-format = "$output"
-shell = ["bash", "--noprofile", "--norc"]
-
-[custom.nixshell]
-when = "test -n \"$IN_NIX_SHELL\""
-command = "plx nix-shell"
-format = "$output"
-shell = ["bash", "--noprofile", "--norc"]
-
-[custom.gitstatus]
-when = "true"
-command = "plx git"
+command = "plx prompt 20"
 format = "$output"
 shell = ["bash", "--noprofile", "--norc"]
 
