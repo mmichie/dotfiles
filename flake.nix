@@ -15,6 +15,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    plx = {
+      url = "github:mmichie/plx";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.crane.follows = "crane";
+    };
+
     crane.url = "github:ipetkov/crane";
   };
 
@@ -25,6 +31,7 @@
       nixpkgs-stable,
       nix-darwin,
       home-manager,
+      plx,
       crane,
     }:
     let
@@ -33,29 +40,6 @@
       stableOverlay = system: final: prev: {
         stable = nixpkgs-stable.legacyPackages.${system};
       };
-
-      # Helper to build starship-segments for a given system
-      starshipSegmentsFor =
-        system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-          craneLib = crane.mkLib pkgs;
-        in
-        craneLib.buildPackage {
-          src = craneLib.cleanCargoSource ./starship-segments;
-          strictDeps = true;
-          nativeBuildInputs = [
-            pkgs.pkg-config
-            pkgs.cmake
-          ];
-          buildInputs = [
-            pkgs.openssl
-          ]
-          ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
-            pkgs.apple-sdk_15
-            pkgs.libiconv
-          ];
-        };
 
       # Shared home-manager modules used by both darwin and linux
       sharedHomeModules = [
@@ -73,7 +57,7 @@
         system = "aarch64-darwin";
         specialArgs = {
           inherit self;
-          starship-segments = starshipSegmentsFor "aarch64-darwin";
+          plx = plx.packages.aarch64-darwin.default;
         };
         modules = [
           { nixpkgs.overlays = [ (stableOverlay "aarch64-darwin") ]; }
@@ -85,7 +69,7 @@
               useUserPackages = true;
               extraSpecialArgs = {
                 inherit self;
-                starship-segments = starshipSegmentsFor "aarch64-darwin";
+                plx = plx.packages.aarch64-darwin.default;
               };
               users.mim = {
                 imports = sharedHomeModules ++ [ ./hosts/mims-mbp/home.nix ];
@@ -100,7 +84,7 @@
         system = "aarch64-linux";
         specialArgs = {
           inherit self;
-          starship-segments = starshipSegmentsFor "aarch64-linux";
+          plx = plx.packages.aarch64-linux.default;
         };
         modules = [
           { nixpkgs.overlays = [ (stableOverlay "aarch64-linux") ]; }
@@ -112,7 +96,7 @@
               useUserPackages = true;
               extraSpecialArgs = {
                 inherit self;
-                starship-segments = starshipSegmentsFor "aarch64-linux";
+                plx = plx.packages.aarch64-linux.default;
               };
               users.mim = {
                 imports = sharedHomeModules ++ [ ./hosts/vm-aarch64/home.nix ];
@@ -131,16 +115,9 @@
         };
         extraSpecialArgs = {
           inherit self;
-          starship-segments = starshipSegmentsFor "x86_64-linux";
+          plx = plx.packages.x86_64-linux.default;
         };
         modules = sharedHomeModules ++ [ ./home/linux.nix ];
-      };
-
-      # ── Packages ───────────────────────────────────────────────────
-      packages = {
-        aarch64-darwin.starship-segments = starshipSegmentsFor "aarch64-darwin";
-        aarch64-linux.starship-segments = starshipSegmentsFor "aarch64-linux";
-        x86_64-linux.starship-segments = starshipSegmentsFor "x86_64-linux";
       };
 
       # ── Formatter ────────────────────────────────────────────────────

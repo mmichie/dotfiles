@@ -58,13 +58,13 @@ format = "$symbol"
 
 [custom.path]
 when = "true"
-command = "starship-segments path"
+command = "plx path"
 format = "$output"
 shell = ["bash", "--noprofile", "--norc"]
 
 [custom.gitstatus]
 when = "true"
-command = "starship-segments git"
+command = "plx git"
 format = "$output"
 shell = ["bash", "--noprofile", "--norc"]
 

@@ -87,13 +87,37 @@
         "type": "github"
       }
     },
+    "plx": {
+      "inputs": {
+        "crane": [
+          "crane"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1772930596,
+        "narHash": "sha256-hLdmoi/LOgKoxz667bCmzaoNck8h5OLWbLho5wD4M78=",
+        "owner": "mmichie",
+        "repo": "plx",
+        "rev": "c60abc6eaffca44913c95500f319e730bf619fc6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mmichie",
+        "repo": "plx",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "crane": "crane",
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
         "nixpkgs": "nixpkgs",
-        "nixpkgs-stable": "nixpkgs-stable"
+        "nixpkgs-stable": "nixpkgs-stable",
+        "plx": "plx"
       }
     }
   },

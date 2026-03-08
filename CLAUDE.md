@@ -9,7 +9,7 @@ Personal dotfiles managed by **Nix** — nix-darwin on macOS, full NixOS in a VM
 - **~120 CLI tools** declared in `modules/home/packages.nix`
 - **~25 macOS GUI apps** as Homebrew casks in `modules/darwin/homebrew.nix`
 - **macOS defaults** in `modules/darwin/defaults.nix`
-- **Custom Rust binary** (`starship-segments`) built via Crane in `flake.nix`
+- **Custom Rust binary** [`plx`](https://github.com/mmichie/plx) consumed as a flake input
 
 ## Common Commands
 
@@ -58,9 +58,6 @@ nix run home-manager -- switch --flake .#mim@linux
 # Reload zsh configuration
 source ~/.zshrc
 
-# Build starship-segments binary
-just build-starship
-
 # Dry-run to see what would change
 just dry-run
 ```
@@ -80,14 +77,13 @@ modules/home/                 # packages, shell, git, editor, terminal modules
 configs/                      # Raw config files (symlinked by home-manager)
   aerospace/ ghostty/ git/ karabiner/ nvim/ ssh/ starship/ system/ tmux/ wezterm/ zsh/
 bin/                          # Personal scripts
-starship-segments/            # Rust source (built by Crane)
 ```
 
 ### Key Design Decisions
 - **`mkOutOfStoreSymlink`**: Config files are symlinked from the repo, not copied into the Nix store. Edits take effect immediately without rebuilding.
 - **CLI tools via nixpkgs**: All command-line tools are declared in `modules/home/packages.nix`
 - **GUI apps via Homebrew casks**: macOS GUI apps stay in `modules/darwin/homebrew.nix` (nix can't manage .app bundles well)
-- **Crane for Rust builds**: `starship-segments` binary is built via Crane in `flake.nix`
+- **Flake inputs for custom tools**: [`plx`](https://github.com/mmichie/plx) (powerline segments) is consumed as a flake input, built via Crane in its own repo
 
 ### Key Components
 
@@ -116,4 +112,4 @@ starship-segments/            # Rust source (built by Crane)
 - **nix-darwin** (macOS): System-level config + Homebrew cask management
 - **home-manager**: User-level config, packages, and symlinks
 - **Homebrew** (macOS only): GUI app casks — CLI tools come from nixpkgs
-- **Crane**: Builds the starship-segments Rust binary
+- **Crane**: Used by the [`plx`](https://github.com/mmichie/plx) flake input for Rust builds
