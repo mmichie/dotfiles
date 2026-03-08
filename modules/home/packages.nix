@@ -148,6 +148,7 @@ in
     ffmpeg
     imagemagick
     pandoc
+    poppler-utils
     texliveSmall
     stable.yt-dlp
 
