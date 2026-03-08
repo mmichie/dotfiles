@@ -8,6 +8,7 @@ $python\
 $username\
 [](fg:240 bg:238)\
 $hostname\
+${custom.nixshell}\
 ${custom.path}\
 ${custom.gitstatus}\
 $status\
@@ -58,7 +59,13 @@ format = "$symbol"
 
 [custom.path]
 when = "true"
-command = "plx path"
+command = "plx path 20"
+format = "$output"
+shell = ["bash", "--noprofile", "--norc"]
+
+[custom.nixshell]
+when = "test -n \"$IN_NIX_SHELL\""
+command = "plx nix-shell"
 format = "$output"
 shell = ["bash", "--noprofile", "--norc"]
 
