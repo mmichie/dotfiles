@@ -42,4 +42,3 @@ result-*
 
 # Build artifacts
 bin/wifi-location-go/build/
-starship-segments/target/

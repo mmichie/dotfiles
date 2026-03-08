@@ -2,7 +2,7 @@
   pkgs,
   config,
   self,
-  starship-segments,
+  plx,
   ...
 }:
 
@@ -16,9 +16,9 @@ in
   # Let home-manager manage itself
   programs.home-manager.enable = true;
 
-  # Put starship-segments binary on PATH
+  # Put plx binary on PATH
   home.packages = [
-    starship-segments
+    plx
   ];
 
   # ~/bin — scripts and platform binaries

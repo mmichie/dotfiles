@@ -32,10 +32,6 @@ dry-run:
 fmt:
     nix fmt
 
-# Build starship-segments
-build-starship:
-    nix build .#starship-segments
-
 # Build NixOS VM configuration (from macOS host)
 vm-build:
     nix build .#nixosConfigurations.vm-aarch64.config.system.build.toplevel

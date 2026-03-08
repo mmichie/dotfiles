@@ -162,7 +162,7 @@ _tmux_emoji_preexec() {
 # Get smart directory title with context-aware emoji
 _tmux_emoji_get_dir_title() {
     local title
-    title=$(~/.config/starship/starship-segments tmux-title 2>/dev/null)
+    title=$(plx tmux-title 2>/dev/null)
     if [[ -z "$title" ]]; then
         # Fallback if binary fails
         title="📁 $(basename "$PWD")"

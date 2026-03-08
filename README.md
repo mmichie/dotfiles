@@ -68,14 +68,13 @@ configs/
   wezterm/                    # Backup terminal emulator
   zsh/                        # .zshrc + modular zsh libraries
 bin/                          # Personal scripts + platform binaries
-starship-segments/            # Rust source for custom prompt segments (built by Crane)
 ```
 
 ## Design Decisions
 
 - **Mutable symlinks**: `mkOutOfStoreSymlink` points symlinks at the git working tree, not the Nix store. Edit a config, see the change. Same workflow as GNU Stow.
 - **CLI from Nix, GUI from Homebrew**: Nix handles all command-line tools cross-platform. macOS GUI apps stay as Homebrew casks because `.app` bundles don't work well from the Nix store.
-- **Crane for Rust**: The custom `starship-segments` binary is built as a Nix derivation via Crane, with pinned libgit2 — no more broken dylib links when Homebrew updates.
+- **Flake inputs for custom tools**: [`plx`](https://github.com/mmichie/plx) (powerline segments) lives in its own repo and is consumed as a flake input — built via Crane with pinned libgit2.
 - **Declarative cleanup**: `homebrew.onActivation.cleanup = "zap"` removes any cask not in the config. The declared list is the source of truth.
 
 ## NixOS VM (VMware Fusion on Apple Silicon)
