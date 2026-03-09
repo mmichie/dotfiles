@@ -104,6 +104,7 @@ in
     # ── Development — Node ─────────────────────────────────────────────
     nodejs
     nodePackages.prettier
+    pnpm
 
     # ── Development — C/C++ ────────────────────────────────────────────
     cmake
