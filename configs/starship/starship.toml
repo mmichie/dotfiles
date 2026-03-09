@@ -1,13 +1,10 @@
 # Starship prompt - powerline-go style
-# Matches: venv, user, host, cwd, git, exit, prompt
+# plx handles: venv, username, hostname, path, git
+# starship handles: status, cmd_duration, jobs, character
 
 add_newline = false
 
 format = """
-$python\
-$username\
-[](fg:240 bg:238)\
-$hostname\
 ${custom.plx}\
 $status\
 $cmd_duration\
@@ -16,16 +13,10 @@ $character\
 [](fg:236) """
 
 [username]
-show_always = true
-style_user = "bg:240 fg:250"
-style_root = "bg:240 fg:red bold"
-format = "[ $user ]($style)"
+disabled = true
 
 [hostname]
-ssh_only = false
-ssh_symbol = " "
-style = "bg:238 fg:250"
-format = "[ $ssh_symbol$hostname ]($style)"
+disabled = true
 
 [directory]
 disabled = true
@@ -43,12 +34,12 @@ disabled = true
 disabled = true
 
 [python]
-format = '([\($virtualenv\) ](fg:green))'
+disabled = true
 
 [status]
 disabled = false
 style = "bg:red fg:15"
-format = "[](fg:236 bg:red)[ $int ]($style)[](fg:red bg:236)"
+format = "[](fg:236 bg:red)[ $int ]($style)[](fg:red bg:236)"
 
 [character]
 success_symbol = "[ \\$ ](bg:236 fg:15)"
