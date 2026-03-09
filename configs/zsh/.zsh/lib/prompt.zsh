@@ -10,7 +10,7 @@ blue="[34m"
 
 # Initialize starship prompt
 _init_starship() {
-    eval "$(starship init zsh)"
+    eval "$(plx init zsh)"
 }
 
 # Display system status and information
