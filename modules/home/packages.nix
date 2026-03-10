@@ -129,7 +129,8 @@ in
     minikube
     docker-compose
     opentofu
-    ansible
+    (python3.withPackages (ps: [ ps.ansible-core ps.boto3 ]))
+    ssm-session-manager-plugin
 
     # ── Network & Security ─────────────────────────────────────────────
     keybase
