@@ -6,10 +6,16 @@
 
 # Precmd hook to update location periodically
 _location_precmd_hook() {
-    # Skip if disabled
     [[ -n "$DISABLE_WIFI_LOCATION" ]] && return
 
-    # Update location (only if stale, runs in background)
+    # Fast shell-native staleness check (avoids sqlite3 + date spawns per prompt)
+    local now=$EPOCHSECONDS
+    if [[ -n "$_location_last_check" && $((now - _location_last_check)) -lt ${LOCATION_UPDATE_INTERVAL:-300} ]]; then
+        return
+    fi
+    _location_last_check=$now
+
+    # Full staleness check + background update
     location_update
 }
 
