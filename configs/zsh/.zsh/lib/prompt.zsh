@@ -32,36 +32,39 @@ notify_shell_status() {
     local os_type="$SYSTEM_OS_TYPE"
     local arch_type="$SYSTEM_ARCH"
     
-    # Generate and display random BBS banner
-    generate_login_banner
+    # Generate and display banner
+    if command -v plx &>/dev/null && command -v chafa &>/dev/null; then
+        plx banner 2 | chafa --size=80x25
+    else
+        generate_login_banner
 
-    # Get minimal system info quickly
-    local system_name=$(uname -s)
-    local date_info=$(date +%Y-%m-%d)
-    local load_info=""
-    local memory_info=""
-    
-    if is_osx; then
-        load_info=$(sysctl -n vm.loadavg | awk '{printf "%.1f", $2}')
-        memory_info=$(($(sysctl -n hw.memsize) / 1024 / 1024 / 1024))"GB"
-    elif is_linux; then
-        load_info=$(uptime | awk -F'[a-z]:' '{print $2}' | awk -F',' '{printf "%.1f", $1}')
-        memory_info=$(($(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 / 1024))"GB"
+        # Get minimal system info quickly
+        local system_name=$(uname -s)
+        local date_info=$(date +%Y-%m-%d)
+        local load_info=""
+        local memory_info=""
+
+        if is_osx; then
+            load_info=$(sysctl -n vm.loadavg | awk '{printf "%.1f", $2}')
+            memory_info=$(($(sysctl -n hw.memsize) / 1024 / 1024 / 1024))"GB"
+        elif is_linux; then
+            load_info=$(uptime | awk -F'[a-z]:' '{print $2}' | awk -F',' '{printf "%.1f", $1}')
+            memory_info=$(($(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 / 1024))"GB"
+        fi
+
+        "$gum_cmd" style \
+            --width 70 \
+            --border normal \
+            --margin "1 0" \
+            --padding "1" \
+            "$("$gum_cmd" style --bold --foreground 212 'SYSTEM INFO')" \
+            "$("$gum_cmd" style --foreground 99 "×þ System     [ $system_name ]")" \
+            "$("$gum_cmd" style --foreground 99 "×þ Platform   [ $os_type ]")" \
+            "$("$gum_cmd" style --foreground 99 "×þ Arch       [ $arch_type ]")" \
+            "$("$gum_cmd" style --foreground 99 "×þ Date       [ $date_info ]")" \
+            "$("$gum_cmd" style --foreground 99 "×þ Load       [ $load_info ]")" \
+            "$("$gum_cmd" style --foreground 99 "×þ Memory     [ $memory_info ]")"
     fi
-
-    # Display simplified system information
-    "$gum_cmd" style \
-        --width 70 \
-        --border normal \
-        --margin "1 0" \
-        --padding "1" \
-        "$("$gum_cmd" style --bold --foreground 212 'SYSTEM INFO')" \
-        "$("$gum_cmd" style --foreground 99 "×þ System     [ $system_name ]")" \
-        "$("$gum_cmd" style --foreground 99 "×þ Platform   [ $os_type ]")" \
-        "$("$gum_cmd" style --foreground 99 "×þ Arch       [ $arch_type ]")" \
-        "$("$gum_cmd" style --foreground 99 "×þ Date       [ $date_info ]")" \
-        "$("$gum_cmd" style --foreground 99 "×þ Load       [ $load_info ]")" \
-        "$("$gum_cmd" style --foreground 99 "×þ Memory     [ $memory_info ]")"
 }
 
 # OSC 7 directory tracking
