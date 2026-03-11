@@ -147,6 +147,7 @@ in
     doggo
 
     # ── Media & Documents ──────────────────────────────────────────────
+    ansilove
     chafa
     ffmpeg
     imagemagick
