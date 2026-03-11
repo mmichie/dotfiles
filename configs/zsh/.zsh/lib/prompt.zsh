@@ -32,9 +32,9 @@ notify_shell_status() {
     local os_type="$SYSTEM_OS_TYPE"
     local arch_type="$SYSTEM_ARCH"
     
-    # Generate and display banner
-    if command -v plx &>/dev/null && command -v chafa &>/dev/null; then
-        plx banner 2 | chafa --size=80x25
+    # Generate and display banner (kitty graphics protocol, no chafa needed)
+    if command -v plx &>/dev/null; then
+        plx banner 2
     else
         generate_login_banner
 
