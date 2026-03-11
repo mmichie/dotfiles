@@ -97,11 +97,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1773181734,
-        "narHash": "sha256-Df8khenrkO2WMaHRlrMVZcoJi5tegRifnSjkOM5HPOg=",
+        "lastModified": 1773249788,
+        "narHash": "sha256-wrji/pE1s4euzSrJnepDSxyyz41OYTWh2cbpUJpVt5M=",
         "owner": "mmichie",
         "repo": "plx",
-        "rev": "9e640ee369a995c8825622f609d70bacdde3c82b",
+        "rev": "f03b1c66980725fa1a488c42b89abf7e69925c11",
         "type": "github"
       },
       "original": {
