@@ -42,3 +42,4 @@ result-*
 
 # Build artifacts
 bin/wifi-location-go/build/
+bin/bin/t9dev
