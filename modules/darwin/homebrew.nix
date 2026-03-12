@@ -8,7 +8,7 @@
     onActivation = {
       autoUpdate = true;
       upgrade = true;
-      cleanup = "zap"; # Remove casks not listed here
+      cleanup = "uninstall"; # Remove casks not listed here (zap breaks docker-desktop receipt)
     };
 
     taps = [
@@ -23,7 +23,7 @@
       "ghostty"
 
       # Development
-      "docker-desktop"
+      { name = "docker-desktop"; greedy = true; }
       # "vmware-fusion"  # Broadcom download server broken
       "zed"
 
