@@ -2,4 +2,4 @@ pre-commit:
   commands:
     nix-fmt:
       glob: "*.nix"
-      run: nix fmt && git add {staged_files}
+      run: nixfmt {staged_files} && git add {staged_files}
