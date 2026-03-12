@@ -67,6 +67,7 @@
             home-manager = {
               useGlobalPkgs = true;
               useUserPackages = true;
+              backupFileExtension = "backup";
               extraSpecialArgs = {
                 inherit self;
                 plx = plx.packages.aarch64-darwin.default;
