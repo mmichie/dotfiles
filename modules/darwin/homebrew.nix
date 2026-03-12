@@ -23,7 +23,7 @@
       "ghostty"
 
       # Development
-      { name = "docker-desktop"; greedy = true; }
+      # "docker-desktop"  # Homebrew cask install bug — manage manually
       # "vmware-fusion"  # Broadcom download server broken
       "zed"
 
