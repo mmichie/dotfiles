@@ -14,5 +14,4 @@ in
   # Starship prompt config
   xdg.configFile."starship.toml".source =
     config.lib.file.mkOutOfStoreSymlink "${dotfiles}/starship/starship.toml";
-  xdg.configFile."starship".source = config.lib.file.mkOutOfStoreSymlink "${dotfiles}/starship";
 }

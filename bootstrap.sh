@@ -39,16 +39,31 @@ fi
 # home-manager will fail if real files exist at symlink targets
 CONFLICTS=()
 SYMLINK_TARGETS=(
+  # shell.nix
   "$HOME/.zshrc"
   "$HOME/.zsh"
-  "$HOME/.config/tmux"
-  "$HOME/.config/nvim"
-  "$HOME/.config/ghostty"
   "$HOME/.config/direnv"
   "$HOME/.config/starship.toml"
+  # terminal.nix
+  "$HOME/.config/ghostty"
+  "$HOME/.config/tmux"
+  "$HOME/.config/nvim"
   "$HOME/.wezterm.lua"
+  "$HOME/.ssh/config"
+  # git.nix
+  "$HOME/.gitconfig"
+  "$HOME/.gitignore_global"
+  # shared.nix
+  "$HOME/bin"
   "$HOME/.inputrc"
   "$HOME/.dircolors"
+  "$HOME/.tmux-cht-command"
+  "$HOME/.tmux-cht-languages"
+  "$HOME/.config/clima"
+  "$HOME/.config/location"
+  # hosts/mims-mbp/home.nix
+  "$HOME/.config/aerospace"
+  "$HOME/.config/karabiner"
 )
 
 for target in "${SYMLINK_TARGETS[@]}"; do

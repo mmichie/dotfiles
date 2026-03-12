@@ -6,7 +6,7 @@
 [core]
 	excludesfile = ~/.gitignore_global
 	pager = delta
-	hooksPath = /home/mim/.config/git/hooks
+	hooksPath = ~/.config/git/hooks
 
 [interactive]
 	diffFilter = delta --color-only
