@@ -3,7 +3,7 @@
 # Setup PATH environment variable
 # Order = priority (first entry wins). typeset -U deduplicates.
 setup_path() {
-    typeset -U path
+    typeset -gU path
 
     # Go environment
     export GOPATH="${GOPATH:-$HOME/workspace/go}"
