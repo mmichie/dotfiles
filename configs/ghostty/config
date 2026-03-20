@@ -1,11 +1,10 @@
 # Ghostty Configuration
 
 # Font settings
-font-family = "Myrna"
+font-family = "JetBrainsMono Nerd Font"
 font-size = 15
 font-thicken = true
 alpha-blending = linear-corrected
-# Alternative: font-family = "JetBrains Mono" with font-size = 14
 
 # Window settings
 window-padding-x = 0
