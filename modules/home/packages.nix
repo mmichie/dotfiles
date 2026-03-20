@@ -161,8 +161,13 @@ in
     beads
 
     # ── Fonts ────────────────────────────────────────────────────────────
+    nerd-fonts.departure-mono
+    nerd-fonts.fira-code
     nerd-fonts.hack
+    nerd-fonts.iosevka
+    nerd-fonts.iosevka-term
     nerd-fonts.jetbrains-mono
+    nerd-fonts.zed-mono
 
     # ── Misc CLI ───────────────────────────────────────────────────────
     dolt
