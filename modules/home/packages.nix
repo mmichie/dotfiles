@@ -165,6 +165,7 @@ in
     nerd-fonts.jetbrains-mono
 
     # ── Misc CLI ───────────────────────────────────────────────────────
+    dolt
     tree
     direnv
     nix-direnv
