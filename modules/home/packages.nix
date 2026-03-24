@@ -172,7 +172,7 @@ in
     # ── Misc CLI ───────────────────────────────────────────────────────
     dolt
     tree
-    direnv
+    (direnv.overrideAttrs (old: { env = (old.env or { }) // { CGO_ENABLED = "1"; }; }))
     nix-direnv
     rclone
     restic
