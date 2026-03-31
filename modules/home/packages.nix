@@ -103,7 +103,7 @@ in
 
     # ── Development — Node ─────────────────────────────────────────────
     nodejs
-    nodePackages.prettier
+    prettier
     pnpm
 
     # ── Development — C/C++ ────────────────────────────────────────────
