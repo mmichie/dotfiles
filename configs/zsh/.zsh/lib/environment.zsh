@@ -88,6 +88,9 @@ setup_environment() {
         export JAVA_HOME="$(dirname $(dirname $(readlink -f $(which javac))))"
     fi
 
+    # ── Claude Code ──────────────────────────────────────────────
+    export CLAUDE_CODE_EFFORT_LEVEL="max"
+
     # ── Development ──────────────────────────────────────────────
     export PYTHONUNBUFFERED=1
     export FZF_DEFAULT_OPTS="--height 40% --border"
