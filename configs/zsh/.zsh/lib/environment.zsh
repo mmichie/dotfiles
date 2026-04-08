@@ -14,7 +14,6 @@ setup_path() {
         # User paths (highest priority)
         "$HOME/bin"
         "$HOME/.local/bin"
-        "$HOME/.claude/local"
 
         # Nix profile paths
         "$HOME/.nix-profile/bin"
