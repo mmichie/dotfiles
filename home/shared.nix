@@ -34,6 +34,10 @@ in
   home.file.".tmux-cht-languages".source =
     config.lib.file.mkOutOfStoreSymlink "${dotfiles}/configs/system/.tmux-cht-languages";
 
+  # Claude Code settings
+  home.file.".claude/settings.json".source =
+    config.lib.file.mkOutOfStoreSymlink "${dotfiles}/configs/claude/settings.json";
+
   # Clima config
   xdg.configFile."clima".source =
     config.lib.file.mkOutOfStoreSymlink "${dotfiles}/configs/system/clima";
