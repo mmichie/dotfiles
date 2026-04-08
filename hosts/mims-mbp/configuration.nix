@@ -9,6 +9,17 @@
   # Determinate Systems manages the Nix daemon — disable nix-darwin's management
   nix.enable = false;
 
+  # Garbage-collect old generations weekly (Sunday 2 AM)
+  # Uses launchd directly because nix.gc requires nix.enable,
+  # which is disabled (Determinate Systems manages the daemon).
+  launchd.daemons.nix-gc = {
+    command = "/nix/var/nix/profiles/default/bin/nix-collect-garbage --delete-older-than 30d";
+    serviceConfig = {
+      RunAtLoad = false;
+      StartCalendarInterval = [{ Weekday = 0; Hour = 2; Minute = 0; }];
+    };
+  };
+
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
