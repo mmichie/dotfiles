@@ -8,13 +8,13 @@ echo "Branches without upstream and their latest commit dates:"
 
 # Iterate over each branch
 for branch in $branches; do
-    latest_commit_date=$(git log -1 --format="%ci" $branch)
-    merged_commits=$(git log $branch --not --remotes | wc -l)
+    latest_commit_date=$(git log -1 --format="%ci" "$branch")
+    merged_commits=$(git log "$branch" --not --remotes | wc -l)
 
     echo "Branch: $branch"
     echo "Latest Commit Date: $latest_commit_date"
 
-    if [ $merged_commits -eq 0 ]; then
+    if [ "$merged_commits" -eq 0 ]; then
         echo "Status: All commits are merged into remote branches"
     else
         echo "Status: Contains $merged_commits unmerged commits"

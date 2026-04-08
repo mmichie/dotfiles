@@ -16,7 +16,7 @@ update:
 
 # Check flake validity
 check:
-    nix flake check
+    nix flake check --all-systems
 
 # Show what would change
 dry-run:

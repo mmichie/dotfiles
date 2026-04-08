@@ -28,7 +28,7 @@ else
     $TMUX list-sessions | nl -w2 -s'. '
     echo
     echo -n "Enter session number to attach (or press Enter for most recent): "
-    read choice
+    read -r choice
 
     if [ -z "$choice" ]; then
         exec $TMUX attach-session
