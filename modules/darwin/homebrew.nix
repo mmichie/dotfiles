@@ -46,6 +46,7 @@
       "obs"
       "spotify"
       "handbrake-app"
+      "gimp"
 
       # Utilities
       "wireshark-app"
