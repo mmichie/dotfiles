@@ -10,9 +10,17 @@ switch:
         home-manager switch --flake .#mim@linux; \
     fi
 
-# Update all flake inputs
+# Update all flake inputs and show what changed
 update:
+    @cp flake.lock /tmp/flake.lock.before
     nix flake update
+    @echo ""
+    @echo "=== Updated inputs ==="
+    @diff \
+        <(jq -r '.nodes | to_entries[] | select(.value.locked.rev != null) | "\(.key) \(.value.locked.rev[0:7])"' /tmp/flake.lock.before | sort) \
+        <(jq -r '.nodes | to_entries[] | select(.value.locked.rev != null) | "\(.key) \(.value.locked.rev[0:7])"' flake.lock | sort) \
+        | grep '^[<>]' || echo "No inputs changed."
+    @rm -f /tmp/flake.lock.before
 
 # Check flake validity
 check:
