@@ -46,6 +46,9 @@
                 git commit -t .git/COMMIT_EDITMSG; \
         }; f"
 
+	# Repo navigation
+	root = rev-parse --show-toplevel
+
 	# Branch helpers
 	mainbranch = !git symbolic-ref refs/remotes/origin/HEAD | cut -d'/' -f4
 	current-branch = symbolic-ref --short HEAD

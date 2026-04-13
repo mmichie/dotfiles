@@ -21,16 +21,20 @@ get_gum_path() {
     echo "$gum_path"
 }
 
-# Enhanced man pages with colors
+# Enhanced man pages via bat syntax highlighting
 man() {
-    env \
-        LESS_TERMCAP_md=$'\e[1;36m' \
-        LESS_TERMCAP_me=$'\e[0m' \
-        LESS_TERMCAP_se=$'\e[0m' \
-        LESS_TERMCAP_so=$'\e[1;40;92m' \
-        LESS_TERMCAP_ue=$'\e[0m' \
-        LESS_TERMCAP_us=$'\e[1;32m' \
-        man "$@"
+    if command -v bat &>/dev/null; then
+        env MANPAGER="sh -c 'col -bx | bat -l man -p'" man "$@"
+    else
+        env \
+            LESS_TERMCAP_md=$'\e[1;36m' \
+            LESS_TERMCAP_me=$'\e[0m' \
+            LESS_TERMCAP_se=$'\e[0m' \
+            LESS_TERMCAP_so=$'\e[1;40;92m' \
+            LESS_TERMCAP_ue=$'\e[0m' \
+            LESS_TERMCAP_us=$'\e[1;32m' \
+            man "$@"
+    fi
 }
 
 # Check HTTP headers
