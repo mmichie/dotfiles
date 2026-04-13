@@ -24,7 +24,7 @@ get_gum_path() {
 # Enhanced man pages via bat syntax highlighting
 man() {
     if command -v bat &>/dev/null; then
-        env MANPAGER="sh -c 'col -bx | bat -l man -p'" man "$@"
+        env MANPAGER="sh -c 'col -bx | bat -l man -p'" MANROFFOPT="-c" man "$@"
     else
         env \
             LESS_TERMCAP_md=$'\e[1;36m' \
