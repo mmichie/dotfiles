@@ -1,19 +1,10 @@
 { config, ... }:
-
-let
-  dotfiles = "${config.home.homeDirectory}/src/dotfiles/configs";
-in
 {
-  # Ghostty
-  xdg.configFile."ghostty".source = config.lib.file.mkOutOfStoreSymlink "${dotfiles}/ghostty";
-
-  # WezTerm
+  xdg.configFile."ghostty".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/ghostty";
   home.file.".wezterm.lua".source =
-    config.lib.file.mkOutOfStoreSymlink "${dotfiles}/wezterm/.wezterm.lua";
-
-  # tmux
-  xdg.configFile."tmux".source = config.lib.file.mkOutOfStoreSymlink "${dotfiles}/tmux";
-
-  # SSH config
-  home.file.".ssh/config".source = config.lib.file.mkOutOfStoreSymlink "${dotfiles}/ssh/config";
+    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/wezterm/.wezterm.lua";
+  xdg.configFile."tmux".source = config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/tmux";
+  home.file.".ssh/config".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/ssh/config";
 }
