@@ -3,13 +3,17 @@
 # Constants for SSH agent configuration
 readonly AGENT_SOCKET="$HOME/.ssh/.ssh-agent-socket"
 readonly AGENT_INFO="$HOME/.ssh/.ssh-agent-info"
-readonly ONEPASSWORD_SOCKET="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+readonly ONEPASSWORD_SOCKET_MACOS="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+readonly ONEPASSWORD_SOCKET_LINUX="$HOME/.1password/agent.sock"
 
 # Handles the initialization and maintenance of an SSH agent
 handle_ssh_agent() {
-    # Use 1Password SSH agent if available (macOS)
-    if [[ -S "$ONEPASSWORD_SOCKET" ]]; then
-        export SSH_AUTH_SOCK="$ONEPASSWORD_SOCKET"
+    # Use 1Password SSH agent if available
+    if [[ -S "$ONEPASSWORD_SOCKET_MACOS" ]]; then
+        export SSH_AUTH_SOCK="$ONEPASSWORD_SOCKET_MACOS"
+        return 0
+    elif [[ -S "$ONEPASSWORD_SOCKET_LINUX" ]]; then
+        export SSH_AUTH_SOCK="$ONEPASSWORD_SOCKET_LINUX"
         return 0
     fi
 
@@ -79,9 +83,9 @@ get_ssh_agent_status() {
     local key_count=0
     local socket_path=${SSH_AUTH_SOCK:-"N/A"}
 
-    if [[ -S "$ONEPASSWORD_SOCKET" ]] && [[ "$SSH_AUTH_SOCK" == "$ONEPASSWORD_SOCKET" ]]; then
+    if [[ "$SSH_AUTH_SOCK" == "$ONEPASSWORD_SOCKET_MACOS" ]] || [[ "$SSH_AUTH_SOCK" == "$ONEPASSWORD_SOCKET_LINUX" ]]; then
         agent_status="Using 1Password SSH Agent"
-        socket_path="$ONEPASSWORD_SOCKET"
+        socket_path="$SSH_AUTH_SOCK"
         key_count=$(ssh-add -l 2>/dev/null | grep -c "^[0-9]")
     elif [[ -n "$SSH_AGENT_PID" ]]; then
         if ps -p "$SSH_AGENT_PID" >/dev/null; then
@@ -106,7 +110,7 @@ EOF
 
 # Kill the current SSH agent (only if using traditional agent)
 kill_ssh_agent() {
-    if [[ "$SSH_AUTH_SOCK" == "$ONEPASSWORD_SOCKET" ]]; then
+    if [[ "$SSH_AUTH_SOCK" == "$ONEPASSWORD_SOCKET_MACOS" ]] || [[ "$SSH_AUTH_SOCK" == "$ONEPASSWORD_SOCKET_LINUX" ]]; then
         echo "Using 1Password SSH agent - no need to kill"
         return 0
     fi
