@@ -1,46 +1,32 @@
+{ pkgs, config, ... }:
 {
-  pkgs,
-  config,
-  self,
-  plx,
-  ...
-}:
+  home.username = config.my.user.name;
+  home.stateVersion = config.my.user.stateVersion;
 
-let
-  dotfiles = "${config.home.homeDirectory}/src/dotfiles";
-in
-{
-  home.username = "mim";
-  home.stateVersion = "24.11";
-
-  # Let home-manager manage itself
   programs.home-manager.enable = true;
 
-  # Put plx binary on PATH
-  home.packages = [
-    plx
-  ];
+  home.packages = [ pkgs.plx ];
 
   # ~/bin — scripts and platform binaries
-  home.file."bin".source = config.lib.file.mkOutOfStoreSymlink "${dotfiles}/bin/bin";
+  home.file."bin".source = config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesRoot}/bin/bin";
 
   # System-level dotfiles
   home.file.".inputrc".source =
-    config.lib.file.mkOutOfStoreSymlink "${dotfiles}/configs/system/.inputrc";
+    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/system/.inputrc";
   home.file.".dircolors".source =
-    config.lib.file.mkOutOfStoreSymlink "${dotfiles}/configs/system/.dircolors";
+    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/system/.dircolors";
   home.file.".tmux-cht-command".source =
-    config.lib.file.mkOutOfStoreSymlink "${dotfiles}/configs/system/.tmux-cht-command";
+    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/system/.tmux-cht-command";
   home.file.".tmux-cht-languages".source =
-    config.lib.file.mkOutOfStoreSymlink "${dotfiles}/configs/system/.tmux-cht-languages";
+    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/system/.tmux-cht-languages";
 
   # Claude Code settings
   home.file.".claude/settings.json".source =
-    config.lib.file.mkOutOfStoreSymlink "${dotfiles}/configs/claude/settings.json";
+    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/claude/settings.json";
 
   # Clima config
   xdg.configFile."clima".source =
-    config.lib.file.mkOutOfStoreSymlink "${dotfiles}/configs/system/clima";
+    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/system/clima";
   xdg.configFile."location".source =
-    config.lib.file.mkOutOfStoreSymlink "${dotfiles}/configs/system/location";
+    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/system/location";
 }
