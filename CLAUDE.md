@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Personal dotfiles managed by **Nix** — nix-darwin on macOS, full NixOS in a VM, standalone home-manager on Linux. Config files live in `configs/` and are symlinked into `$HOME` via `mkOutOfStoreSymlink` (mutable — edits take effect immediately without rebuilding).
 
-- **~120 CLI tools** declared in `modules/home/packages.nix`
+- **~120 CLI tools** declared in `modules/home/packages-core.nix`
+- **Dev toolchains** in `modules/home/packages-dev.nix`
 - **~25 macOS GUI apps** as Homebrew casks in `modules/darwin/homebrew.nix`
 - **macOS defaults** in `modules/darwin/defaults.nix`
 - **Custom Rust binary** [`plx`](https://github.com/mmichie/plx) consumed as a flake input
@@ -27,7 +28,10 @@ sudo nixos-rebuild switch --flake .#vm-aarch64
 # Linux explicitly
 home-manager switch --flake .#mim@linux
 
-# Build NixOS VM config from macOS host
+# Copy config to VM and apply nixos-rebuild over SSH
+just vm-switch
+
+# Build NixOS VM config from macOS host (without applying)
 just vm-build
 
 # Update flake inputs
@@ -35,6 +39,19 @@ just update
 
 # Validate flake
 just check
+
+# Preview changes without applying
+just dry-run
+
+# Format all nix files
+just fmt
+
+# Garbage collect old generations
+just gc
+
+# Backup .ssh + .gnupg for machine migration
+just secrets-backup
+just secrets-restore
 ```
 
 ### Fresh Machine Bootstrap
@@ -68,22 +85,31 @@ just dry-run
 ```
 flake.nix                     # Entry point — darwinConfigurations + homeConfigurations
 flake.lock                    # Pinned input versions
-justfile                      # just switch / just update / just check / just dry-run
+justfile                      # Task runner (switch, update, vm-switch, secrets, etc.)
+lefthook.yml                  # Pre-commit hooks (nix-fmt, statix, shellcheck, conventional commits)
+lib/
+  mkHost.nix                  # Host constructors — mkDarwinHost, mkNixosHost, mkHomeConfig
 hosts/mims-mbp/               # nix-darwin system config + macOS home-manager overrides
 hosts/vm-aarch64/             # NixOS VM config (DWM, VMware, aarch64-linux)
+hostclass/
+  darwin-workstation.nix      # macOS-specific home config (aerospace, karabiner)
+  linux-workstation.nix       # Linux-specific home config (clipboard tools, git signing)
 home/                         # shared.nix (cross-platform), linux.nix
 modules/darwin/               # homebrew.nix (casks), defaults.nix (macOS prefs)
-modules/home/                 # packages, shell, git, editor, terminal modules
+modules/home/                 # options, packages-core, packages-dev, shell, git, editor, terminal
 configs/                      # Raw config files (symlinked by home-manager)
-  aerospace/ ghostty/ git/ karabiner/ nvim/ ssh/ starship/ system/ tmux/ wezterm/ zsh/
+  aerospace/ direnv/ ghostty/ git/ karabiner/ nvim/ ssh/ starship/ system/ tmux/ wezterm/ zsh/
 bin/                          # Personal scripts
+.github/workflows/            # CI: nix flake check + fmt on push
 ```
 
 ### Key Design Decisions
 - **`mkOutOfStoreSymlink`**: Config files are symlinked from the repo, not copied into the Nix store. Edits take effect immediately without rebuilding.
-- **CLI tools via nixpkgs**: All command-line tools are declared in `modules/home/packages.nix`
-- **GUI apps via Homebrew casks**: macOS GUI apps stay in `modules/darwin/homebrew.nix` (nix can't manage .app bundles well)
-- **Flake inputs for custom tools**: [`plx`](https://github.com/mmichie/plx) (powerline segments) is consumed as a flake input, built via Crane in its own repo
+- **Host classes**: `lib/mkHost.nix` defines `darwin-workstation` and `linux-workstation` classes. Adding a new host is one constructor call plus a thin hardware config.
+- **CLI tools via nixpkgs**: Core tools in `modules/home/packages-core.nix`, dev toolchains in `packages-dev.nix`.
+- **GUI apps via Homebrew casks**: macOS GUI apps stay in `modules/darwin/homebrew.nix` (nix can't manage .app bundles well).
+- **Flake inputs for custom tools**: [`plx`](https://github.com/mmichie/plx) (powerline segments) is consumed as a flake input, built via Crane in its own repo.
+- **Pre-commit hooks**: lefthook enforces nix-fmt, statix linting, shellcheck, and conventional commit messages.
 
 ### Key Components
 
@@ -97,7 +123,7 @@ bin/                          # Personal scripts
 #### Shell Configuration
 `configs/zsh/.zshrc` uses a modular design with optimized startup:
 - Core libraries loaded in order: platform_detection → environment → shell → prompt
-- Tools: atuin (history), vivid (ls colors), starship (prompt), fzf, zoxide
+- Tools: atuin (history), vivid (ls colors), starship + plx (prompt), fzf, zoxide
 
 ## Platform Targets
 
