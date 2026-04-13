@@ -1,11 +1,13 @@
 name: Check
+
 on:
   push:
     branches: [master]
   pull_request:
+    branches: [master]
 
 jobs:
-  flake-check:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,9 +15,10 @@ jobs:
           submodules: true
 
       - uses: DeterminateSystems/nix-installer-action@main
+
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
-      - name: nix flake check
+      - name: Check flake
         run: nix flake check --all-systems
 
       - name: Check formatting

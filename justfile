@@ -44,6 +44,32 @@ fmt:
 vm-build:
     nix build .#nixosConfigurations.vm-aarch64.config.system.build.toplevel
 
+# Copy local config to VM and apply NixOS rebuild (requires VM to be running)
+vm-switch:
+    rsync -av --rsync-path="sudo rsync" \
+        --exclude='.git/' \
+        --exclude='result' \
+        . vm:/nix-config
+    ssh vm "sudo nixos-rebuild switch --flake /nix-config#vm-aarch64"
+
+# Backup SSH keys and GPG keyring to backup.tar.gz (for machine migration)
+secrets-backup:
+    tar -czvf backup.tar.gz \
+        -C "$HOME" \
+        --exclude='.gnupg/.#*' \
+        --exclude='.gnupg/S.*' \
+        --exclude='.gnupg/*.conf' \
+        --exclude='.ssh/environment' \
+        .ssh/ \
+        .gnupg/
+
+# Restore SSH keys and GPG keyring from backup.tar.gz
+secrets-restore:
+    @[ -f backup.tar.gz ] || (echo "Error: backup.tar.gz not found"; exit 1)
+    tar -xzvf backup.tar.gz -C "$HOME"
+    chmod 700 "$HOME/.ssh" "$HOME/.gnupg"
+    chmod 600 "$HOME/.ssh/"* || true
+
 # Garbage collect old generations
 gc:
     nix-collect-garbage -d
