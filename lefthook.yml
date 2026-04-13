@@ -3,6 +3,14 @@ pre-commit:
     nix-fmt:
       glob: "*.nix"
       run: nix fmt -- {staged_files} && git add {staged_files}
+    statix:
+      glob: "*.nix"
+      run: nix run nixpkgs#statix -- check {staged_files}
     shellcheck:
       files: sh -c 'git diff --cached --name-only --diff-filter=ACM | while IFS= read -r f; do head -1 "$f" 2>/dev/null | grep -qE "^#!/.*/(bash|sh|dash|ksh)" && echo "$f"; done; true'
       run: shellcheck {files}
+
+commit-msg:
+  commands:
+    conventional-commit:
+      run: 'head -1 {1} | grep -qE "^(feat|fix|docs|style|refactor|test|chore|build|ci|perf|revert)(\(.+\))?(!)?: .+" || (echo "error: commit message must use conventional commits format" && exit 1)'
