@@ -21,10 +21,13 @@ get_gum_path() {
     echo "$gum_path"
 }
 
-# Enhanced man pages via bat syntax highlighting
+# Enhanced man pages via bat syntax highlighting.
+# macOS mandoc outputs ANSI SGR codes even when piped; BSD col strips only
+# ESC+[ leaving residue like "4m" or "0m" as literal text. Use perl to strip
+# full ANSI sequences and overstrike before bat applies its own highlighting.
 man() {
     if command -v bat &>/dev/null; then
-        env MANPAGER="sh -c 'col -bx | bat -l man -p'" MANROFFOPT="-c" man "$@"
+        command man "$@" | perl -pe 's/\e\[[0-9;]*[mGKH]//g; s/.\x08//g' | bat --color=always -l man -p
     else
         env \
             LESS_TERMCAP_md=$'\e[1;36m' \
