@@ -4,5 +4,5 @@ pre-commit:
       glob: "*.nix"
       run: nix fmt -- {staged_files} && git add {staged_files}
     shellcheck:
-      files: sh -c 'git diff --cached --name-only --diff-filter=ACM | while IFS= read -r f; do head -1 "$f" 2>/dev/null | grep -qE "^#!.*(bash|sh)" && echo "$f"; done; true'
+      files: sh -c 'git diff --cached --name-only --diff-filter=ACM | while IFS= read -r f; do head -1 "$f" 2>/dev/null | grep -qE "^#!/.*/(bash|sh|dash|ksh)" && echo "$f"; done; true'
       run: shellcheck {files}
