@@ -7,8 +7,12 @@ setup_clipboard() {
     elif is_linux; then
         if command -v xclip &>/dev/null; then
             alias clip="xclip -selection clipboard"
+            alias pbcopy="xclip -selection clipboard"
+            alias pbpaste="xclip -selection clipboard -o"
         elif command -v xsel &>/dev/null; then
             alias clip="xsel --clipboard --input"
+            alias pbcopy="xsel --clipboard --input"
+            alias pbpaste="xsel --clipboard --output"
         fi
     fi
 }
