@@ -3,9 +3,12 @@ let
   homePrefix = if pkgs.stdenv.isDarwin then "/Users" else "/home";
 in
 {
-  home.username = config.my.user.name;
-  home.homeDirectory = "${homePrefix}/${config.my.user.name}";
-  home.stateVersion = config.my.user.stateVersion;
+  home = {
+    username = config.my.user.name;
+    homeDirectory = "${homePrefix}/${config.my.user.name}";
+    inherit (config.my.user) stateVersion;
+    enableNixpkgsReleaseCheck = false;
+  };
 
   programs.home-manager.enable = true;
 
