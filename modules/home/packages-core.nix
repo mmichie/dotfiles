@@ -96,6 +96,7 @@ in
     # ── Misc CLI ───────────────────────────────────────────────────────
     just
     nvd
+    statix
     tmux
     dolt
     tree
