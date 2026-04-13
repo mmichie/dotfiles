@@ -1,4 +1,5 @@
 {
+  "includeCoAuthoredBy": false,
   "permissions": {
     "allow": [
       "WebSearch",
@@ -9,7 +10,6 @@
     "type": "command",
     "command": "bash ~/.claude/statusline-command.sh"
   },
-  "includeCoAuthoredBy": false,
   "enabledPlugins": {
     "pyright-lsp@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
