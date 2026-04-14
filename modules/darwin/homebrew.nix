@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 {
   # Homebrew is used only for casks (GUI apps) — CLI tools come from nixpkgs

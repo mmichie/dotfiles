@@ -1,30 +1,20 @@
 { lib, config, ... }:
+let
+  inherit (import ../../lib/options.nix { inherit lib; }) mkOpt';
+in
 {
   options.my = {
-    dotfilesRoot = lib.mkOption {
-      type = lib.types.str;
-      default = "${config.home.homeDirectory}/src/dotfiles";
-      description = "Path to the dotfiles repository root.";
-    };
+    dotfilesRoot =
+      mkOpt' lib.types.str "${config.home.homeDirectory}/src/dotfiles"
+        "Path to the dotfiles repository root.";
 
-    dotfilesPath = lib.mkOption {
-      type = lib.types.str;
-      default = "${config.my.dotfilesRoot}/configs";
-      description = "Path to the dotfiles configs directory.";
-    };
+    dotfilesPath =
+      mkOpt' lib.types.str "${config.my.dotfilesRoot}/configs"
+        "Path to the dotfiles configs directory.";
 
     user = {
-      name = lib.mkOption {
-        type = lib.types.str;
-        default = "mim";
-        description = "Primary username.";
-      };
-
-      stateVersion = lib.mkOption {
-        type = lib.types.str;
-        default = "24.11";
-        description = "Home-manager state version.";
-      };
+      name = mkOpt' lib.types.str "mim" "Primary username.";
+      stateVersion = mkOpt' lib.types.str "24.11" "Home-manager state version.";
     };
   };
 }

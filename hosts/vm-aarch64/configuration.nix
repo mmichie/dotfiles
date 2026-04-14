@@ -12,36 +12,44 @@
   ];
 
   # ── Nix settings ───────────────────────────────────────────────
-  nix.settings = {
-    experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
-    trusted-users = [
-      "root"
-      "mim"
-    ];
-    auto-optimise-store = true; # Deduplicate identical files in /nix/store
-    max-jobs = "auto"; # Use all CPU cores for builds
-  };
-
-  # ── Nix garbage collection ───────────────────────────────────
-  nix.gc = {
-    automatic = true;
-    dates = "daily";
-    options = "--delete-older-than 7d";
+  nix = {
+    settings = {
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
+      trusted-users = [
+        "root"
+        "mim"
+      ];
+      auto-optimise-store = true; # Deduplicate identical files in /nix/store
+      max-jobs = "auto"; # Use all CPU cores for builds
+    };
+    gc = {
+      automatic = true;
+      dates = "daily";
+      options = "--delete-older-than 7d";
+    };
   };
 
   nixpkgs.config.allowUnfree = true;
 
   # ── Networking ─────────────────────────────────────────────────
-  networking.hostName = "vm-aarch64";
-  networking.networkmanager.enable = true;
-  networking.nameservers = [
-    "8.8.8.8"
-    "8.8.4.4"
-  ];
-  networking.networkmanager.dns = "none"; # Don't let NM overwrite resolv.conf
+  networking = {
+    hostName = "vm-aarch64";
+    nameservers = [
+      "8.8.8.8"
+      "8.8.4.4"
+    ];
+    networkmanager = {
+      enable = true;
+      dns = "none"; # Don't let NM overwrite resolv.conf
+    };
+    firewall = {
+      enable = true;
+      allowedTCPPorts = [ 22 ]; # SSH only
+    };
+  };
 
   # ── Time & locale ──────────────────────────────────────────────
   time.timeZone = "America/Los_Angeles";
@@ -73,72 +81,83 @@
   hardware.graphics.enable = true;
 
   # ── X11 + DWM ──────────────────────────────────────────────────
-  services.xserver = {
-    enable = true;
-    xkb.layout = "us";
-    dpi = 96; # Native resolution (no HiDPI scaling)
-
-    windowManager.dwm = {
+  services = {
+    xserver = {
       enable = true;
-      package = pkgs.dwm.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [
-          # Use Super (Windows) key instead of Alt as modifier
-          # Mac keyboards in VMware Fusion map Command→Super, so this
-          # lets you use the key next to Space as the DWM mod key
-          (pkgs.writeText "modkey.patch" ''
-            diff --git a/config.def.h b/config.def.h
-            --- a/config.def.h
-            +++ b/config.def.h
-            @@ -48,1 +48,1 @@
-            -#define MODKEY Mod1Mask
-            +#define MODKEY Mod4Mask
-          '')
-        ];
-      });
+      xkb.layout = "us";
+      dpi = 96; # Native resolution (no HiDPI scaling)
+
+      windowManager.dwm = {
+        enable = true;
+        package = pkgs.dwm.overrideAttrs (old: {
+          patches = (old.patches or [ ]) ++ [
+            # Use Super (Windows) key instead of Alt as modifier
+            # Mac keyboards in VMware Fusion map Command→Super, so this
+            # lets you use the key next to Space as the DWM mod key
+            (pkgs.writeText "modkey.patch" ''
+              diff --git a/config.def.h b/config.def.h
+              --- a/config.def.h
+              +++ b/config.def.h
+              @@ -48,1 +48,1 @@
+              -#define MODKEY Mod1Mask
+              +#define MODKEY Mod4Mask
+            '')
+          ];
+        });
+      };
+
+      # Auto-login — single-user VM, skip the login screen
+      displayManager = {
+        lightdm.enable = true;
+        sessionCommands = ''
+          # HiDPI settings for Retina display
+          xrdb -merge <<XEOF
+          Xft.dpi: 96
+          Xft.autohint: 0
+          Xft.lcdfilter: lcddefault
+          Xft.hintstyle: hintfull
+          Xft.hinting: 1
+          Xft.antialias: 1
+          Xft.rgba: rgb
+          XEOF
+
+          # Set ultrawide resolution (Acer X34 3440x1440)
+          xrandr --newmode "3440x1440_60" 319.75 3440 3680 4048 4656 1440 1443 1453 1493 -hsync +vsync 2>/dev/null
+          xrandr --addmode Virtual-1 3440x1440_60 2>/dev/null
+          xrandr --output Virtual-1 --mode 3440x1440_60 2>/dev/null
+
+          while true; do
+            xsetroot -name "$(date '+%a %d %b %R') | $(cat /proc/loadavg | cut -d' ' -f1-3)"
+            sleep 10
+          done &
+        '';
+      };
     };
 
-    # Auto-login — single-user VM, skip the login screen
-    displayManager.lightdm.enable = true;
-  };
-
-  services.displayManager = {
-    defaultSession = "none+dwm";
-    autoLogin = {
-      enable = true;
-      user = "mim";
+    displayManager = {
+      defaultSession = "none+dwm";
+      autoLogin = {
+        enable = true;
+        user = "mim";
+      };
     };
-  };
 
-  # DWM status bar via xsetroot (shows date/time/load)
-  # Override with slstatus or your own script later
-  services.xserver.displayManager.sessionCommands = ''
-    # HiDPI settings for Retina display
-    xrdb -merge <<XEOF
-    Xft.dpi: 96
-    Xft.autohint: 0
-    Xft.lcdfilter: lcddefault
-    Xft.hintstyle: hintfull
-    Xft.hinting: 1
-    Xft.antialias: 1
-    Xft.rgba: rgb
-    XEOF
+    # ── Audio ──────────────────────────────────────────────────────
+    pipewire = {
+      enable = true;
+      alsa.enable = true;
+      pulse.enable = true;
+    };
 
-    # Set ultrawide resolution (Acer X34 3440x1440)
-    xrandr --newmode "3440x1440_60" 319.75 3440 3680 4048 4656 1440 1443 1453 1493 -hsync +vsync 2>/dev/null
-    xrandr --addmode Virtual-1 3440x1440_60 2>/dev/null
-    xrandr --output Virtual-1 --mode 3440x1440_60 2>/dev/null
-
-    while true; do
-      xsetroot -name "$(date '+%a %d %b %R') | $(cat /proc/loadavg | cut -d' ' -f1-3)"
-      sleep 10
-    done &
-  '';
-
-  # ── Audio ──────────────────────────────────────────────────────
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    pulse.enable = true;
+    # ── SSH ─────────────────────────────────────────────────────────
+    openssh = {
+      enable = true;
+      settings = {
+        PasswordAuthentication = false; # Key-only — no brute-force risk
+        PermitRootLogin = "no"; # Root can't SSH in
+        KbdInteractiveAuthentication = false;
+      };
+    };
   };
 
   # ── Fonts ──────────────────────────────────────────────────────
@@ -175,39 +194,24 @@
   ];
 
   # ── User ───────────────────────────────────────────────────────
-  users.users.mim = {
-    isNormalUser = true;
-    initialPassword = "nixos"; # Change after first login with `passwd`
-    extraGroups = [
-      "wheel"
-      "networkmanager"
-      "video"
-    ];
-    shell = pkgs.zsh;
-    openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFu6EGwcAtua7e2eBu3KNTGdBKP+0UOim1M0cvZgzF6U"
-    ];
+  users = {
+    users.mim = {
+      isNormalUser = true;
+      initialPassword = "nixos"; # Change after first login with `passwd`
+      extraGroups = [
+        "wheel"
+        "networkmanager"
+        "video"
+      ];
+      shell = pkgs.zsh;
+      openssh.authorizedKeys.keys = [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFu6EGwcAtua7e2eBu3KNTGdBKP+0UOim1M0cvZgzF6U"
+      ];
+    };
+    mutableUsers = true; # Allow passwd changes; remove initialPassword
   };
-
-  users.mutableUsers = true; # Allow passwd changes; remove initialPassword
 
   programs.zsh.enable = true;
-
-  # ── SSH ─────────────────────────────────────────────────────────
-  services.openssh = {
-    enable = true;
-    settings = {
-      PasswordAuthentication = false; # Key-only — no brute-force risk
-      PermitRootLogin = "no"; # Root can't SSH in
-      KbdInteractiveAuthentication = false;
-    };
-  };
-
-  # ── Firewall ────────────────────────────────────────────────────
-  networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [ 22 ]; # SSH only
-  };
 
   # ── Security ───────────────────────────────────────────────────
   security.sudo.wheelNeedsPassword = false; # Single-user dev VM

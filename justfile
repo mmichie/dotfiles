@@ -70,6 +70,10 @@ secrets-restore:
     chmod 700 "$HOME/.ssh" "$HOME/.gnupg"
     chmod 600 "$HOME/.ssh/"* || true
 
+# Open nix repl with all flake outputs pre-loaded (configs, formatter, etc.)
+repl:
+    cd {{justfile_directory()}} && nix repl .
+
 # Garbage collect old generations
 gc:
     nix-collect-garbage -d
