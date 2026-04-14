@@ -15,6 +15,10 @@ _:
       "nikitabobko/tap"
     ];
 
+    brews = [
+      "dosbox-x"
+    ];
+
     casks = [
       # Browsers
       "google-chrome"
@@ -49,11 +53,13 @@ _:
       "gimp"
 
       # Utilities
+      "keybase"
       "wireshark-app"
       "tailscale-app"
       "hazeover"
       "scroll-reverser"
       "keka"
+      "veracrypt"
 
       # Gaming
       "steam"

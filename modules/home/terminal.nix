@@ -3,6 +3,7 @@
   xdg.configFile = {
     "ghostty".source = config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/ghostty";
     "tmux".source = config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/tmux";
+    "dosbox-x".source = config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/dosbox-x";
   };
 
   home.file = {

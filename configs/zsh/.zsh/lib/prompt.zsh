@@ -8,8 +8,8 @@ green="[32m"
 yellow="[33m"
 blue="[34m"
 
-# Initialize starship prompt
-_init_starship() {
+# Initialize plx prompt
+_init_plx() {
     eval "$(plx init zsh)"
 }
 
@@ -79,5 +79,5 @@ init_prompt() {
     # Set up precmd hooks only once
     autoload -Uz add-zsh-hook
     add-zsh-hook precmd osc7_cwd
-    _init_starship
+    _init_plx
 }
