@@ -161,6 +161,7 @@
   };
 
   # ── Fonts ──────────────────────────────────────────────────────
+  fonts.enableDefaultPackages = false; # Only install what we declare
   fonts.packages = with pkgs; [
     nerd-fonts.hack
     nerd-fonts.iosevka
@@ -215,6 +216,37 @@
 
   # ── Security ───────────────────────────────────────────────────
   security.sudo.wheelNeedsPassword = false; # Single-user dev VM
+
+  # ── Kernel hardening ───────────────────────────────────────────
+  boot = {
+    kernelModules = [ "tcp_bbr" ];
+    kernel.sysctl = {
+      # Disable Magic SysRq key
+      "kernel.sysrq" = 0;
+
+      ## TCP hardening
+      "net.ipv4.icmp_ignore_bogus_error_responses" = 1; # Prevent bogus ICMP log spam
+      "net.ipv4.conf.default.rp_filter" = 1; # Reverse-path filtering (anti-spoof)
+      "net.ipv4.conf.all.rp_filter" = 1;
+      "net.ipv4.conf.all.accept_source_route" = 0; # Not a router
+      "net.ipv6.conf.all.accept_source_route" = 0;
+      "net.ipv4.conf.all.send_redirects" = 0; # Not a router
+      "net.ipv4.conf.default.send_redirects" = 0;
+      "net.ipv4.conf.all.accept_redirects" = 0; # MITM mitigation
+      "net.ipv4.conf.default.accept_redirects" = 0;
+      "net.ipv4.conf.all.secure_redirects" = 0;
+      "net.ipv4.conf.default.secure_redirects" = 0;
+      "net.ipv6.conf.all.accept_redirects" = 0;
+      "net.ipv6.conf.default.accept_redirects" = 0;
+      "net.ipv4.tcp_syncookies" = 1; # SYN flood protection
+      "net.ipv4.tcp_rfc1337" = 1; # TIME-WAIT assassination protection
+
+      ## TCP optimization
+      "net.ipv4.tcp_fastopen" = 3; # TFO for incoming + outgoing
+      "net.ipv4.tcp_congestion_control" = "bbr"; # Better congestion control
+      "net.core.default_qdisc" = "cake"; # Bufferbloat mitigation
+    };
+  };
 
   # ── State version ──────────────────────────────────────────────
   system.stateVersion = "25.05";
