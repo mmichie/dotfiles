@@ -5,7 +5,7 @@ pre-commit:
       run: nix fmt -- {staged_files} && git add {staged_files}
     statix:
       glob: "*.nix"
-      run: nix run nixpkgs#statix -- check {staged_files}
+      run: nix run nixpkgs#statix -- check .
     shellcheck:
       files: sh -c 'git diff --cached --name-only --diff-filter=ACM | while IFS= read -r f; do head -1 "$f" 2>/dev/null | grep -qE "^#!/.*/(bash|sh|dash|ksh)" && echo "$f"; done; true'
       run: shellcheck {files}

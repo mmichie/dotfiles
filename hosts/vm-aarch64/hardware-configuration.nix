@@ -13,22 +13,26 @@
     (modulesPath + "/profiles/qemu-guest.nix")
   ];
 
-  # Boot
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-
-  boot.initrd.availableKernelModules = [
-    "uhci_hcd"
-    "ahci"
-    "xhci_pci"
-    "nvme"
-    "usbhid"
-    "sr_mod"
-    "virtio_blk"
-  ];
-  boot.initrd.kernelModules = [ ];
-  boot.kernelModules = [ ];
-  boot.extraModulePackages = [ ];
+  boot = {
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+    };
+    initrd = {
+      availableKernelModules = [
+        "uhci_hcd"
+        "ahci"
+        "xhci_pci"
+        "nvme"
+        "usbhid"
+        "sr_mod"
+        "virtio_blk"
+      ];
+      kernelModules = [ ];
+    };
+    kernelModules = [ ];
+    extraModulePackages = [ ];
+  };
 
   # Filesystems — adjust device paths after install
   fileSystems."/" = {
