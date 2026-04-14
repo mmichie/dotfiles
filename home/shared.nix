@@ -12,6 +12,11 @@ in
 
   programs.home-manager.enable = true;
 
+  # Session variables — centralized here rather than scattered across shell configs
+  home.sessionVariables = {
+    DIRENV_LOG_FORMAT = ""; # Silence direnv loading noise
+  };
+
   home.packages = [ pkgs.plx ];
 
   # ~/bin — scripts and platform binaries
