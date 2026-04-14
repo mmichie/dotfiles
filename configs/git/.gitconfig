@@ -54,13 +54,18 @@
 	current-branch = symbolic-ref --short HEAD
 
 	# Workflow shortcuts
+	a = add --patch
 	co = checkout --recurse-submodules
+	cb = checkout -b
 	ci = commit
+	ca = commit --amend
 	cm = commit -m
+	fixup = commit --amend --no-edit
 	d = diff
 	di = diff --cached
 	s = show
 	st = status -sb
+	pf = push --force-with-lease
 
 	# Logging
 	graph = log --branches --pretty=short --decorate --graph
