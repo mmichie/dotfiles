@@ -22,6 +22,22 @@ let
     (plxOverlay system)
   ];
 
+  # Pin nix registry to flake inputs so `nix run nixpkgs#foo` uses flake.lock.
+  # Uses home-manager's nix.registry (user-level ~/.config/nix/registry.json)
+  # because macOS nix.enable = false skips system-level registry activation.
+  flakeInputs = nixpkgs.lib.filterAttrs (_: nixpkgs.lib.isType "flake") {
+    inherit
+      nixpkgs
+      nixpkgs-stable
+      nix-darwin
+      home-manager
+      plx
+      ;
+  };
+  registryHomeModule = {
+    nix.registry = nixpkgs.lib.mapAttrs (_: flake: { inherit flake; }) flakeInputs;
+  };
+
   # ── Home module sets ─────────────────────────────────────────────────
 
   # Shared across all classes
@@ -78,7 +94,13 @@ let
             useUserPackages = true;
             backupFileExtension = "backup";
             users.${username} = {
-              imports = cc.homeModules ++ [ cc.homeBase ] ++ extraHomeModules;
+              imports =
+                cc.homeModules
+                ++ [
+                  cc.homeBase
+                  registryHomeModule
+                ]
+                ++ extraHomeModules;
               my.user.name = username;
             };
           };
@@ -110,7 +132,13 @@ let
             useGlobalPkgs = true;
             useUserPackages = true;
             users.${username} = {
-              imports = cc.homeModules ++ [ cc.homeBase ] ++ extraHomeModules;
+              imports =
+                cc.homeModules
+                ++ [
+                  cc.homeBase
+                  registryHomeModule
+                ]
+                ++ extraHomeModules;
               my.user.name = username;
             };
           };
@@ -138,7 +166,10 @@ let
       };
       modules =
         cc.homeModules
-        ++ [ cc.homeBase ]
+        ++ [
+          cc.homeBase
+          registryHomeModule
+        ]
         ++ extraHomeModules
         ++ [
           { my.user.name = username; }
