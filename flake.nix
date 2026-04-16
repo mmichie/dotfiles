@@ -49,7 +49,19 @@
     in
     {
       # ── macOS (nix-darwin with embedded home-manager) ──────────────
-      darwinConfigurations."mims-mbp" = mkDarwinHost { hostname = "mims-mbp"; };
+      darwinConfigurations = {
+        "mims-mbp" = mkDarwinHost { hostname = "mims-mbp"; };
+
+        "moab-mbp" = mkDarwinHost {
+          hostname = "moab-mbp";
+          extraHomeModules = [ { my.isWork = true; } ];
+        };
+
+        "tensor9-mbp" = mkDarwinHost {
+          hostname = "tensor9-mbp";
+          extraHomeModules = [ { my.isWork = true; } ];
+        };
+      };
 
       # ── NixOS VM (VMware Fusion on Apple Silicon) ─────────────────
       nixosConfigurations."vm-aarch64" = mkNixosHost {
