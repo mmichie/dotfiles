@@ -54,6 +54,7 @@ let
   # Additional modules for workstation classes (macOS + Linux)
   workstationHomeModules = [
     ../modules/home/packages-dev.nix
+    ../modules/home/packages-work.nix
   ];
 
   # ── Class definitions ────────────────────────────────────────────────

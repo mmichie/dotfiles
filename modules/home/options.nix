@@ -1,6 +1,6 @@
 { lib, config, ... }:
 let
-  inherit (import ../../lib/options.nix { inherit lib; }) mkOpt';
+  inherit (import ../../lib/options.nix { inherit lib; }) mkOpt' mkBoolOpt;
 in
 {
   options.my = {
@@ -16,5 +16,7 @@ in
       name = mkOpt' lib.types.str "mim" "Primary username.";
       stateVersion = mkOpt' lib.types.str "24.11" "Home-manager state version.";
     };
+
+    isWork = mkBoolOpt false;
   };
 }

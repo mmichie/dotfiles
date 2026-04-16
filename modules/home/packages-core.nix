@@ -113,6 +113,7 @@ in
     hexyl
     tealdeer
     p7zip
+    qpdf
     xz
     mmv-go
     glow
