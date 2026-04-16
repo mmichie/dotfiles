@@ -59,7 +59,8 @@ _:
       "hazeover"
       "scroll-reverser"
       "keka"
-      "veracrypt"
+      "fuse-t"
+      "veracrypt-fuse-t"
 
       # Gaming
       "steam"
