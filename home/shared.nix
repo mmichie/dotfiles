@@ -1,11 +1,18 @@
-{ pkgs, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 let
   homePrefix = if pkgs.stdenv.isDarwin then "/Users" else "/home";
 in
 {
   home = {
     username = config.my.user.name;
-    homeDirectory = "${homePrefix}/${config.my.user.name}";
+    # mkForce overrides home-manager's nixos/darwin integration, which defaults
+    # homeDirectory from users.users.<name>.home (null when not configured).
+    homeDirectory = lib.mkForce "${homePrefix}/${config.my.user.name}";
     inherit (config.my.user) stateVersion;
     enableNixpkgsReleaseCheck = false;
   };

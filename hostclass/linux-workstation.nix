@@ -1,13 +1,6 @@
-{
-  pkgs,
-  lib,
-  config,
-  ...
-}:
+{ pkgs, ... }:
 {
   home = {
-    homeDirectory = lib.mkForce "/home/${config.my.user.name}";
-
     packages = with pkgs; [
       xclip
       xsel

@@ -26,7 +26,6 @@
 
   outputs =
     {
-      self,
       nixpkgs,
       nixpkgs-stable,
       nix-darwin,
@@ -37,7 +36,6 @@
     let
       mkHost = import ./lib/mkHost.nix {
         inherit
-          self
           nixpkgs
           nixpkgs-stable
           nix-darwin

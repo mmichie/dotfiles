@@ -40,6 +40,9 @@ configs/system/clima/wifi-locations.conf
 result
 result-*
 
+# Secrets backup from `just secrets-backup` — must never be committed
+backup.tar.gz
+
 # Build artifacts
 bin/wifi-location-go/build/
 bin/bin/t9dev

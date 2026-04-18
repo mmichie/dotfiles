@@ -1,12 +1,9 @@
 {
   pkgs,
-  lib,
   config,
   ...
 }:
 {
-  home.homeDirectory = lib.mkForce "/Users/${config.my.user.name}";
-
   home.packages = with pkgs; [
     pinentry_mac
     terminal-notifier
