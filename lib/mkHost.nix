@@ -1,5 +1,4 @@
 {
-  self,
   nixpkgs,
   nixpkgs-stable,
   nix-darwin,
@@ -54,7 +53,6 @@ let
   # Additional modules for workstation classes (macOS + Linux)
   workstationHomeModules = [
     ../modules/home/packages-dev.nix
-    ../modules/home/packages-work.nix
   ];
 
   # ── Class definitions ────────────────────────────────────────────────
@@ -85,7 +83,7 @@ let
     in
     nix-darwin.lib.darwinSystem {
       inherit system;
-      specialArgs = { inherit self username; };
+      specialArgs = { inherit username; };
       modules = [
         ../hosts/${hostname}/configuration.nix
         home-manager.darwinModules.home-manager
@@ -124,7 +122,7 @@ let
     in
     nixpkgs.lib.nixosSystem {
       inherit system;
-      specialArgs = { inherit self username; };
+      specialArgs = { inherit username; };
       modules = [
         ../hosts/${hostname}/configuration.nix
         home-manager.nixosModules.home-manager

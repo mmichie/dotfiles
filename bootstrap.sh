@@ -4,9 +4,10 @@
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
-FLAKE_REF="mims-mbp"
+# Detect host from short hostname; override with FLAKE_REF=<name> bash bootstrap.sh
+FLAKE_REF="${FLAKE_REF:-$(hostname -s)}"
 
-echo "==> Bootstrapping macOS from ${DOTFILES_DIR}"
+echo "==> Bootstrapping macOS (flake: .#${FLAKE_REF}) from ${DOTFILES_DIR}"
 
 # ── Pre-flight checks ─────────────────────────────────────────────
 if [[ "$(uname)" != "Darwin" ]]; then
@@ -61,7 +62,7 @@ SYMLINK_TARGETS=(
   "$HOME/.tmux-cht-languages"
   "$HOME/.config/clima"
   "$HOME/.config/location"
-  # hosts/mims-mbp/home.nix
+  # hostclass/darwin-workstation.nix
   "$HOME/.config/aerospace"
   "$HOME/.config/karabiner"
 )

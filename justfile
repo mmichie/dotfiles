@@ -1,11 +1,11 @@
 # Dotfiles management via Nix
 
-# Apply system configuration
+# Apply system configuration (detects host via `hostname -s` on Darwin/NixOS)
 switch:
     @if [ "$(uname)" = "Darwin" ]; then \
-        sudo darwin-rebuild switch --flake .#mims-mbp; \
+        sudo darwin-rebuild switch --flake ".#$(hostname -s)"; \
     elif [ -f /etc/NIXOS ]; then \
-        sudo nixos-rebuild switch --flake .#vm-aarch64; \
+        sudo nixos-rebuild switch --flake ".#$(hostname -s)"; \
     else \
         home-manager switch --flake .#mim@linux; \
     fi
@@ -29,9 +29,9 @@ check:
 # Show what would change
 dry-run:
     @if [ "$(uname)" = "Darwin" ]; then \
-        darwin-rebuild build --flake .#mims-mbp && nvd diff /run/current-system result; \
+        darwin-rebuild build --flake ".#$(hostname -s)" && nvd diff /run/current-system result; \
     elif [ -f /etc/NIXOS ]; then \
-        nixos-rebuild dry-activate --flake .#vm-aarch64; \
+        nixos-rebuild dry-activate --flake ".#$(hostname -s)"; \
     else \
         home-manager build --flake .#mim@linux; \
     fi
