@@ -30,3 +30,6 @@ Host *
     IdentitiesOnly yes
     ServerAliveInterval 60
     ServerAliveCountMax 3
+    StrictHostKeyChecking accept-new
+    ConnectTimeout 10
+    VisualHostKey yes
