@@ -234,17 +234,6 @@ _ls_command() {
     fi
 }
 
-# Setup Neovim aliases if available
-setup_nvim_alias() {
-    # Check if nvim is installed
-    if command -v nvim >/dev/null 2>&1; then
-        alias vim='nvim'
-        alias vi='nvim'
-        export EDITOR='nvim'
-        export VISUAL='nvim'
-    fi
-}
-
 setup_aliases() {
     # Check if bat is installed and set up alias for cat
     if command -v bat &>/dev/null; then
@@ -296,7 +285,6 @@ setup_aliases() {
     alias nsa="netstat -an | sed -n '1,/Active UNIX domain sockets/p'"
     alias lsock="sudo lsof -i -P"
     alias keypress="read -s -n1 keypress; echo \$keypress"
-    alias loadenv='export $(grep -v "^#" .env | xargs)'
 
     # Directory navigation
     alias :="cd .."
@@ -318,29 +306,8 @@ setup_aliases() {
     alias -s {txt,md,markdown,rst}=$EDITOR
     alias -s {gif,jpg,jpeg,png}='open'
     alias -s {html,htm}='open'
-    setup_nvim_alias
 }
 
-
-# Setup fzf-tab plugin for enhanced tab completion
-setup_fzf_tab() {
-    local fzf_tab_path="$HOME/.zsh/plugins/fzf-tab"
-    if [[ -d "$fzf_tab_path" ]]; then
-        source "$fzf_tab_path/fzf-tab.plugin.zsh"
-        
-        # Configure fzf-tab
-        zstyle ':completion:*:descriptions' format '[%d]'
-        zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-        zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always $realpath'
-        zstyle ':fzf-tab:complete:*:*' fzf-preview 'less ${(Q)realpath}'
-        zstyle ':fzf-tab:*' switch-group ',' '.'
-        
-        # Use bat for previews if available
-        if command -v bat &>/dev/null; then
-            zstyle ':fzf-tab:complete:*:*' fzf-preview 'bat --color=always --style=numbers --line-range=:500 ${(Q)realpath} 2>/dev/null || ls -1 --color=always ${(Q)realpath}'
-        fi
-    fi
-}
 
 # Setup zoxide for smart directory navigation
 setup_zoxide() {
@@ -421,10 +388,8 @@ init_shell() {
     setup_readline
     setup_completions
     setup_history
-    # Try eza first, fall back to regular ls colors
-    setup_eza || setup_ls_colors
-    # Setup fzf-tab after completions are initialized
-    setup_fzf_tab
+    # eza with internal fallback to setup_ls_colors when eza is absent
+    setup_eza
     # Setup zoxide for smarter directory navigation
     setup_zoxide
 

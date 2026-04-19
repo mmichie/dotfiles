@@ -1,10 +1,5 @@
 # Useful utility functions
 
-# Create a new directory and enter it
-mkd() {
-	mkdir -p "$@" && cd "$_" || return
-}
-
 # Start an HTTP server from a directory, optionally specifying the port
 server() {
 	local port="${1:-8000}"
