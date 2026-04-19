@@ -1,42 +1,8 @@
 #!/bin/zsh
 
-# Setup PATH environment variable
-# Order = priority (first entry wins). typeset -U deduplicates.
-setup_path() {
-    typeset -gU path
-
-    # Go environment
-    export GOPATH="${GOPATH:-$HOME/workspace/go}"
-    export GOBIN="${GOBIN:-$GOPATH/bin}"
-    export GOPROXY="${GOPROXY:-https://proxy.golang.org,direct}"
-
-    path=(
-        # User paths (highest priority)
-        "$HOME/bin"
-        "$HOME/.local/bin"
-
-        # Nix profile paths
-        "$HOME/.nix-profile/bin"
-        "/etc/profiles/per-user/${USER}/bin"
-        "/run/wrappers/bin"
-        "/run/current-system/sw/bin"
-        "/nix/var/nix/profiles/default/bin"
-
-        # Language paths
-        "$GOBIN"
-
-        # Homebrew (macOS casks only — CLI tools come from nix)
-        "/opt/homebrew/bin"
-        "/opt/homebrew/sbin"
-
-        # System
-        "/usr/local/bin"
-        "/usr/local/sbin"
-
-        # Preserve existing entries
-        $path
-    )
-}
+# setup_path lives in .zshenv so it fires for every zsh (including the
+# non-interactive ones spawned by tmux run-shell). The call at .zshrc:174
+# re-runs it after macOS's path_helper reorders PATH for login shells.
 
 # Load environment variables from .env file
 load_env_file() {
@@ -62,8 +28,9 @@ setup_environment() {
     export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
     export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 
-    # ── PATH ─────────────────────────────────────────────────────
-    setup_path
+    # PATH is handled in .zshenv (runs for every zsh); this function is
+    # called only from interactive .zshrc which needs the post-path_helper
+    # re-apply on macOS login — that's done directly in .zshrc.
 
     # ── Locale ───────────────────────────────────────────────────
     export LC_ALL="en_US.UTF-8"
