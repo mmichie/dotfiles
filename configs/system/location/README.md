@@ -1,20 +1,20 @@
 # Shell Location Service
 
-SQLite-based location service that provides automatic, network-aware geographic location tracking for shell, tmux, and location-aware tools like tmux-clima.
+SQLite-based location service that provides automatic, network-aware geographic location tracking for shell, tmux, and location-aware tools like `plx weather`.
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────┐
 │  Shell / tmux / Applications                │
-│  Read: $CLIMA_LAT, $CLIMA_LON              │
+│  Read: $PLX_WEATHER_LAT, $PLX_WEATHER_LON  │
 └──────────────────┬──────────────────────────┘
                    │
 ┌──────────────────▼──────────────────────────┐
 │  Location Service (location_service.zsh)    │
 │  - Detects WiFi/IP changes                  │
 │  - Updates every 5 min (precmd hook)        │
-│  - Exports CLIMA_LAT/CLIMA_LON              │
+│  - Exports PLX_WEATHER_LAT/PLX_WEATHER_LON  │
 └──────────────────┬──────────────────────────┘
                    │
 ┌──────────────────▼──────────────────────────┐
@@ -128,7 +128,7 @@ location force               # Force immediate update
 - **Precmd Hook**: Runs after every command
 - **Staleness Check**: Only updates if >5 min old
 - **Background**: Runs in subshell, doesn't block prompt
-- **Environment Export**: Sets `CLIMA_LAT`/`CLIMA_LON` automatically
+- **Environment Export**: Sets `PLX_WEATHER_LAT`/`PLX_WEATHER_LON` automatically
 
 ### Data Tracked
 
@@ -272,7 +272,7 @@ sqlite3 ~/.cache/shell/location.db \
 location status
 
 # Check environment variables
-echo "Lat: $CLIMA_LAT, Lon: $CLIMA_LON, City: $CLIMA_CITY"
+echo "Lat: $PLX_WEATHER_LAT, Lon: $PLX_WEATHER_LON"
 
 # Check precmd hook is active
 typeset -f _location_precmd_hook
@@ -352,17 +352,17 @@ location force && location learn
 ### Tmux not updating
 
 ```bash
-# Tmux uses CLIMA_LAT/CLIMA_LON from environment
+# Tmux uses PLX_WEATHER_LAT/PLX_WEATHER_LON from environment
 # These are set by precmd hook in each shell
 
 # Force update in tmux pane
 location force
 
 # Check variables in tmux
-tmux display-message "Lat: #{CLIMA_LAT}, Lon: #{CLIMA_LON}"
+tmux show-environment -g | grep PLX_WEATHER
 
-# Restart tmux-clima to use new location
-tmux display-message "#{clima}"
+# Render the weather segment directly
+plx weather --units imperial --show-city --use-nerd-font
 ```
 
 ## Performance
@@ -427,7 +427,7 @@ The architecture supports a future background daemon:
 │  Shell precmd (existing)                 │
 │  - Detects daemon is running            │
 │  - Just reads from DB (no update logic) │
-│  - Exports CLIMA_LAT/CLIMA_LON           │
+│  - Exports PLX_WEATHER_LAT/PLX_WEATHER_LON│
 └─────────────────────────────────────────┘
 ```
 

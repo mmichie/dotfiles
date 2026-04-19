@@ -1,14 +1,14 @@
-# WiFi-based Location Configuration for tmux-clima
+# WiFi-based Location Configuration for plx weather
 
-This directory contains configuration for WiFi-based automatic location detection for the tmux-clima weather plugin.
+This directory contains configuration for WiFi-based automatic location detection for the `plx weather` tmux status segment.
 
 ## How It Works
 
 The `wifi_location.zsh` module (loaded in your zsh configuration) automatically:
 1. Detects your current WiFi network SSID
 2. Looks up the SSID in your `wifi-locations.conf` file
-3. Sets `CLIMA_LAT` and `CLIMA_LON` environment variables if a match is found
-4. tmux-clima uses these variables to show weather for your current location
+3. Sets `PLX_WEATHER_LAT` and `PLX_WEATHER_LON` environment variables if a match is found
+4. `plx weather` uses these variables to show weather for your current location
 
 ## Setup
 
@@ -61,8 +61,8 @@ Check if WiFi location detection is working:
 get_wifi_ssid
 
 # Check if location variables are set
-echo "Latitude: $CLIMA_LAT"
-echo "Longitude: $CLIMA_LON"
+echo "Latitude: $PLX_WEATHER_LAT"
+echo "Longitude: $PLX_WEATHER_LON"
 
 # Force refresh (restart shell or reload)
 source ~/.zshrc
@@ -92,6 +92,6 @@ Add this to your `~/.zshrc.local` to make it permanent.
 - Test with: `get_wifi_ssid` command
 
 **Weather showing wrong location:**
-- Verify `CLIMA_LAT` and `CLIMA_LON` are set: `echo $CLIMA_LAT $CLIMA_LON`
-- Check that clima is reading the variables (priority order in clima README)
-- Wait for the clima TTL to expire (default: 15 minutes) or restart tmux
+- Verify `PLX_WEATHER_LAT` and `PLX_WEATHER_LON` are set: `echo $PLX_WEATHER_LAT $PLX_WEATHER_LON`
+- Confirm tmux picked up the updated environment (`tmux show-environment -g | grep PLX_WEATHER`)
+- Reload tmux config with `prefix + r` or restart the tmux server

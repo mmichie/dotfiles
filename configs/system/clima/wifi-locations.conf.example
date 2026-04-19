@@ -1,4 +1,4 @@
-# WiFi Location Configuration for tmux-clima
+# WiFi Location Configuration for plx weather
 # Format: SSID,latitude,longitude
 # Lines starting with # are comments and will be ignored
 # Empty lines are also ignored
@@ -7,7 +7,7 @@
 # 1. Copy to ~/.config/clima/wifi-locations.conf
 # 2. Edit with your WiFi networks and their locations
 # 3. The zsh wifi_location module will automatically detect your current WiFi
-#    and set CLIMA_LAT and CLIMA_LON environment variables
+#    and set PLX_WEATHER_LAT and PLX_WEATHER_LON environment variables
 #
 # Example entries:
 
@@ -25,4 +25,4 @@
 # - Latitude and longitude should be decimal degrees
 # - Get coordinates from: https://www.latlong.net/
 # - Only the first matching SSID will be used
-# - If no match is found, clima will fall back to IP-based location
+# - If no match is found, plx weather will fall back to IP-based location

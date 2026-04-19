@@ -10,6 +10,3 @@
 [submodule "configs/tmux/plugins/dwm.tmux"]
 	path = configs/tmux/plugins/dwm.tmux
 	url = https://github.com/saysjonathan/dwm.tmux.git
-[submodule "configs/tmux/plugins/tmux-clima"]
-	path = configs/tmux/plugins/tmux-clima
-	url = https://github.com/vascomfnunes/tmux-clima.git
