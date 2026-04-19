@@ -36,6 +36,8 @@ notify_shell_status() {
     if command -v plx &>/dev/null; then
         plx banner 2
     else
+        # Lazy-load the BBS banner generator — 247 lines, only needed on the plx-missing fallback
+        load_module "lib" "banner"
         generate_login_banner
 
         # Get minimal system info quickly
