@@ -98,7 +98,7 @@ home/                         # shared.nix (cross-platform), linux.nix
 modules/darwin/               # homebrew.nix (casks), defaults.nix (macOS prefs)
 modules/home/                 # options, packages-core, packages-dev, shell, git, editor, terminal
 configs/                      # Raw config files (symlinked by home-manager)
-  aerospace/ direnv/ ghostty/ git/ karabiner/ nvim/ ssh/ starship/ system/ tmux/ wezterm/ zsh/
+  aerospace/ direnv/ ghostty/ git/ karabiner/ nvim/ ssh/ system/ tmux/ wezterm/ zsh/
 bin/                          # Personal scripts
 .github/workflows/            # CI: nix flake check + fmt on push
 ```
@@ -123,7 +123,7 @@ bin/                          # Personal scripts
 #### Shell Configuration
 `configs/zsh/.zshrc` uses a modular design with optimized startup:
 - Core libraries loaded in order: platform_detection → environment → shell → prompt
-- Tools: atuin (history), vivid (ls colors), starship + plx (prompt), fzf, zoxide
+- Tools: atuin (history), vivid (ls colors), plx (prompt), fzf, zoxide
 
 ## Platform Targets
 

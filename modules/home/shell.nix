@@ -6,6 +6,4 @@
 
   xdg.configFile."direnv".source =
     config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/direnv";
-  xdg.configFile."starship.toml".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/starship/starship.toml";
 }
