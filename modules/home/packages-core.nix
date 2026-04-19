@@ -75,7 +75,6 @@ in
     neovim
 
     # ── Network & Security ─────────────────────────────────────────────
-    keybase
     nmap
     socat
     mtr
