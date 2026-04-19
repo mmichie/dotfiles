@@ -38,6 +38,7 @@
 
     # ── Development — Other ────────────────────────────────────────────
     shellcheck
+    shfmt
     pre-commit
     lefthook
     tokei

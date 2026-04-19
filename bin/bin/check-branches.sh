@@ -22,4 +22,3 @@ for branch in $branches; do
 
     echo
 done
-
