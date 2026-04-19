@@ -116,9 +116,6 @@ system_health() {
     fi
 }
 
-# Load status module immediately as it's needed for shell startup
-load_module "function" "status"
-
 # Load utility functions
 load_module "function" "utils"
 
@@ -149,7 +146,7 @@ if [[ -o login || -z "$INFLUX_SHOWN" ]] && command -v gum &>/dev/null; then
 fi
 
 # Final cleanup
-unset core_modules function_modules
+unset core_modules
 
 # Disable correction for specific commands
 CORRECT_IGNORE='.*|claude'
