@@ -264,17 +264,18 @@ _location_lookup_network() {
 
     _location_init || return 1
 
-    # Normalize empty bssid to empty string
-    [[ -z "$bssid" ]] && bssid=""
+    # Escape single quotes for SQL (match _location_persist / _location_import_config)
+    local ssid_esc="${ssid//\'/\'\'}"
+    local bssid_esc="${bssid//\'/\'\'}"
 
     # Try exact match first (ssid + bssid)
     if [[ -n "$bssid" ]]; then
-        local result=$(_location_sqlite "SELECT lat, lon, city, region, country_code, confidence, source FROM known_networks WHERE ssid = '$ssid' AND bssid = '$bssid' LIMIT 1;" 2>/dev/null)
+        local result=$(_location_sqlite "SELECT lat, lon, city, region, country_code, confidence, source FROM known_networks WHERE ssid = '$ssid_esc' AND bssid = '$bssid_esc' LIMIT 1;" 2>/dev/null)
         [[ -n "$result" ]] && echo "$result" && return 0
     fi
 
     # Try SSID-only match (empty bssid means any BSSID)
-    local result=$(_location_sqlite "SELECT lat, lon, city, region, country_code, confidence, source FROM known_networks WHERE ssid = '$ssid' AND bssid = '' LIMIT 1;" 2>/dev/null)
+    local result=$(_location_sqlite "SELECT lat, lon, city, region, country_code, confidence, source FROM known_networks WHERE ssid = '$ssid_esc' AND bssid = '' LIMIT 1;" 2>/dev/null)
     [[ -n "$result" ]] && echo "$result" && return 0
 
     return 1
