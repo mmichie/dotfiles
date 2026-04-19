@@ -1,14 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env zsh
+# zsh shebang is load-bearing: zsh auto-sources ~/.zshenv on start, which
+# defines setup_path and runs it. That PATH then becomes tmux's client env
+# (seen by run-shell) and, since tmux.conf no longer overrides it, the
+# global env too (seen by #() commands). One canonical list.
 
-# Source environment variables (including OPEN_WEATHER_API_KEY for plx weather)
-# shellcheck source=/dev/null
-[ -f ~/.zshrc.local ] && source ~/.zshrc.local
-
-# PATH for the tmux server and every run-shell it spawns. This is the client env
-# tmux inherits — it bleeds into run-shell and thus into dwm.tmux / tmux-sessionizer
-# bindings in tmux.conf. Keep the list in sync with tmux.conf's set-environment -g
-# PATH (which governs #() commands and other global-env callers).
-export PATH="$HOME/bin:$HOME/.nix-profile/bin:/etc/profiles/per-user/$USER/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+# Source OPEN_WEATHER_API_KEY etc. for plx weather in the status bar
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
 
 TMUX=$(command -v tmux)
 if [ -z "$TMUX" ]; then
