@@ -81,8 +81,6 @@ core_modules=(
     "platform_detection" # Must be first for platform detection
     "executables"        # Executable setup
     "environment"        # Environment setup
-    "location_service"   # Location service (SQLite backend)
-    "wifi_location"      # WiFi-based location detection with precmd hook
     "shell"              # Shell configuration
     "prompt"             # Prompt setup (lazy-loads banner.zsh when plx is missing)
     "tmux_title"         # Helpers for pinning tmux titles around wrapped commands
@@ -115,9 +113,6 @@ system_health() {
 
 # Load utility functions
 load_module "function" "utils"
-
-# Load location CLI commands
-load_module "function" "location_cli"
 
 # Initialize core components
 setup_environment
