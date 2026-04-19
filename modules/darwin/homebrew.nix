@@ -18,6 +18,7 @@ _:
 
     brews = [
       "dosbox-x"
+      "tensor9ine/tensor9/tensor9"
     ];
 
     casks = [
