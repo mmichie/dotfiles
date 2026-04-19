@@ -24,8 +24,6 @@ in
     DIRENV_LOG_FORMAT = ""; # Silence direnv loading noise
   };
 
-  home.packages = [ pkgs.plx ];
-
   # ~/bin — scripts and platform binaries
   home.file."bin".source = config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesRoot}/bin/bin";
 

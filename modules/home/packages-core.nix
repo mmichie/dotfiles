@@ -67,7 +67,7 @@ in
     procs
     btop
     htop
-    starship
+    plx
     delta
     difftastic
 

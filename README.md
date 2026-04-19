@@ -39,7 +39,7 @@ just secrets-restore # restore from backup.tar.gz
 ## What's Managed
 
 **~120 CLI tools** via nixpkgs (`modules/home/packages-core.nix`):
-ripgrep, fd, fzf, bat, eza, zoxide, atuin, delta, difftastic, starship, neovim, tmux, nvd, statix, rclone, restic, hexyl, tealdeer, transcrypt, and more.
+ripgrep, fd, fzf, bat, eza, zoxide, atuin, delta, difftastic, neovim, tmux, nvd, statix, rclone, restic, hexyl, tealdeer, transcrypt, and more.
 
 **Dev toolchains** via nixpkgs (`modules/home/packages-dev.nix`):
 Go, Rust, Python, Node.js, Java, kubectl, helm, ansible, awscli, opentofu, ffmpeg, pandoc, and nerd fonts.
@@ -51,7 +51,7 @@ Ghostty, AeroSpace, 1Password, Chrome, Obsidian, Zed, Slack, Discord, Spotify, e
 Dock, Finder, keyboard, screenshots, spaces, firewall — applied on every `darwin-rebuild switch`.
 
 **Shell** (`configs/zsh/`):
-zsh with a modular library system, starship prompt with [`plx`](https://github.com/mmichie/plx) for powerline git segments, atuin history with fzf integration, vivid ls colors, tmux emoji window titles.
+zsh with a modular library system, [`plx`](https://github.com/mmichie/plx) prompt (powerline segments in Rust), atuin history with fzf integration, vivid ls colors, tmux emoji window titles.
 
 ## Repo Layout
 
@@ -79,7 +79,7 @@ modules/
     options.nix               # Custom Nix options (my.user.*, my.dotfilesPath)
     packages-core.nix         # ~120 CLI tools (all platforms)
     packages-dev.nix          # Dev toolchains + fonts (workstations only)
-    shell.nix                 # zsh + direnv + starship symlinks
+    shell.nix                 # zsh + direnv symlinks
     git.nix                   # .gitconfig + .gitignore_global symlinks
     editor.nix                # Neovim config symlink
     terminal.nix              # Ghostty, WezTerm, tmux, SSH config + authorized keys
@@ -91,7 +91,6 @@ configs/
   karabiner/                  # Keyboard remapping (macOS)
   nvim/                       # Neovim config (lazy.nvim)
   ssh/                        # SSH client config
-  starship/                   # Prompt config + plx helper scripts
   system/                     # .inputrc, .dircolors, location service, clima
   tmux/                       # tmux.conf + plugins (git submodules)
   wezterm/                    # Backup terminal emulator

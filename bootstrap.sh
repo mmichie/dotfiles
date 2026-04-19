@@ -44,7 +44,6 @@ SYMLINK_TARGETS=(
   "$HOME/.zshrc"
   "$HOME/.zsh"
   "$HOME/.config/direnv"
-  "$HOME/.config/starship.toml"
   # terminal.nix
   "$HOME/.config/ghostty"
   "$HOME/.config/tmux"
