@@ -86,6 +86,7 @@ core_modules=(
     "shell"              # Shell configuration
     "banner"             # BBS-style login banner generator
     "prompt"             # Prompt setup
+    "tmux_title"         # Helpers for pinning tmux titles around wrapped commands
     "ssh"                # SSH configuration
     "tmux_emoji_titles"  # Automatic emoji titles for tmux windows
     "utils"              # Utility functions

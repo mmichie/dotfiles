@@ -1,12 +1,12 @@
 #!/bin/zsh
 
-# Constants for styling
-reset="[0m"
-bold="[1m"
-red="[31m"
-green="[32m"
-yellow="[33m"
-blue="[34m"
+# ANSI styling constants (shared with prompt.zsh — redeclared here for lazy-load path)
+typeset -g reset=$'\e[0m'
+typeset -g bold=$'\e[1m'
+typeset -g red=$'\e[31m'
+typeset -g green=$'\e[32m'
+typeset -g yellow=$'\e[33m'
+typeset -g blue=$'\e[34m'
 
 # System information functions
 check_system_load() {
@@ -60,12 +60,11 @@ check_disk_usage() {
 }
 
 check_ip_address() {
-    local os_type=$(detect_shell_platform)
     local ip_address
 
-    if [[ "$os_type" == "OSX" ]]; then
+    if is_osx; then
         ip_address=$(ipconfig getifaddr en0)
-    elif [[ "$os_type" == "LINUX" ]]; then
+    elif is_linux; then
         ip_address=$(ip route get 1 | awk '{print $7; exit}')
     else
         ip_address="Unable to determine on this platform"
@@ -75,12 +74,11 @@ check_ip_address() {
 }
 
 check_last_login() {
-    local os_type=$(detect_shell_platform)
     local last_login
 
-    if [[ "$os_type" == "OSX" ]]; then
+    if is_osx; then
         last_login=$(last -1 $USER | awk 'NR==1 { print $4, $5, $6, $7 }')
-    elif [[ "$os_type" == "LINUX" ]]; then
+    elif is_linux; then
         last_login=$(last -1 $USER | awk 'NR==1 {
             for (i=NF; i>0; i--) {
                 if ($i ~ /:[0-9]+/) {
@@ -98,24 +96,19 @@ check_last_login() {
 }
 
 check_uptime() {
-    local os_type=$(detect_shell_platform)
-    local uptime_str
+    local uptime
 
-    case "$os_type" in
-        OSX)
-            local boot_time=$(sysctl -n kern.boottime | awk '{print $4}' | sed 's/,//g')
-            local current_time=$(date +%s)
-            local uptime=$((current_time - boot_time))
-            ;;
-        LINUX)
-            local uptime=$(cat /proc/uptime | awk '{print $1}')
-            uptime=${uptime%.*}  # Remove decimal part
-            ;;
-        *)
-            echo -e "  ${yellow}System Uptime:${reset} Unable to determine on this platform" > /tmp/system_info_uptime
-            return
-            ;;
-    esac
+    if is_osx; then
+        local boot_time=$(sysctl -n kern.boottime | awk '{print $4}' | sed 's/,//g')
+        local current_time=$(date +%s)
+        uptime=$((current_time - boot_time))
+    elif is_linux; then
+        uptime=$(cat /proc/uptime | awk '{print $1}')
+        uptime=${uptime%.*}
+    else
+        echo -e "  ${yellow}System Uptime:${reset} Unable to determine on this platform" > /tmp/system_info_uptime
+        return
+    fi
 
     local days=$((uptime / 86400))
     local hours=$(((uptime % 86400) / 3600))
@@ -126,16 +119,17 @@ check_uptime() {
 
 # Health check functions
 check_cpu_temperature() {
-    local temp
-    if command -v osx-cpu-temp &> /dev/null; then
-        temp=$(osx-cpu-temp | awk '{print $1}')
-    else
-        temp="N/A (install osx-cpu-temp)"
+    if ! command -v osx-cpu-temp &>/dev/null; then
+        echo -e "  ${yellow}CPU Temperature:${reset} N/A (install osx-cpu-temp)" > /tmp/health_check_cpu
+        return
     fi
-    if (( $(echo "$temp > 80" | bc -l 2>/dev/null) )); then
+    # osx-cpu-temp output looks like "56.3°C" — strip non-numeric suffix for bc
+    local raw=$(osx-cpu-temp)
+    local temp=${raw%%[^0-9.]*}
+    if [[ -n "$temp" ]] && (( $(echo "$temp > 80" | bc -l 2>/dev/null) )); then
         echo -e "  ${yellow}CPU Temperature:${reset} ${temp}°C ${red}(High temperature, check cooling)${reset}" > /tmp/health_check_cpu
     else
-        echo -e "  ${yellow}CPU Temperature:${reset} ${temp}°C" > /tmp/health_check_cpu
+        echo -e "  ${yellow}CPU Temperature:${reset} ${temp:-unknown}°C" > /tmp/health_check_cpu
     fi
 }
 
