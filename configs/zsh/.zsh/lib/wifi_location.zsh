@@ -1,8 +1,8 @@
 #!/usr/bin/env zsh
 
-# WiFi-based location detection for tmux-clima
+# WiFi-based location detection for plx weather
 # This module uses the location_service to track network-aware location
-# and automatically updates CLIMA_LAT/CLIMA_LON environment variables
+# and automatically updates PLX_WEATHER_LAT/PLX_WEATHER_LON environment variables
 
 # Precmd hook to update location periodically
 _location_precmd_hook() {

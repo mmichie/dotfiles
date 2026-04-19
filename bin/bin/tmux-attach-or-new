@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Source environment variables (including OPEN_WEATHER_API_KEY for tmux-clima)
+# Source environment variables (including OPEN_WEATHER_API_KEY for plx weather)
+# shellcheck source=/dev/null
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
 
 # Include Nix and Homebrew paths so tmux can be found regardless of install method

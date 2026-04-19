@@ -2,7 +2,7 @@
 
 # Shell Location Service
 # Provides network-aware geographic location with SQLite persistence
-# Used by tmux-clima and other location-aware tools
+# Exports PLX_WEATHER_LAT/PLX_WEATHER_LON for plx weather and other location-aware tools
 
 # Configuration
 LOCATION_DB="${LOCATION_DB:-$HOME/.cache/shell/location.db}"
@@ -133,15 +133,14 @@ location_get() {
 location_export() {
     _location_init || return 1
 
-    local result=$(_location_sqlite "SELECT lat, lon, city, updated_at FROM current_location WHERE id = 1;" 2>/dev/null)
+    local result=$(_location_sqlite "SELECT lat, lon, updated_at FROM current_location WHERE id = 1;" 2>/dev/null)
 
     if [[ -n "$result" ]]; then
-        local lat lon city updated_at
-        IFS='|' read -r lat lon city updated_at <<< "$result"
+        local lat lon updated_at
+        IFS='|' read -r lat lon updated_at <<< "$result"
 
-        export CLIMA_LAT="$lat"
-        export CLIMA_LON="$lon"
-        [[ -n "$city" ]] && export CLIMA_CITY="$city"
+        export PLX_WEATHER_LAT="$lat"
+        export PLX_WEATHER_LON="$lon"
         return 0
     fi
 
@@ -427,18 +426,15 @@ EOF
 
 # Export location to environment and tmux
 _location_export_env() {
-    local lat=$1 lon=$2 city=$3 location_changed=$4
+    local lat=$1 lon=$2
 
-    export CLIMA_LAT="$lat"
-    export CLIMA_LON="$lon"
-    [[ -n "$city" ]] && export CLIMA_CITY="$city"
+    export PLX_WEATHER_LAT="$lat"
+    export PLX_WEATHER_LON="$lon"
 
     # Update tmux environment if running inside tmux
     if [[ -n "$TMUX" ]]; then
-        tmux setenv -g CLIMA_LAT "$lat" 2>/dev/null
-        tmux setenv -g CLIMA_LON "$lon" 2>/dev/null
-        [[ -n "$city" ]] && tmux setenv -g CLIMA_CITY "$city" 2>/dev/null
-        [[ $location_changed -eq 1 ]] && tmux set-option -g @clima_last_update_time 0 2>/dev/null
+        tmux setenv -g PLX_WEATHER_LAT "$lat" 2>/dev/null
+        tmux setenv -g PLX_WEATHER_LON "$lon" 2>/dev/null
     fi
 }
 
@@ -488,16 +484,11 @@ location_force() {
     # Parse final location
     IFS='|' read -r lat lon city region country source source_detail confidence <<< "$location_data"
 
-    # Check if location changed
-    local prev_city=$(_location_sqlite "SELECT city FROM current_location WHERE id = 1;" 2>/dev/null)
-    local location_changed=0
-    [[ "$city" != "$prev_city" ]] && location_changed=1
-
     # Persist and export
     _location_persist "$now" "$hostname" "$ssid" "$bssid" "$ip" "$network_type" "$interface" \
         "$lat" "$lon" "$city" "$region" "$country" "$source" "$source_detail" "$confidence"
 
-    _location_export_env "$lat" "$lon" "$city" "$location_changed"
+    _location_export_env "$lat" "$lon"
 
     return 0
 }
