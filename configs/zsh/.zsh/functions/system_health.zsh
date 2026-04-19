@@ -171,32 +171,23 @@ check_security() {
 
 # Main function to display system health
 display_system_health() {
+    # null_glob so unmatched /tmp/*_* patterns expand to nothing instead of erroring
+    setopt local_options null_glob
+
     local fast_mode=${1:-0}
-    
-    # If fast mode is enabled, only run essential checks
-    if [[ "$fast_mode" -eq 1 ]]; then
-        # Run only essential checks in parallel
-        check_system_load &
-        check_memory_usage &
-        check_disk_usage &
-        # Wait for background processes to complete
-        wait
-    else
-        # Run all checks in parallel
-        check_system_load &
-        check_memory_usage &
-        check_disk_usage &
-        check_ip_address &
-        check_last_login &
-        check_uptime &
-        check_cpu_temperature &
-        check_disk_health &
-        check_network_status &
-        check_system_updates &
-        check_security &
-        # Wait for all background processes to complete
-        wait
+
+    # Core checks run everywhere
+    local -a checks=(check_system_load check_memory_usage check_disk_usage)
+
+    if [[ "$fast_mode" -ne 1 ]]; then
+        checks+=(check_ip_address check_last_login check_uptime check_network_status)
+        # macOS-only checks (use diskutil, softwareupdate, socketfilterfw, osx-cpu-temp)
+        is_osx && checks+=(check_cpu_temperature check_disk_health check_system_updates check_security)
     fi
+
+    local check
+    for check in "${checks[@]}"; do "$check" &; done
+    wait
 
     # Display system information
     gum style \
@@ -207,16 +198,17 @@ display_system_health() {
         --foreground 212 \
         "System Health Report"
 
-    # Display information from temporary files
+    # Display info — recommendations need these files, so don't delete until after
+    local file
     for file in /tmp/{system_info,health_check}_*; do
-        if [[ -f "$file" ]]; then
-            cat "$file"
-            rm "$file"
-        fi
+        [[ -f "$file" ]] && cat "$file"
     done
 
     # Show recommendations if there are any issues
     provide_recommendations
+
+    # Cleanup temp files
+    rm -f /tmp/system_info_* /tmp/health_check_*
 }
 
 provide_recommendations() {
