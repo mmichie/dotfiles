@@ -24,6 +24,29 @@ let
       mainProgram = "bd";
     };
   };
+
+  recs = pkgs.perlPackages.buildPerlPackage {
+    pname = "App-RecordStream";
+    version = "4.0.25";
+    src = pkgs.fetchurl {
+      url = "mirror://cpan/authors/id/T/TS/TSIBLEY/App-RecordStream-4.0.25.tar.gz";
+      hash = "sha256-B/qWMdLfQXqZE163F/96MeFMRrDpuO8fWiD4Z5ditMs=";
+    };
+    propagatedBuildInputs = with pkgs.perlPackages; [
+      JSONMaybeXS
+      TextCSV
+      DateManip
+      TextAutoformat
+      ModulePluggable
+      IOString
+      PodPerldoc
+    ];
+    nativeCheckInputs = [ pkgs.perlPackages.ModuleVersionsReport ];
+    meta = {
+      description = "Command-line analysis tools for record-oriented data";
+      mainProgram = "recs";
+    };
+  };
 in
 {
   home.packages = with pkgs; [
@@ -119,5 +142,6 @@ in
     asciinema
     vhs
     transcrypt
+    recs
   ];
 }
