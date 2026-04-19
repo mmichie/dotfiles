@@ -20,74 +20,43 @@ setup_history() {
     setopt HIST_VERIFY            # Show command with history expansion before running it
     setopt HIST_FCNTL_LOCK        # Use fcntl locking (recommended for concurrent shells)
     setopt HIST_NO_STORE          # Don't store history/fc commands in history
-    
-    # Add functions for better history searching and management
-    
-    # Function to search history with a pattern
+
+    # Interactive history helpers
+
     hgrep() {
         if [[ $# -eq 0 ]]; then
             echo "Usage: hgrep <pattern>"
             return 1
         fi
-        
         fc -l 1 -1 | grep --color=auto -i "$@"
     }
-    
-    # Function to view recent commands
+
     recent() {
         local n=${1:-10}
         history -${n}
     }
-    
-    # Function to save important commands to a separate file
+
     remember() {
         if [[ $# -eq 0 ]]; then
             echo "Usage: remember <command> - Save important command for future reference"
             return 1
         fi
-        
         local remember_file="$HOME/.important_commands"
         echo "$(date +"%Y-%m-%d %H:%M:%S") $@" >> "$remember_file"
         echo "Command saved to $remember_file"
     }
-    
-    # Function to view saved important commands
+
     recalls() {
         local remember_file="$HOME/.important_commands"
-        
         if [[ ! -f "$remember_file" ]]; then
             echo "No saved commands yet."
             return 0
         fi
-        
         if [[ $# -eq 0 ]]; then
             cat "$remember_file"
         else
             grep -i "$@" "$remember_file"
         fi
-    }
-    
-    # Setup weekly backups of history
-    [[ ! -d "$HOME/.zsh_history_backups" ]] && mkdir -p "$HOME/.zsh_history_backups"
-    
-    # Function to create dated backup of shell history
-    backup_history() {
-        local backup_file="$HOME/.zsh_history_backups/zsh_history_$(date +"%Y%m%d").gz"
-        cp "$HISTFILE" "$HISTFILE.bak"
-        gzip -c "$HISTFILE.bak" > "$backup_file"
-        rm "$HISTFILE.bak"
-        
-        # Clean up old backups (keep last 30)
-        ls -t "$HOME/.zsh_history_backups" | tail -n +31 | xargs -I {} rm "$HOME/.zsh_history_backups/{}" 2>/dev/null
-    }
-    
-    # Add to weekly cron if not already there
-    # NOTE: This function requires manual execution with appropriate permissions
-    # It will not automatically modify system cron jobs
-    add_history_backup_cron() {
-        local cron_cmd="0 0 * * 0 . $HOME/.zshrc; backup_history >/dev/null 2>&1"
-        echo "To add history backup to cron, run:"
-        echo "  (crontab -l 2>/dev/null | grep -v 'backup_history' ; echo '$cron_cmd') | crontab -"
     }
 }
 
@@ -160,63 +129,6 @@ setup_completions() {
     # File and job handling completions
     compdef _files ln chmod chown chgrp
     compdef _jobs fg bg disown jobs
-}
-
-# Use ZSH hooks instead of cron for history backup
-setup_history_backup_hooks() {
-    # Create a function that will be called when the shell exits
-    backup_on_logout() {
-        # Check if we've done a backup in the last 24 hours
-        local backup_dir="$HOME/.shell_history_backups"
-        local last_backup=$(ls -t "$backup_dir"/zsh_history_*.tar.gz 2>/dev/null | head -1)
-        local now=$(date +%s)
-        
-        # If there's no backup, create one
-        if [[ -z "$last_backup" ]]; then
-            backup_shell_history
-            return
-        fi
-        
-        # Extract timestamp from filename (e.g., zsh_history_20240111123456.tar.gz)
-        local basename=$(basename "$last_backup")
-        local timestamp_part=${basename#zsh_history_}
-        timestamp_part=${timestamp_part%.tar.gz}
-        
-        # Validate timestamp format
-        if [[ ! "$timestamp_part" =~ ^[0-9]{14}$ ]]; then
-            backup_shell_history
-            return
-        fi
-        
-        # Parse the timestamp on macOS
-        local year=${timestamp_part:0:4}
-        local month=${timestamp_part:4:2}
-        local day=${timestamp_part:6:2}
-        local hour=${timestamp_part:8:2}
-        local minute=${timestamp_part:10:2}
-        local second=${timestamp_part:12:2}
-        
-        # Convert to epoch time using macOS date syntax
-        local last_backup_time=$(date -j -f "%Y-%m-%d %H:%M:%S" "$year-$month-$day $hour:$minute:$second" +%s 2>/dev/null)
-        
-        # If parsing failed or backup is older than 24 hours, create new backup
-        if [[ -z "$last_backup_time" ]] || [[ $((now - last_backup_time)) -gt 86400 ]]; then
-            backup_shell_history
-        fi
-    }
-    
-    # Register the function to be called when the shell exits
-    zshexit() {
-        backup_on_logout
-    }
-}
-
-# Backup shell history
-backup_shell_history() {
-    local backup_dir="$HOME/.shell_history_backups"
-    mkdir -p "$backup_dir"
-    local timestamp=$(date +"%Y%m%d%H%M%S")
-    tar -czf "$backup_dir/zsh_history_$timestamp.tar.gz" -C "$HOME" .zsh_history
 }
 
 # Git utilities
@@ -378,10 +290,11 @@ setup_aliases() {
     alias screen="tmux"
     # Nested tmux on a separate socket — gets orange theme via TMUX_LEVEL
     tnest() { TMUX= tmux -L nested new-session -A -s nested "$@"; }
-    alias ssh="ssh -A -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -o VisualHostKey=yes -o IdentitiesOnly=yes"
+    # ssh hardening lives in ~/.ssh/config (Host *); an alias here would be
+    # shadowed by the ssh() wrapper function in ssh.zsh (which uses `command ssh`).
     alias nsr="netstat -rn"
     alias nsa="netstat -an | sed -n '1,/Active UNIX domain sockets/p'"
-    alias lsock="sudo /usr/sbin/lsof -i -P"
+    alias lsock="sudo lsof -i -P"
     alias keypress="read -s -n1 keypress; echo \$keypress"
     alias loadenv='export $(grep -v "^#" .env | xargs)'
 
@@ -514,10 +427,7 @@ init_shell() {
     setup_fzf_tab
     # Setup zoxide for smarter directory navigation
     setup_zoxide
-    
-    # Set up history backup via shell exit hook
-    setup_history_backup_hooks
-    
+
     # Bind Ctrl-R to a better history search experience using fzf if available
     if command -v fzf &>/dev/null; then
         # Use custom atuin+fzf history search

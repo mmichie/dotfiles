@@ -78,12 +78,3 @@ check_fzf_setup() {
         echo -e "  ${yellow}fzf Setup:${reset} Not Set Up ${red}(Action: Install fzf)${reset}" > "$_STATUS_TEMP_DIR/fzf"
     fi
 }
-
-check_cron_job() {
-    _init_status_temp_dir
-    if crontab -l 2>/dev/null | grep -Fq "backup_shell_history"; then
-        echo -e "  ${yellow}History Backup Cron:${reset} Exists" > "$_STATUS_TEMP_DIR/cron"
-    else
-        echo -e "  ${yellow}History Backup Cron:${reset} Not Found ${red}(Action: Set up backup cron job)${reset}" > "$_STATUS_TEMP_DIR/cron"
-    fi
-}

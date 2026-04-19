@@ -152,7 +152,7 @@ fi
 unset core_modules function_modules
 
 # Disable correction for specific commands
-CORRECT_IGNORE_FILE='.*|claude'
+CORRECT_IGNORE='.*|claude'
 
 # Load claude wrapper function
 if [[ -f "$SHELL_FUNCTIONS_DIR/claude_wrapper.zsh" ]]; then
