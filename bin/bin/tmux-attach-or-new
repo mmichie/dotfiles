@@ -4,8 +4,11 @@
 # shellcheck source=/dev/null
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
 
-# Include Nix and Homebrew paths so tmux can be found regardless of install method
-export PATH="/etc/profiles/per-user/$USER/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+# PATH for the tmux server and every run-shell it spawns. This is the client env
+# tmux inherits — it bleeds into run-shell and thus into dwm.tmux / tmux-sessionizer
+# bindings in tmux.conf. Keep the list in sync with tmux.conf's set-environment -g
+# PATH (which governs #() commands and other global-env callers).
+export PATH="$HOME/bin:$HOME/.nix-profile/bin:/etc/profiles/per-user/$USER/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
 
 TMUX=$(command -v tmux)
 if [ -z "$TMUX" ]; then
