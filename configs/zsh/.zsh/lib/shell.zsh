@@ -133,8 +133,14 @@ setup_completions() {
 
 # Git utilities
 git_cleanup() {
-    git fetch --prune
-    git branch --merged | grep -v "\*" | xargs -n 1 git branch -d
+    git fetch --prune || return
+    local default_branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
+    default_branch=${default_branch:-main}
+    local current_branch=$(git branch --show-current)
+    local branches=$(git branch --merged --format='%(refname:short)' |
+        grep -vE "^(${default_branch}|master|main|${current_branch})$")
+    [[ -z "$branches" ]] && { echo "No merged branches to delete."; return; }
+    echo "$branches" | xargs -n 1 git branch -d
 }
 
 # Docker utilities

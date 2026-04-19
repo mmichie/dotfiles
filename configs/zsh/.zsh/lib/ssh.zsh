@@ -66,53 +66,30 @@ init_ssh
 # SSH wrapper to auto-rename tmux windows to hostname
 unalias ssh 2>/dev/null
 ssh() {
-    if [[ -n "$TMUX" ]]; then
-        # Capture window/pane ID at start to ensure cleanup targets correct window
-        local window_id=$(tmux display-message -p '#{window_id}')
-        local pane_id=$(tmux display-message -p '#{pane_id}')
-
-        # Extract hostname from SSH args (last argument)
-        local host="${@: -1}"
-        # Strip user@ prefix if present
-        host="${host#*@}"
-        # Strip everything after : or / (for rsync-style paths)
-        host="${host%%:*}"
-        host="${host%%/*}"
-
-        # Function to cleanup tmux custom title
-        local cleanup() {
-            tmux set-option -t "$pane_id" -p @custom_title ""
-            tmux set-option -t "$window_id" -w @priority_title ""
-            # Immediately update window title instead of waiting for precmd
-            # This ensures title updates even if user is viewing a different pane
-            local smart_title=$(_tmux_emoji_get_dir_title 2>/dev/null || echo "$(basename "$PWD")")
-            tmux set-option -t "$pane_id" -p @dir_title "$smart_title"
-            tmux rename-window -t "$window_id" "$smart_title"
-            tmux set-window-option -t "$window_id" automatic-rename on
-        }
-
-        # Store custom title in tmux pane option AND window-level priority title (persists across pane switches)
-        local title="🔐 $host"
-        tmux set-option -t "$pane_id" -p @custom_title "$title"
-        tmux set-option -t "$window_id" -w @priority_title "$title"
-        tmux rename-window -t "$window_id" "$title"
-        # Disable automatic-rename to prevent status-interval from overwriting with @dir_title
-        tmux set-window-option -t "$window_id" automatic-rename off
-
-        # Ensure cleanup happens even on timeout/interrupt
-        trap cleanup INT TERM EXIT
-
-        # Run SSH
+    if [[ -z "$TMUX" ]]; then
         command ssh "$@"
-        local exit_code=$?
-
-        trap - INT TERM EXIT
-        cleanup
-
-        return $exit_code
-    else
-        command ssh "$@"
+        return
     fi
+
+    local pane_id=$(tmux display-message -p '#{pane_id}')
+    local window_id=$(tmux display-message -p '#{window_id}')
+
+    # Extract hostname from last arg; strip user@ prefix and rsync-style :/path
+    local host="${@: -1}"
+    host="${host#*@}"
+    host="${host%%:*}"
+    host="${host%%/*}"
+
+    _tmux_title_push "$pane_id" "$window_id" "🔐 $host"
+    trap "_tmux_title_pop '$pane_id' '$window_id'" INT TERM EXIT
+
+    command ssh "$@"
+    local exit_code=$?
+
+    trap - INT TERM EXIT
+    _tmux_title_pop "$pane_id" "$window_id"
+
+    return $exit_code
 }
 
 # Sudo wrapper to warn about persistent root shells
@@ -121,54 +98,31 @@ unalias sudo 2>/dev/null
 _sudo_bin="${commands[sudo]:-sudo}"
 [[ -x /run/wrappers/bin/sudo ]] && _sudo_bin=/run/wrappers/bin/sudo
 sudo() {
-    # Check if this is an interactive shell invocation
-    local is_interactive=0
+    local is_interactive=0 arg
     for arg in "$@"; do
-        if [[ "$arg" == "-i" ]] || [[ "$arg" == "-s" ]] || [[ "$arg" == "su" ]]; then
+        if [[ "$arg" == "-i" || "$arg" == "-s" || "$arg" == "su" ]]; then
             is_interactive=1
             break
         fi
     done
 
-    if [[ -n "$TMUX" ]] && [[ $is_interactive -eq 1 ]]; then
-        # Capture window/pane ID at start to ensure cleanup targets correct window
-        local window_id=$(tmux display-message -p '#{window_id}')
-        local pane_id=$(tmux display-message -p '#{pane_id}')
-
-        # Function to cleanup tmux root warning
-        local cleanup() {
-            tmux set-option -t "$pane_id" -p @is_root ""
-            tmux set-option -t "$pane_id" -p @custom_title ""
-            tmux set-option -t "$window_id" -w @priority_title ""
-            # Immediately update window title instead of waiting for precmd
-            # This ensures title updates even if user is viewing a different pane
-            local smart_title=$(_tmux_emoji_get_dir_title 2>/dev/null || echo "$(basename "$PWD")")
-            tmux set-option -t "$pane_id" -p @dir_title "$smart_title"
-            tmux rename-window -t "$window_id" "$smart_title"
-            tmux set-window-option -t "$window_id" automatic-rename on
-        }
-
-        # Set root warning marker and update window title immediately
-        tmux set-option -t "$pane_id" -p @is_root "1"
-        local title="⚠️ ROOT"
-        tmux set-option -t "$pane_id" -p @custom_title "$title"
-        tmux set-option -t "$window_id" -w @priority_title "$title"
-        tmux rename-window -t "$window_id" "$title"
-        # Disable automatic-rename to prevent status-interval from overwriting with @dir_title
-        tmux set-window-option -t "$window_id" automatic-rename off
-
-        # Ensure cleanup happens even on timeout/interrupt
-        trap cleanup INT TERM EXIT
-
-        # Run sudo
+    if [[ -z "$TMUX" || $is_interactive -eq 0 ]]; then
         $_sudo_bin "$@"
-        local exit_code=$?
-
-        trap - INT TERM EXIT
-        cleanup
-
-        return $exit_code
-    else
-        $_sudo_bin "$@"
+        return
     fi
+
+    local pane_id=$(tmux display-message -p '#{pane_id}')
+    local window_id=$(tmux display-message -p '#{window_id}')
+
+    tmux set-option -t "$pane_id" -p @is_root "1"
+    _tmux_title_push "$pane_id" "$window_id" "⚠️ ROOT"
+    trap "_tmux_title_pop '$pane_id' '$window_id'" INT TERM EXIT
+
+    $_sudo_bin "$@"
+    local exit_code=$?
+
+    trap - INT TERM EXIT
+    _tmux_title_pop "$pane_id" "$window_id"
+
+    return $exit_code
 }
