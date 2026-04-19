@@ -2,6 +2,7 @@
   pkgs,
   lib,
   config,
+  mkLink,
   ...
 }:
 let
@@ -24,26 +25,19 @@ in
     DIRENV_LOG_FORMAT = ""; # Silence direnv loading noise
   };
 
-  # ~/bin — scripts and platform binaries
+  # ~/bin — scripts and platform binaries (uses dotfilesRoot, not dotfilesPath)
   home.file."bin".source = config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesRoot}/bin/bin";
 
   # System-level dotfiles
-  home.file.".inputrc".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/system/.inputrc";
-  home.file.".dircolors".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/system/.dircolors";
-  home.file.".tmux-cht-command".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/system/.tmux-cht-command";
-  home.file.".tmux-cht-languages".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/system/.tmux-cht-languages";
+  home.file.".inputrc".source = mkLink "system/.inputrc";
+  home.file.".dircolors".source = mkLink "system/.dircolors";
+  home.file.".tmux-cht-command".source = mkLink "system/.tmux-cht-command";
+  home.file.".tmux-cht-languages".source = mkLink "system/.tmux-cht-languages";
 
   # Claude Code settings
-  home.file.".claude/settings.json".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/claude/settings.json";
+  home.file.".claude/settings.json".source = mkLink "claude/settings.json";
 
   # Clima config
-  xdg.configFile."clima".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/system/clima";
-  xdg.configFile."location".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/system/location";
+  xdg.configFile."clima".source = mkLink "system/clima";
+  xdg.configFile."location".source = mkLink "system/location";
 }

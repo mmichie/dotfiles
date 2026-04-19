@@ -1,7 +1,5 @@
-{ config, ... }:
+{ mkLink, ... }:
 {
-  home.file.".gitconfig".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/git/.gitconfig";
-  home.file.".gitignore_global".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/git/.gitignore_global";
+  home.file.".gitconfig".source = mkLink "git/.gitconfig";
+  home.file.".gitignore_global".source = mkLink "git/.gitignore_global";
 }

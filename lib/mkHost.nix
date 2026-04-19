@@ -42,6 +42,7 @@ let
   # Shared across all classes
   coreHomeModules = [
     ../modules/home/options.nix
+    ../modules/home/lib.nix
     ../home/shared.nix
     ../modules/home/packages-core.nix
     ../modules/home/shell.nix
@@ -68,6 +69,26 @@ let
     };
   };
 
+  # Compose the full module list for a home-manager user.
+  mkUserModules =
+    {
+      class,
+      username,
+      extraHomeModules,
+    }:
+    let
+      cc = classConfig.${class};
+    in
+    cc.homeModules
+    ++ [
+      cc.homeBase
+      registryHomeModule
+    ]
+    ++ extraHomeModules
+    ++ [
+      { my.user.name = username; }
+    ];
+
   # ── Host constructors ────────────────────────────────────────────────
 
   mkDarwinHost =
@@ -78,9 +99,6 @@ let
       class ? "darwin-workstation",
       extraHomeModules ? [ ],
     }:
-    let
-      cc = classConfig.${class};
-    in
     nix-darwin.lib.darwinSystem {
       inherit system;
       specialArgs = { inherit username; };
@@ -92,16 +110,7 @@ let
             useGlobalPkgs = true;
             useUserPackages = true;
             backupFileExtension = "backup";
-            users.${username} = {
-              imports =
-                cc.homeModules
-                ++ [
-                  cc.homeBase
-                  registryHomeModule
-                ]
-                ++ extraHomeModules;
-              my.user.name = username;
-            };
+            users.${username}.imports = mkUserModules { inherit class username extraHomeModules; };
           };
         }
         { nixpkgs.overlays = overlays system; }
@@ -117,9 +126,6 @@ let
       extraModules ? [ ],
       extraHomeModules ? [ ],
     }:
-    let
-      cc = classConfig.${class};
-    in
     nixpkgs.lib.nixosSystem {
       inherit system;
       specialArgs = { inherit username; };
@@ -130,16 +136,7 @@ let
           home-manager = {
             useGlobalPkgs = true;
             useUserPackages = true;
-            users.${username} = {
-              imports =
-                cc.homeModules
-                ++ [
-                  cc.homeBase
-                  registryHomeModule
-                ]
-                ++ extraHomeModules;
-              my.user.name = username;
-            };
+            users.${username}.imports = mkUserModules { inherit class username extraHomeModules; };
           };
         }
         { nixpkgs.overlays = overlays system; }
@@ -154,25 +151,13 @@ let
       class ? "linux-workstation",
       extraHomeModules ? [ ],
     }:
-    let
-      cc = classConfig.${class};
-    in
     home-manager.lib.homeManagerConfiguration {
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
         overlays = overlays system;
       };
-      modules =
-        cc.homeModules
-        ++ [
-          cc.homeBase
-          registryHomeModule
-        ]
-        ++ extraHomeModules
-        ++ [
-          { my.user.name = username; }
-        ];
+      modules = mkUserModules { inherit class username extraHomeModules; };
     };
 
 in

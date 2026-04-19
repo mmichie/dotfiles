@@ -1,6 +1,6 @@
 {
   pkgs,
-  config,
+  mkLink,
   ...
 }:
 {
@@ -9,8 +9,6 @@
     terminal-notifier
   ];
 
-  xdg.configFile."aerospace".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/aerospace";
-  xdg.configFile."karabiner".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/karabiner";
+  xdg.configFile."aerospace".source = mkLink "aerospace";
+  xdg.configFile."karabiner".source = mkLink "karabiner";
 }
