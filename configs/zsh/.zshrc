@@ -84,8 +84,7 @@ core_modules=(
     "location_service"   # Location service (SQLite backend)
     "wifi_location"      # WiFi-based location detection with precmd hook
     "shell"              # Shell configuration
-    "banner"             # BBS-style login banner generator
-    "prompt"             # Prompt setup
+    "prompt"             # Prompt setup (lazy-loads banner.zsh when plx is missing)
     "tmux_title"         # Helpers for pinning tmux titles around wrapped commands
     "ssh"                # SSH configuration
     "tmux_emoji_titles"  # Automatic emoji titles for tmux windows
