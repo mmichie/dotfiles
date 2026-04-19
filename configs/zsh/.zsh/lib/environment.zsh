@@ -50,9 +50,21 @@ setup_environment() {
     export P4EDITOR="$EDITOR"
 
     # ── Java (from nix) ──────────────────────────────────────────
-    if command -v javac &>/dev/null; then
-        export JAVA_HOME="$(dirname $(dirname $(readlink -f $(which javac))))"
-    fi
+    # Lazy: compute JAVA_HOME on first reference instead of every shell start
+    # (the resolve-javac subshell chain was 4-5ms). First `java` / `javac` /
+    # `gradle` / etc. invocation triggers the real export; subsequent calls
+    # see the populated env.
+    java() { _java_home_lazy; unfunction java javac gradle mvn sbt 2>/dev/null; command java "$@"; }
+    javac() { _java_home_lazy; unfunction java javac gradle mvn sbt 2>/dev/null; command javac "$@"; }
+    gradle() { _java_home_lazy; unfunction java javac gradle mvn sbt 2>/dev/null; command gradle "$@"; }
+    mvn() { _java_home_lazy; unfunction java javac gradle mvn sbt 2>/dev/null; command mvn "$@"; }
+    sbt() { _java_home_lazy; unfunction java javac gradle mvn sbt 2>/dev/null; command sbt "$@"; }
+    _java_home_lazy() {
+        local javac_bin
+        javac_bin=$(command -v javac 2>/dev/null) || return
+        javac_bin=${javac_bin:A}  # zsh :A = absolute + resolve symlinks
+        export JAVA_HOME="${javac_bin:h:h}"
+    }
 
     # ── Claude Code ──────────────────────────────────────────────
     export CLAUDE_CODE_EFFORT_LEVEL="max"

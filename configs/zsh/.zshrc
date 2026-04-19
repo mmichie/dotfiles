@@ -153,11 +153,6 @@ if [[ -f "$SHELL_FUNCTIONS_DIR/claude_wrapper.zsh" ]]; then
     source "$SHELL_FUNCTIONS_DIR/claude_wrapper.zsh"
 fi
 
-# Display profiling results if PROFILE_STARTUP is set
-if [[ -n "$PROFILE_STARTUP" ]]; then
-  zprof
-fi
-
 # Atuin shell history (disable keybindings — fzf handles Ctrl-R)
 if command -v atuin &>/dev/null; then
     eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
@@ -181,3 +176,8 @@ fi
 
 # Source local config (not in dotfiles repo, for secrets/machine-specific settings)
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
+
+# Display profiling results if PROFILE_STARTUP is set (must be last to capture everything)
+if [[ -n "$PROFILE_STARTUP" ]]; then
+  zprof
+fi

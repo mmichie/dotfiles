@@ -56,8 +56,19 @@ add_ssh_keys() {
 }
 
 init_ssh() {
-    mkdir -p "$(dirname "$AGENT_SOCKET")" "$(dirname "$AGENT_INFO")"
-    chmod 700 "$(dirname "$AGENT_SOCKET")" "$(dirname "$AGENT_INFO")"
+    # Fast path: 1Password agent present → skip agent-dir setup entirely
+    if [[ -S "$ONEPASSWORD_SOCKET_MACOS" ]]; then
+        export SSH_AUTH_SOCK="$ONEPASSWORD_SOCKET_MACOS"
+        return
+    elif [[ -S "$ONEPASSWORD_SOCKET_LINUX" ]]; then
+        export SSH_AUTH_SOCK="$ONEPASSWORD_SOCKET_LINUX"
+        return
+    fi
+
+    # No 1Password — fall back to managed ssh-agent. Use zsh :h modifier
+    # instead of $(dirname ...) subshells.
+    mkdir -p "${AGENT_SOCKET:h}" "${AGENT_INFO:h}"
+    chmod 700 "${AGENT_SOCKET:h}" "${AGENT_INFO:h}"
     handle_ssh_agent
 }
 

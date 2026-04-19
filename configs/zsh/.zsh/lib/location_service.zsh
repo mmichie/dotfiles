@@ -529,6 +529,6 @@ EOF
     return 0
 }
 
-# Initialize on module load and export current location
-_location_init
+# Export current location on module load. location_export calls _location_init
+# internally — don't double-call (was ~7ms of redundant sqlite work per shell).
 location_export >/dev/null 2>&1 || true
