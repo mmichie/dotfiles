@@ -51,7 +51,8 @@ check_memory_usage() {
 }
 
 check_disk_usage() {
-    local disk_usage=$(df -h / | awk '/\// {print $(NF-1)}' | sed 's/%//')
+    # command df: shell.zsh aliases df to duf, which doesn't accept -h
+    local disk_usage=$(command df -h / | awk '/\// {print $(NF-1)}' | sed 's/%//')
     if (( disk_usage > 90 )); then
         echo -e "  ${yellow}Disk Usage:${reset} ${disk_usage}% ${red}(Low disk space, clean up files)${reset}" > /tmp/system_info_disk
     else
@@ -152,7 +153,8 @@ check_network_status() {
 }
 
 check_system_updates() {
-    local updates=$(softwareupdate -l 2>&1 | grep -c "No new software available.")
+    # command grep: shell.zsh aliases grep with --color=auto which injects ANSI into -c counts
+    local updates=$(softwareupdate -l 2>&1 | command grep -c "No new software available.")
     if [[ "$updates" -eq 0 ]]; then
         echo -e "  ${yellow}System Updates:${reset} ${red}Updates available (Run softwareupdate)${reset}" > /tmp/health_check_updates
     else
@@ -199,9 +201,10 @@ display_system_health() {
         "System Health Report"
 
     # Display info — recommendations need these files, so don't delete until after
+    # command cat: shell.zsh aliases cat to bat which mangles embedded ANSI color codes
     local file
     for file in /tmp/{system_info,health_check}_*; do
-        [[ -f "$file" ]] && cat "$file"
+        [[ -f "$file" ]] && command cat "$file"
     done
 
     # Show recommendations if there are any issues
@@ -215,24 +218,24 @@ provide_recommendations() {
     local recommendations=()
 
     # Check for high memory usage
-    local memory_usage=$(cat /tmp/system_info_memory 2>/dev/null | awk '{print $3}' | sed 's/%//')
+    local memory_usage=$(awk '{print $3}' /tmp/system_info_memory 2>/dev/null | sed 's/%//')
     if [[ -n "$memory_usage" ]] && (( $(echo "$memory_usage > 90" | bc -l 2>/dev/null) )); then
         recommendations+=("- Consider closing unnecessary applications to free up memory.")
     fi
 
     # Check for high disk usage
-    local disk_usage=$(cat /tmp/system_info_disk 2>/dev/null | awk '{print $3}' | sed 's/%//')
+    local disk_usage=$(awk '{print $3}' /tmp/system_info_disk 2>/dev/null | sed 's/%//')
     if [[ -n "$disk_usage" ]] && (( disk_usage > 90 )); then
         recommendations+=("- Clean up unnecessary files or consider upgrading disk space.")
     fi
 
     # Check for system updates
-    if grep -q "Updates available" /tmp/health_check_updates 2>/dev/null; then
+    if command grep -q "Updates available" /tmp/health_check_updates 2>/dev/null; then
         recommendations+=("- Install available system updates to improve security and performance.")
     fi
 
     # Check for disabled firewall
-    if grep -q "Disabled" /tmp/health_check_firewall 2>/dev/null; then
+    if command grep -q "Disabled" /tmp/health_check_firewall 2>/dev/null; then
         recommendations+=("- Enable the system firewall to enhance security.")
     fi
 
