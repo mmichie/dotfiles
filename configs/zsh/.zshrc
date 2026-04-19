@@ -96,25 +96,22 @@ for module in "${core_modules[@]}"; do
     load_module "lib" "$module"
 done
 
-# Lazy load function modules
+# Lazy load function modules — on first call, replace the stub with the
+# real implementation, then dispatch to it.
 tips() {
-    unfunction tips show_daily_tip zsh_hotkeys_help show_tool_tips
+    unfunction tips
     load_module "function" "tips"
     if [[ $# -gt 0 ]]; then
-        tips "$@"
+        show_tool_tips "$@"
     else
         show_daily_tip
     fi
 }
 
 system_health() {
-    unfunction system_health display_system_health
+    unfunction system_health
     load_module "function" "system_health"
-    if [[ $# -gt 0 ]]; then
-        system_health "$@"
-    else
-        display_system_health
-    fi
+    display_system_health "$@"
 }
 
 # Load utility functions
