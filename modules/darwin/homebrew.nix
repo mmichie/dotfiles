@@ -13,6 +13,7 @@ _:
 
     taps = [
       "nikitabobko/tap"
+      "tensor9ine/tensor9"
     ];
 
     brews = [
