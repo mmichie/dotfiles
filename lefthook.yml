@@ -7,10 +7,10 @@ pre-commit:
       glob: "*.nix"
       run: nix run nixpkgs#statix -- check .
     shellcheck:
-      files: sh -c 'git diff --cached --name-only --diff-filter=ACM | while IFS= read -r f; do head -1 "$f" 2>/dev/null | grep -qE "^#!/.*/(bash|sh|dash|ksh)" && echo "$f"; done; true'
+      files: sh -c 'git diff --cached --name-only --diff-filter=ACM | while IFS= read -r f; do [ -L "$f" ] && continue; head -1 "$f" 2>/dev/null | grep -qE "^#!/.*/(bash|sh|dash|ksh)" && echo "$f"; done; true'
       run: shellcheck {files}
     shfmt:
-      files: sh -c 'git diff --cached --name-only --diff-filter=ACM | while IFS= read -r f; do head -1 "$f" 2>/dev/null | grep -qE "^#!/.*/(bash|sh|dash|ksh)" && echo "$f"; done; true'
+      files: sh -c 'git diff --cached --name-only --diff-filter=ACM | while IFS= read -r f; do [ -L "$f" ] && continue; head -1 "$f" 2>/dev/null | grep -qE "^#!/.*/(bash|sh|dash|ksh)" && echo "$f"; done; true'
       run: nix run nixpkgs#shfmt -- -i 4 -ci -w {files} && git add {files}
 
 commit-msg:

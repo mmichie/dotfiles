@@ -1,1 +1,1 @@
-../../tmux/.config/tmux/plugins/dwm.tmux/bin/dwm.tmux
+../../configs/tmux/plugins/dwm.tmux/bin/dwm.tmux
