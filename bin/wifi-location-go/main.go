@@ -189,7 +189,13 @@ import (
 func main() {
 	// Parse command-line flags
 	fetchLocation := flag.Bool("location", false, "Fetch CoreLocation coordinates (WiFi-based positioning, 1-15 seconds)")
+	latLonOnly := flag.Bool("latlon", false, "Output just \"lat|lon\" (for plx weather --location-cmd). Exits non-zero with empty stdout if coordinates are unavailable.")
 	flag.Parse()
+
+	// --latlon implies --location (we need coordinates to output them)
+	if *latLonOnly {
+		*fetchLocation = true
+	}
 
 	// Call C function to get WiFi and optionally location info
 	var info C.WifiInfo
@@ -224,7 +230,19 @@ func main() {
 		}
 	}
 
-	if info.success == 1 {
+	// --latlon: output just "lat|lon" and exit non-zero if unavailable.
+	// plx weather --location-cmd tolerates an empty stdout + non-zero exit by
+	// falling back to IP geolocation. This path reuses the CoreLocation result
+	// above; no new frameworks calls.
+	exitCode := 0
+	if *latLonOnly {
+		if info.has_location == 1 {
+			output = fmt.Sprintf("%.6f|%.6f\n", info.latitude, info.longitude)
+		} else {
+			output = ""
+			exitCode = 1
+		}
+	} else if info.success == 1 {
 		ssid := C.GoString(&info.ssid[0])
 		bssid := C.GoString(&info.bssid[0])
 		iface := C.GoString(&info.iface[0])
@@ -251,4 +269,6 @@ func main() {
 	if outputFile := os.Getenv("OUTPUT_FILE"); outputFile != "" {
 		os.WriteFile(outputFile, []byte(output), 0644)
 	}
+
+	os.Exit(exitCode)
 }

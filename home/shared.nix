@@ -36,8 +36,4 @@ in
 
   # Claude Code settings
   home.file.".claude/settings.json".source = mkLink "claude/settings.json";
-
-  # Clima config
-  xdg.configFile."clima".source = mkLink "system/clima";
-  xdg.configFile."location".source = mkLink "system/location";
 }

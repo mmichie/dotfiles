@@ -91,7 +91,7 @@ configs/
   karabiner/                  # Keyboard remapping (macOS)
   nvim/                       # Neovim config (lazy.nvim)
   ssh/                        # SSH client config
-  system/                     # .inputrc, .dircolors, location service, clima
+  system/                     # .inputrc, .dircolors, readline/tmux helpers
   tmux/                       # tmux.conf + plugins (git submodules)
   wezterm/                    # Backup terminal emulator
   zsh/                        # .zshrc + modular zsh libraries

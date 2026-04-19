@@ -23,13 +23,6 @@ bin/bin/gam7/
 .claude-cache/
 .claude-session/
 
-# Location service - keep personal data local
-*.db
-*.db-journal
-*.db-shm
-*.db-wal
-configs/system/clima/wifi-locations.conf
-
 # Personal shell configuration with secrets (lives in ~/, not in repo)
 .zshrc.local
 
