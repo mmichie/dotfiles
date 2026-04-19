@@ -1,4 +1,4 @@
-{ config, ... }:
+{ mkLink, ... }:
 {
-  xdg.configFile."nvim".source = config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/nvim";
+  xdg.configFile."nvim".source = mkLink "nvim";
 }

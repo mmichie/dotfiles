@@ -1,9 +1,7 @@
-{ config, ... }:
+{ mkLink, ... }:
 {
-  home.file.".zshrc".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/zsh/.zshrc";
-  home.file.".zsh".source = config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/zsh/.zsh";
+  home.file.".zshrc".source = mkLink "zsh/.zshrc";
+  home.file.".zsh".source = mkLink "zsh/.zsh";
 
-  xdg.configFile."direnv".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.my.dotfilesPath}/direnv";
+  xdg.configFile."direnv".source = mkLink "direnv";
 }
