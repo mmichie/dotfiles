@@ -65,6 +65,7 @@ SYMLINK_TARGETS=(
     "$HOME/.claude/CLAUDE.md"
     "$HOME/.claude/statusline-command.sh"
     "$HOME/.claude/commands/work.md"
+    "$HOME/.claude/agents/development-tools/code-reviewer.md"
     # hostclass/darwin-workstation.nix
     "$HOME/.config/aerospace"
     "$HOME/.config/karabiner"
