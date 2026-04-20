@@ -72,6 +72,7 @@ load_module() {
 core_modules=(
     "platform_detection" # Must be first for platform detection
     "executables"        # Executable setup
+    "clipboard"          # clipcopy/clippaste with detect-once stubs
     "environment"        # Environment setup
     "history"            # History configuration + hgrep/recent/remember/recalls
     "completion"         # Completion zstyles and compdefs

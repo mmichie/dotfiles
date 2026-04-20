@@ -1,39 +1,50 @@
 #!/bin/zsh
 
-# Readline and widget keybindings.
-# The atuin-fzf-history widget is registered in integrations.zsh; the fzf
-# conditional below overrides the earlier ^R binding when fzf is available.
+# Prefix-aware history search (zsh built-in widgets). Typing a prefix then
+# up/down searches for history entries starting with it.
+autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+
+# Readline and widget keybindings. After bindkey -v, plain `bindkey` only
+# targets viins; vicmd (post-ESC) keeps its vi defaults. We bind to both
+# keymaps via a _bind helper so shortcuts work regardless of mode.
+# The atuin-fzf-history widget is registered in integrations.zsh.
 setup_readline() {
-    # Enable vi command mode
     bindkey -v
 
-    # Basic navigation bindings
-    bindkey '^A' beginning-of-line
-    bindkey '^E' end-of-line
-    bindkey '^D' delete-char
-    bindkey '^L' clear-screen
-    bindkey '^W' backward-kill-word
+    _bind() { bindkey -M viins "$1" "$2"; bindkey -M vicmd "$1" "$2"; }
+
+    # Basic navigation
+    _bind '^A' beginning-of-line
+    _bind '^E' end-of-line
+    _bind '^D' delete-char
+    _bind '^L' clear-screen
+    _bind '^W' backward-kill-word
 
     # Word navigation (Alt+Left/Right)
-    bindkey '^[b' backward-word
-    bindkey '^[f' forward-word
-    bindkey '^[[1;3D' backward-word   # Alt+Left in most terminals
-    bindkey '^[[1;3C' forward-word    # Alt+Right in most terminals
+    _bind '^[b' backward-word
+    _bind '^[f' forward-word
+    _bind '^[[1;3D' backward-word   # Alt+Left in most terminals
+    _bind '^[[1;3C' forward-word    # Alt+Right in most terminals
 
-    # History search bindings
-    bindkey '^R' history-incremental-search-backward
-    bindkey '^[A' up-line-or-search
-    bindkey '^[B' down-line-or-search
+    # History search
+    _bind '^R' history-incremental-search-backward
+    _bind '^[A' up-line-or-beginning-search
+    _bind '^[B' down-line-or-beginning-search
 
     # fzf widgets + atuin history search (overrides ^R above)
     if command -v fzf &>/dev/null; then
-        bindkey '^R' atuin-fzf-history
-        bindkey '^T' fzf-file-widget
-        bindkey '^[c' fzf-cd-widget
+        _bind '^R' atuin-fzf-history
+        _bind '^T' fzf-file-widget
+        _bind '^[c' fzf-cd-widget
     fi
 
-    # tmux-sessionizer for quick project switching
+    # tmux-sessionizer for quick project switching (-s = string binding)
     if command -v tmux-sessionizer &>/dev/null; then
-        bindkey -s '^F' 'tmux-sessionizer\n'
+        bindkey -M viins -s '^F' 'tmux-sessionizer\n'
+        bindkey -M vicmd -s '^F' 'tmux-sessionizer\n'
     fi
+
+    unfunction _bind
 }

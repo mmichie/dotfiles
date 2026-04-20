@@ -1,26 +1,8 @@
 #!/bin/zsh
 
-# Setup clipboard alias
-setup_clipboard() {
-    if is_osx; then
-        alias clip="pbcopy"
-    elif is_linux; then
-        if command -v xclip &>/dev/null; then
-            alias clip="xclip -selection clipboard"
-            alias pbcopy="xclip -selection clipboard"
-            alias pbpaste="xclip -selection clipboard -o"
-        elif command -v xsel &>/dev/null; then
-            alias clip="xsel --clipboard --input"
-            alias pbcopy="xsel --clipboard --input"
-            alias pbpaste="xsel --clipboard --output"
-        fi
-    fi
-}
-
-# Main setup function for platform-specific executables
+# Main setup function for platform-specific executables.
+# Clipboard setup now lives in clipboard.zsh (clipcopy/clippaste).
 setup_platform_executables() {
-    setup_clipboard
-
     if is_osx && has_capability "homebrew"; then
         export HOMEBREW_NO_ANALYTICS=1
     fi
