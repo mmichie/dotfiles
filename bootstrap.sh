@@ -56,7 +56,6 @@ SYMLINK_TARGETS=(
     # shared.nix
     "$HOME/bin"
     "$HOME/.inputrc"
-    "$HOME/.dircolors"
     "$HOME/.tmux-cht-command"
     "$HOME/.tmux-cht-languages"
     # hostclass/darwin-workstation.nix

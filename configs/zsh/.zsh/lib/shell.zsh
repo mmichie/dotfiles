@@ -26,7 +26,6 @@ setup_shell_options() {
 init_shell() {
     setup_shell_options
     setup_aliases
-    setup_dircolors
     setup_readline
     setup_completions
     setup_history

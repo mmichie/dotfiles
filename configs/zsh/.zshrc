@@ -90,7 +90,7 @@ core_modules=(
     "history"            # History configuration + hgrep/recent/remember/recalls
     "completion"         # Completion zstyles and compdefs
     "aliases"            # Alias definitions + git_cleanup/docker_cleanup
-    "ls"                 # dircolors/ls/eza aliases
+    "ls"                 # ls/eza aliases
     "keybindings"        # setup_readline (vi mode, fzf, atuin, tmux-sessionizer)
     "integrations"       # zoxide + atuin-fzf-history widget
     "shell"              # Shell orchestration (setup_shell_options, init_shell)
