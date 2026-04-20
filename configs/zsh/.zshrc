@@ -82,7 +82,7 @@ core_modules=(
     "executables"        # Executable setup
     "environment"        # Environment setup
     "shell"              # Shell configuration
-    "prompt"             # Prompt setup (lazy-loads banner.zsh when plx is missing)
+    "prompt"             # Prompt setup (plx init + OSC 7 + startup banner)
     "tmux_title"         # Helpers for pinning tmux titles around wrapped commands
     "ssh"                # SSH configuration
     "tmux_emoji_titles"  # Automatic emoji titles for tmux windows

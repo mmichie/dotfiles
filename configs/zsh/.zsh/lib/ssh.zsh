@@ -77,30 +77,13 @@ init_ssh
 # SSH wrapper to auto-rename tmux windows to hostname
 unalias ssh 2>/dev/null
 ssh() {
-    if [[ -z "$TMUX" ]]; then
-        command ssh "$@"
-        return
-    fi
-
-    local pane_id=$(tmux display-message -p '#{pane_id}')
-    local window_id=$(tmux display-message -p '#{window_id}')
-
     # Extract hostname from last arg; strip user@ prefix and rsync-style :/path
     local host="${@: -1}"
     host="${host#*@}"
     host="${host%%:*}"
     host="${host%%/*}"
 
-    _tmux_title_push "$pane_id" "$window_id" "🔐 $host"
-    trap "_tmux_title_pop '$pane_id' '$window_id'" INT TERM EXIT
-
-    command ssh "$@"
-    local exit_code=$?
-
-    trap - INT TERM EXIT
-    _tmux_title_pop "$pane_id" "$window_id"
-
-    return $exit_code
+    _tmux_title_wrap "🔐 $host" command ssh "$@"
 }
 
 # Sudo wrapper to warn about persistent root shells
@@ -111,10 +94,7 @@ _sudo_bin="${commands[sudo]:-sudo}"
 sudo() {
     local is_interactive=0 arg
     for arg in "$@"; do
-        if [[ "$arg" == "-i" || "$arg" == "-s" || "$arg" == "su" ]]; then
-            is_interactive=1
-            break
-        fi
+        case "$arg" in -i|-s|su) is_interactive=1; break ;; esac
     done
 
     if [[ -z "$TMUX" || $is_interactive -eq 0 ]]; then
@@ -122,18 +102,7 @@ sudo() {
         return
     fi
 
-    local pane_id=$(tmux display-message -p '#{pane_id}')
-    local window_id=$(tmux display-message -p '#{window_id}')
-
-    tmux set-option -t "$pane_id" -p @is_root "1"
-    _tmux_title_push "$pane_id" "$window_id" "⚠️ ROOT"
-    trap "_tmux_title_pop '$pane_id' '$window_id'" INT TERM EXIT
-
-    $_sudo_bin "$@"
-    local exit_code=$?
-
-    trap - INT TERM EXIT
-    _tmux_title_pop "$pane_id" "$window_id"
-
-    return $exit_code
+    # Mark pane as root-owned — _tmux_title_pop clears it during wrap exit.
+    tmux set-option -t "$(tmux display-message -p '#{pane_id}')" -p @is_root "1"
+    _tmux_title_wrap "⚠️ ROOT" "$_sudo_bin" "$@"
 }
