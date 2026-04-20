@@ -5,18 +5,25 @@ readonly AGENT_INFO="$HOME/.ssh/.ssh-agent-info"
 readonly ONEPASSWORD_SOCKET_MACOS="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 readonly ONEPASSWORD_SOCKET_LINUX="$HOME/.1password/agent.sock"
 
+# Export SSH_AUTH_SOCK pointing at a 1Password agent if one is running.
+# Returns 0 on hit, 1 on miss.
+_use_1password_socket_if_present() {
+    local sock
+    for sock in "$ONEPASSWORD_SOCKET_MACOS" "$ONEPASSWORD_SOCKET_LINUX"; do
+        if [[ -S "$sock" ]]; then
+            export SSH_AUTH_SOCK="$sock"
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Pick an SSH agent in preference order:
 #   1. 1Password (macOS or Linux)
 #   2. Forwarded / externally-set SSH_AUTH_SOCK (ssh -A, systemd user socket)
 #   3. Traditional ssh-agent (Linux boxes without 1Password)
 handle_ssh_agent() {
-    if [[ -S "$ONEPASSWORD_SOCKET_MACOS" ]]; then
-        export SSH_AUTH_SOCK="$ONEPASSWORD_SOCKET_MACOS"
-        return 0
-    elif [[ -S "$ONEPASSWORD_SOCKET_LINUX" ]]; then
-        export SSH_AUTH_SOCK="$ONEPASSWORD_SOCKET_LINUX"
-        return 0
-    fi
+    _use_1password_socket_if_present && return 0
 
     if [[ -n "$SSH_AUTH_SOCK" ]] && [[ -S "$SSH_AUTH_SOCK" ]]; then
         return 0
@@ -57,13 +64,7 @@ add_ssh_keys() {
 
 init_ssh() {
     # Fast path: 1Password agent present → skip agent-dir setup entirely
-    if [[ -S "$ONEPASSWORD_SOCKET_MACOS" ]]; then
-        export SSH_AUTH_SOCK="$ONEPASSWORD_SOCKET_MACOS"
-        return
-    elif [[ -S "$ONEPASSWORD_SOCKET_LINUX" ]]; then
-        export SSH_AUTH_SOCK="$ONEPASSWORD_SOCKET_LINUX"
-        return
-    fi
+    _use_1password_socket_if_present && return
 
     # No 1Password — fall back to managed ssh-agent. Use zsh :h modifier
     # instead of $(dirname ...) subshells.

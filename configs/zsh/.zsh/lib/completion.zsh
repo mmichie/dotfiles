@@ -5,7 +5,7 @@
 setup_completions() {
     # Completion caching
     zstyle ':completion:*' use-cache on
-    zstyle ':completion:*' cache-path "$HOME/.cache/zsh/compcache"
+    zstyle ':completion:*' cache-path "$SHELL_CACHE_DIR/compcache"
 
     # Case-insensitive and partial-word completion matching
     zstyle ':completion:*' matcher-list \
