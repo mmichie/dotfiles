@@ -2,8 +2,8 @@
 
 # First thing: measure shell startup time if PROFILE_STARTUP is set
 if [[ -n "$PROFILE_STARTUP" ]]; then
-  # Reset zsh cache
-  [[ -e "$HOME/.zcompdump" ]] && rm -f "$HOME/.zcompdump"
+  # Reset zsh cache (check both legacy $HOME and the new cache-dir location)
+  rm -f "$HOME/.zcompdump" "$HOME/.cache/zsh/.zcompdump" 2>/dev/null
   zmodload zsh/zprof
 fi
 
@@ -30,12 +30,22 @@ fpath=(
     $fpath
 )
 
-# Load completion system with caching and optimization
-autoload -Uz compinit
-# Skip security check for faster startup
-compinit -C
-
 mkdir -p "$SHELL_CACHE_DIR"
+
+# Load completion system. compinit -C is fast but doesn't notice fpath
+# changes on its own; fingerprint fpath into the dump and rebuild only
+# when it shifts.
+ZSH_COMPDUMP="$SHELL_CACHE_DIR/.zcompdump"
+autoload -Uz compinit
+_fpath_fingerprint="#fpath: ${(j::)fpath}"
+if command grep -q -Fx "$_fpath_fingerprint" "$ZSH_COMPDUMP" 2>/dev/null; then
+    compinit -C -d "$ZSH_COMPDUMP"
+else
+    command rm -f "$ZSH_COMPDUMP"
+    compinit -i -d "$ZSH_COMPDUMP"
+    print -- "$_fpath_fingerprint" >> "$ZSH_COMPDUMP"
+fi
+unset _fpath_fingerprint
 
 # Prevent multiple sourcing
 if [[ -n "$ZSH_INITIALIZED" ]]; then
@@ -46,20 +56,23 @@ ZSH_INITIALIZED=1
 # Source global definitions if available
 [[ -f /etc/zshrc ]] && source /etc/zshrc
 
-# Module loading helper function
+# Module loading helper. Note: the local is named _path, NOT module_path —
+# `module_path` is a zsh special array aliased to $MODULE_PATH, and shadowing
+# it as a scalar breaks zmodload auto-loading inside the sourced module
+# (e.g. fzf --zsh's `[[ =~ ]]` triggers an auto-load of zsh/regex).
 load_module() {
     local module_type=$1
     local module_name=$2
-    local module_path
+    local _path
 
     case "$module_type" in
-        "lib")      module_path="$SHELL_LIB_DIR/${module_name}.zsh" ;;
-        "function") module_path="$SHELL_FUNCTIONS_DIR/${module_name}.zsh" ;;
+        "lib")      _path="$SHELL_LIB_DIR/${module_name}.zsh" ;;
+        "function") _path="$SHELL_FUNCTIONS_DIR/${module_name}.zsh" ;;
         *)          return 1 ;;
     esac
 
-    if [[ -f "$module_path" ]]; then
-        source "$module_path"
+    if [[ -f "$_path" ]]; then
+        source "$_path"
         return 0
     fi
     return 1
@@ -102,23 +115,13 @@ _lazy_module_fn() {
 _lazy_module_fn tips          tips          tips
 _lazy_module_fn system_health system_health display_system_health
 
-# Load utility functions
-load_module "function" "utils"
-
-# Initialize core components. fzf must source before init_shell so that
-# setup_readline's ^R → atuin-fzf-history binding wins over fzf's own
-# fzf-history-widget (which its init registers on ^R).
+# Initialize core components. fzf --zsh is sourced inside keybindings.zsh
+# at module-load so setup_readline's ^R → atuin-fzf-history binding lands
+# after fzf's own ^R binding.
 setup_environment
-if command -v fzf &>/dev/null; then
-    source <(fzf --zsh)
-fi
 init_shell
 init_prompt
-
-# Load work profile if it exists
-if [[ -f "$HOME/.bash_work_profile" ]]; then
-    source "$HOME/.bash_work_profile"
-fi
+setup_integrations
 
 # Display system status on first shell (login or first interactive, not subshells)
 if [[ -o login || -z "$INFLUX_SHOWN" ]] && command -v gum &>/dev/null; then
@@ -138,25 +141,10 @@ if [[ -f "$SHELL_FUNCTIONS_DIR/claude_wrapper.zsh" ]]; then
     source "$SHELL_FUNCTIONS_DIR/claude_wrapper.zsh"
 fi
 
-# Atuin shell history (disable keybindings — fzf handles Ctrl-R)
-if command -v atuin &>/dev/null; then
-    eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
-fi
-
 # macOS path_helper fix: Login shells may have PATH reset by /etc/zprofile
 # Re-run setup_path to ensure our paths are in the correct order
 if is_osx && [[ -o login ]]; then
     setup_path
-fi
-
-# Direnv hook (per-directory environment variables)
-if command -v direnv &>/dev/null; then
-    eval "$(direnv hook zsh)"
-fi
-
-# Vivid ls colors
-if command -v vivid &>/dev/null; then
-    export LS_COLORS="$(vivid generate tokyonight-night)"
 fi
 
 # Source local config (not in dotfiles repo, for secrets/machine-specific settings)
