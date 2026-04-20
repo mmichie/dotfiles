@@ -1,12 +1,9 @@
 #!/bin/zsh
 
-# ANSI styling constants (shared with prompt.zsh — redeclared here for lazy-load path)
+# ANSI styling constants for the health report output.
 typeset -g reset=$'\e[0m'
-typeset -g bold=$'\e[1m'
 typeset -g red=$'\e[31m'
-typeset -g green=$'\e[32m'
 typeset -g yellow=$'\e[33m'
-typeset -g blue=$'\e[34m'
 
 # Each check writes its result to $_HEALTH_TMP_DIR/<name>. display_system_health
 # sets _HEALTH_TMP_DIR to a mktemp'd dir and cleans up. Standalone callers get

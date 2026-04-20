@@ -14,7 +14,8 @@ setup_dircolors() {
     fi
 }
 
-# LS colors setup function
+# LS colors setup. Dircolors/LS_COLORS is primed by setup_dircolors (called
+# from init_shell); here we just set the aliases + BSD-ls fallback vars.
 setup_ls_colors() {
     if is_osx; then
         if command -v gls &>/dev/null; then
@@ -26,13 +27,6 @@ setup_ls_colors() {
         fi
     elif is_linux; then
         alias ls="ls --color=auto -F"
-        if [[ -x "/usr/bin/dircolors" ]]; then
-            if [[ -r "$HOME/.dircolors" ]]; then
-                eval "$(dircolors -b "$HOME/.dircolors")"
-            else
-                eval "$(dircolors -b)"
-            fi
-        fi
     fi
 
     # Common ls aliases
