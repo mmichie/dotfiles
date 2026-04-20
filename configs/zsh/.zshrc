@@ -16,30 +16,19 @@ declare -gx SHELL_LIB_DIR="$SHELL_CONFIG_DIR/lib"
 declare -gx SHELL_FUNCTIONS_DIR="$SHELL_CONFIG_DIR/functions"
 declare -gx SHELL_CACHE_DIR="$HOME/.cache/zsh"
 
-# Set up fpath for zsh functions
-() {
-    local -a zsh_paths
-
-    # Common paths that might exist
-    local -a possible_paths=(
-        "/usr/share/zsh/site-functions"
-        "/usr/local/share/zsh/site-functions"
-        "/opt/homebrew/share/zsh/site-functions"
-        "/usr/share/zsh/functions/Completion"
-        "/usr/share/zsh/functions/Completion/Unix"
-        "/usr/share/zsh/functions/Completion/Linux"
-        "/usr/share/zsh/vendor-functions"
-        "$SHELL_FUNCTIONS_DIR"
-    )
-
-    # Only add paths that exist
-    for p in "${possible_paths[@]}"; do
-        [[ -d "$p" ]] && zsh_paths+=("$p")
-    done
-
-    # Set fpath
-    fpath=("${zsh_paths[@]}" $fpath)
-}
+# Set up fpath for zsh functions. (N-/) qualifier silently drops paths
+# that don't exist or aren't directories, so no existence loop needed.
+fpath=(
+    /usr/share/zsh/site-functions(N-/)
+    /usr/local/share/zsh/site-functions(N-/)
+    /opt/homebrew/share/zsh/site-functions(N-/)
+    /usr/share/zsh/functions/Completion(N-/)
+    /usr/share/zsh/functions/Completion/Unix(N-/)
+    /usr/share/zsh/functions/Completion/Linux(N-/)
+    /usr/share/zsh/vendor-functions(N-/)
+    "$SHELL_FUNCTIONS_DIR"(N-/)
+    $fpath
+)
 
 # Load completion system with caching and optimization
 autoload -Uz compinit
@@ -94,22 +83,14 @@ for module in "${core_modules[@]}"; do
 done
 
 # Lazy load function modules — on first call, replace the stub with the
-# real implementation, then dispatch to it.
-tips() {
-    unfunction tips
-    load_module "function" "tips"
-    if [[ $# -gt 0 ]]; then
-        show_tool_tips "$@"
-    else
-        show_daily_tip
-    fi
+# real implementation from the module, then dispatch to it.
+_lazy_module_fn() {
+    local stub="$1" module="$2" real="$3"
+    eval "$stub() { unfunction $stub; load_module function $module; $real \"\$@\"; }"
 }
 
-system_health() {
-    unfunction system_health
-    load_module "function" "system_health"
-    display_system_health "$@"
-}
+_lazy_module_fn tips          tips          tips
+_lazy_module_fn system_health system_health display_system_health
 
 # Load utility functions
 load_module "function" "utils"
@@ -133,8 +114,7 @@ fi
 if [[ -o login || -z "$INFLUX_SHOWN" ]] && command -v gum &>/dev/null; then
     export INFLUX_SHOWN=1
     notify_shell_status
-    load_module "function" "tips"
-    show_daily_tip
+    tips
 fi
 
 # Final cleanup
