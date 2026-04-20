@@ -39,27 +39,6 @@ return {
         end,
     },
 
-    -- Enhanced Tab Management
-    {
-        "akinsho/bufferline.nvim",
-        dependencies = "nvim-tree/nvim-web-devicons",
-        config = function()
-            require("bufferline").setup({
-                options = {
-                    mode = "tabs",
-                    separator_style = "slant",
-                    always_show_bufferline = true,
-                    show_buffer_close_icons = true,
-                    show_close_icon = true,
-                    color_icons = true
-                }
-            })
-            -- Keymaps for tab navigation
-            vim.keymap.set('n', '<S-l>', ':BufferLineCycleNext<CR>')
-            vim.keymap.set('n', '<S-h>', ':BufferLineCyclePrev<CR>')
-        end
-    },
-
     -- Syntax highlighting
     {
         'nvim-treesitter/nvim-treesitter',
@@ -266,19 +245,6 @@ return {
         end
     },
 
-     {
-      "folke/snacks.nvim",
-      opts = {
-        indent = {
-          scope = {
-            animate = {
-              enabled = false
-            }
-          }
-        }
-      }
-    },
-
     -- Fuzzy finder
     {
         'nvim-telescope/telescope.nvim',
@@ -290,20 +256,6 @@ return {
             vim.keymap.set('n', '<leader>fg', builtin.live_grep)
             vim.keymap.set('n', '<leader>fb', builtin.buffers)
             vim.keymap.set('n', '<leader>fh', builtin.help_tags)
-        end
-    },
-
-    -- Terminal Integration
-    {
-        "akinsho/toggleterm.nvim",
-        config = function()
-            require("toggleterm").setup({
-                size = 20,
-                open_mapping = [[<c-\>]],
-                hide_numbers = true,
-                shade_terminals = true,
-                direction = "float",
-            })
         end
     },
 
@@ -336,49 +288,11 @@ return {
                 lsp_cfg = false, -- gopls managed by native vim.lsp.config
                 lsp_gofumpt = false,
                 lsp_on_attach = false,
-                dap_debug = true,
             })
         end,
         event = {"CmdlineEnter"},
         ft = {"go", 'gomod'},
         build = ':lua require("go.install").update_all_sync()'
-    },
-
-    -- Debugging support
-    {
-        "mfussenegger/nvim-dap",
-        dependencies = {
-            "rcarriga/nvim-dap-ui",
-            "mfussenegger/nvim-dap-python",
-            "nvim-neotest/nvim-nio",
-        },
-        config = function()
-            local dap = require('dap')
-            local dapui = require('dapui')
-
-            -- Python debugger setup (debugpy must be installed in the Python environment)
-            require('dap-python').setup(vim.fn.exepath('python3'))
-
-            -- Debugger UI
-            dapui.setup()
-
-            -- Debugger keymaps
-            vim.keymap.set('n', '<leader>db', dap.toggle_breakpoint)
-            vim.keymap.set('n', '<leader>dc', dap.continue)
-            vim.keymap.set('n', '<leader>ds', dap.step_over)
-            vim.keymap.set('n', '<leader>di', dap.step_into)
-            vim.keymap.set('n', '<leader>do', dap.step_out)
-            vim.keymap.set('n', '<leader>du', dapui.toggle)
-        end
-    },
-
-    -- Code outline/symbols
-    {
-        'hedyhli/outline.nvim',
-        config = function()
-            require('outline').setup()
-            vim.keymap.set('n', '<leader>so', ':Outline<CR>')
-        end
     },
 
     -- Copilot
@@ -436,34 +350,4 @@ return {
         end,
     },
 
-    {
-        "m4xshen/hardtime.nvim",
-        dependencies = { "MunifTanjim/nui.nvim", "nvim-lua/plenary.nvim" },
-        opts = {
-            max_count = 2,
-            disabled_keys = {
-                ["<Up>"] = {},
-                ["<Down>"] = {},
-                ["<Left>"] = {},
-                ["<Right>"] = {},
-            },
-            hint = true, -- shows hint when you make inefficient movement
-            notification = true, -- shows notification when you make inefficient movement
-        }
-    },
-
-    {
-        "karb94/neoscroll.nvim",
-        opts = {},
-    },
-
-    {
-        "theHamsta/nvim-dap-virtual-text",
-        dependencies = {
-            "mfussenegger/nvim-dap",
-        },
-        config = function()
-            require("nvim-dap-virtual-text").setup()
-        end
-    },
 }
