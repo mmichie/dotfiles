@@ -91,7 +91,8 @@ configs/
   karabiner/                  # Keyboard remapping (macOS)
   nvim/                       # Neovim config (lazy.nvim)
   ssh/                        # SSH client config
-  system/                     # .inputrc + tmux-cht cheat sheet lists
+  btop/ htop/                 # TUI monitor configs (file-level symlinks)
+  system/                     # .inputrc, .actrc, .ideavimrc, tmux-cht lists
   tmux/                       # tmux.conf + plugins (git submodules)
   wezterm/                    # Backup terminal emulator
   zsh/                        # .zshrc + modular zsh libraries

@@ -1,0 +1,41 @@
+" Set the leader key to comma (mirroring your Neovim config)
+let mapleader = ","
+
+" General editing options (similar to your Neovim settings)
+set scrolloff=5          " Show 5 lines of context around the cursor
+set incsearch            " Incremental search as you type
+set ignorecase           " Ignore case when searching
+set smartcase            " Use case when search pattern has uppercase
+set number               " Show absolute line numbers
+set relativenumber       " Show relative line numbers
+set cursorline           " Highlight the current line
+
+" Use gq for formatting (disable Ex mode with Q)
+map Q gq
+
+" Window navigation similar to your Neovim mappings
+nmap <C-h> <C-w>h
+nmap <C-j> <C-w>j
+nmap <C-k> <C-w>k
+nmap <C-l> <C-w>l
+
+" Tab management (opening, closing, navigating tabs)
+nmap <leader>tt :tabnew<CR>
+nmap <leader>tc :tabclose<CR>
+nmap <leader>tn :tabnext<CR>
+nmap <leader>tp :tabprevious<CR>
+
+" Clear search highlighting mapping
+nmap <leader><Space> :nohlsearch<CR>
+
+" --- Plugin Section ---
+" If you're using a plugin manager in IdeaVim, include your plugins here.
+Plug 'machakann/vim-highlightedyank'   " Highlights yanked text
+Plug 'tpope/vim-commentary'              " Easily comment out code
+
+" --- IDE Action Mappings (if desired) ---
+" Uncomment and adjust these if you use these IntelliJ actions
+" map <Action>(ReformatCode)
+" map <leader>d <Action>(Debug)
+" map <Action>(ToggleLineBreakpoint)
+

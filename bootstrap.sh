@@ -56,8 +56,12 @@ SYMLINK_TARGETS=(
     # shared.nix
     "$HOME/bin"
     "$HOME/.inputrc"
+    "$HOME/.actrc"
+    "$HOME/.ideavimrc"
     "$HOME/.tmux-cht-command"
     "$HOME/.tmux-cht-languages"
+    "$HOME/.config/btop/btop.conf"
+    "$HOME/.config/htop/htoprc"
     # hostclass/darwin-workstation.nix
     "$HOME/.config/aerospace"
     "$HOME/.config/karabiner"
