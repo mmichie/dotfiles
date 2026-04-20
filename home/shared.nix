@@ -49,4 +49,6 @@ in
   # `just claude-update`.
   home.file.".claude/agents/development-tools/code-reviewer.md".source =
     mkLink "claude/agents/development-tools/code-reviewer.md";
+  home.file.".claude/agents/development-tools/refactoring-specialist.md".source =
+    mkLink "claude/agents/development-tools/refactoring-specialist.md";
 }
