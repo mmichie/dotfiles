@@ -54,18 +54,6 @@ sshtunnel() {
     fi
 }
 
-# Get platform-appropriate clipboard command
-_get_clipboard_cmd() {
-    case "$SYSTEM_OS_TYPE" in
-        OSX) echo "pbcopy" ;;
-        LINUX)
-            if command -v clip.exe &>/dev/null; then echo "clip.exe"
-            elif command -v xclip &>/dev/null; then echo "xclip -selection clipboard"
-            elif command -v xsel &>/dev/null; then echo "xsel --clipboard --input"
-            fi ;;
-    esac
-}
-
 # Get file metadata as pipe-separated values
 _get_file_metadata() {
     local file=$1
@@ -122,7 +110,6 @@ catfiles() {
     done
     shift $((OPTIND -1))
 
-    local clip_cmd=$(_get_clipboard_cmd)
     local temp_file=$(mktemp)
 
     # Python script for JSON processing
@@ -175,13 +162,12 @@ PYEOF
 
     # Output results
     $use_json && all_contents=$json_output
-    if [[ -n "$clip_cmd" && -n "$all_contents" ]]; then
-        echo "$all_contents" | eval $clip_cmd
-        echo "All file contents copied to clipboard."
-    elif [[ -n "$all_contents" ]]; then
-        echo "$all_contents"
-    else
+    if [[ -z "$all_contents" ]]; then
         echo "No files were processed."
+    elif echo "$all_contents" | clipcopy 2>/dev/null; then
+        echo "All file contents copied to clipboard."
+    else
+        echo "$all_contents"
     fi
 
     rm -f "$temp_file" "$python_script"
