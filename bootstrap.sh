@@ -62,6 +62,9 @@ SYMLINK_TARGETS=(
     "$HOME/.tmux-cht-languages"
     "$HOME/.config/btop/btop.conf"
     "$HOME/.config/htop/htoprc"
+    "$HOME/.claude/CLAUDE.md"
+    "$HOME/.claude/statusline-command.sh"
+    "$HOME/.claude/commands/work.md"
     # hostclass/darwin-workstation.nix
     "$HOME/.config/aerospace"
     "$HOME/.config/karabiner"
