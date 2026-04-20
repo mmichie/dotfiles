@@ -9,7 +9,8 @@ zsh_hotkeys_tips=(
     "!<prefix>: Repeat last command starting with <prefix>"
     "!?<string>?: Repeat last command containing <string>"
     "!:s/foo/bar/: Replace 'foo' with 'bar' in previous command"
-    "!^: First argument of last command, !$: Last argument of last command"
+    "!^: First argument of last command"
+    "!$: Last argument of last command"
     "Alt+. (Esc .): Insert last word of previous command line"
     "Ctrl+R: Reverse incremental search in history"
     "Ctrl+W: Delete previous word"
@@ -128,29 +129,6 @@ show_daily_tip() {
         echo "💡 Daily Tip:"
         echo "$tip"
     fi
-}
-
-# Function to display ZSH hotkeys help
-zsh_hotkeys_help() {
-    cat <<EOF
-Expert-level ZSH history expansions and hotkeys:
-  !!          : Repeat last command
-  !<num>      : Repeat command by history event number
-  !<prefix>   : Repeat last command starting with <prefix>
-  !?<string>? : Repeat last command containing <string>
-  !:s/foo/bar/: Replace 'foo' with 'bar' in previous command
-  !^          : Insert first argument of last command
-  !$          : Insert last argument of last command
-  Alt+.       : Insert last word of previous command line
-  Ctrl+R      : Reverse incremental history search
-  Ctrl+W      : Delete previous word
-  Ctrl+U      : Delete to start of line
-  Ctrl+K      : Delete to end of line
-  Ctrl+Y      : Yank last killed text
-  Alt+B/F     : Move backward/forward one word
-  Ctrl+X Ctrl+E: Edit command line in \$EDITOR
-  ^foo^bar    : Quick inline substitution in last command
-EOF
 }
 
 # Function to show tips for a specific tool
