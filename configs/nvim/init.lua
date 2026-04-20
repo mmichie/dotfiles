@@ -19,21 +19,13 @@ vim.g.maplocalleader = ","
 
 -- General settings
 vim.opt.modelines = 0
-vim.opt.showmode = true
-vim.opt.showcmd = true
-vim.opt.hidden = true
-vim.opt.visualbell = true
 vim.opt.cursorline = true
 vim.opt.number = true
 vim.opt.relativenumber = true
-vim.opt.history = 1000
 vim.opt.undofile = true
 vim.opt.splitbelow = true
 vim.opt.splitright = true
 vim.opt.autowrite = true
-vim.opt.autoread = true
-vim.opt.title = false
-vim.opt.titlestring = 'NVIM: %F'
 vim.opt.termguicolors = true
 
 -- Indentation and Formatting
@@ -49,7 +41,6 @@ vim.opt.formatoptions = 'qrn1'
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 vim.opt.showmatch = true
-vim.opt.gdefault = true
 
 -- File Management
 local function ensure_dir(path)
