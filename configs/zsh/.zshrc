@@ -105,15 +105,15 @@ _lazy_module_fn system_health system_health display_system_health
 # Load utility functions
 load_module "function" "utils"
 
-# Initialize core components
+# Initialize core components. fzf must source before init_shell so that
+# setup_readline's ^R → atuin-fzf-history binding wins over fzf's own
+# fzf-history-widget (which its init registers on ^R).
 setup_environment
-init_shell
-init_prompt
-
-# FZF key bindings and completion (fzf from nix)
 if command -v fzf &>/dev/null; then
     source <(fzf --zsh)
 fi
+init_shell
+init_prompt
 
 # Load work profile if it exists
 if [[ -f "$HOME/.bash_work_profile" ]]; then
