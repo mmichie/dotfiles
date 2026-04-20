@@ -85,6 +85,7 @@ claude-update:
     cd {{justfile_directory()}}
     AGENTS=(
         "development-tools/code-reviewer.md"
+        "development-tools/refactoring-specialist.md"
     )
     for agent in "${AGENTS[@]}"; do
         local="configs/claude/agents/${agent}"
