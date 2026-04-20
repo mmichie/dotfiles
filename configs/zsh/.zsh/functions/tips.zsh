@@ -131,6 +131,15 @@ show_daily_tip() {
     fi
 }
 
+# Main entry: no args = random daily tip, arg = tool-specific tips
+tips() {
+    if [[ $# -gt 0 ]]; then
+        show_tool_tips "$@"
+    else
+        show_daily_tip
+    fi
+}
+
 # Function to show tips for a specific tool
 show_tool_tips() {
     local tool=$1
