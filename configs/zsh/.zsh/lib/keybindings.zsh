@@ -1,10 +1,23 @@
 #!/bin/zsh
 
+# Source fzf's shell integration at module load so its widgets (fzf-file-widget,
+# fzf-cd-widget) are defined before setup_readline binds to them. fzf also
+# binds ^R to its own fzf-history-widget; setup_readline overwrites that with
+# atuin-fzf-history, which runs *after* this because init_shell is called from
+# .zshrc post-module-load.
+if command -v fzf &>/dev/null; then
+    source <(fzf --zsh)
+fi
+
 # Prefix-aware history search (zsh built-in widgets). Typing a prefix then
 # up/down searches for history entries starting with it.
 autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
 zle -N up-line-or-beginning-search
 zle -N down-line-or-beginning-search
+
+# edit-command-line widget: opens current buffer in $EDITOR on ^X^E.
+autoload -Uz edit-command-line
+zle -N edit-command-line
 
 # Readline and widget keybindings. After bindkey -v, plain `bindkey` only
 # targets viins; vicmd (post-ESC) keeps its vi defaults. We bind to both
@@ -32,6 +45,9 @@ setup_readline() {
     _bind '^R' history-incremental-search-backward
     _bind '^[A' up-line-or-beginning-search
     _bind '^[B' down-line-or-beginning-search
+
+    # Edit current command line in $EDITOR
+    _bind '^X^E' edit-command-line
 
     # fzf widgets + atuin history search (overrides ^R above)
     if command -v fzf &>/dev/null; then

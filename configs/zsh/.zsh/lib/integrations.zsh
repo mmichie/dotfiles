@@ -1,5 +1,28 @@
 #!/bin/zsh
 
+# Third-party shell integrations (atuin, direnv, vivid, work profile).
+# Called from .zshrc after init_shell.
+setup_integrations() {
+    # Work profile (machine-specific env, not in dotfiles repo)
+    [[ -f "$HOME/.bash_work_profile" ]] && source "$HOME/.bash_work_profile"
+
+    # Atuin shell history. Disable its bindings — setup_readline binds ^R
+    # to the atuin-fzf-history widget defined below.
+    if command -v atuin &>/dev/null; then
+        eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
+    fi
+
+    # Direnv per-directory environment
+    if command -v direnv &>/dev/null; then
+        eval "$(direnv hook zsh)"
+    fi
+
+    # Vivid ls colors
+    if command -v vivid &>/dev/null; then
+        export LS_COLORS="$(vivid generate tokyonight-night)"
+    fi
+}
+
 # Setup zoxide for smart directory navigation
 setup_zoxide() {
     if command -v zoxide &>/dev/null; then
