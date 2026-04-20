@@ -65,12 +65,21 @@ load_module() {
     return 1
 }
 
-# Load core library modules in specific order
+# Load core library modules in specific order.
+# Function-defining modules (history, completion, aliases, ls, keybindings,
+# integrations) must load before shell.zsh, which orchestrates them via
+# init_shell after .zshrc finishes sourcing.
 core_modules=(
     "platform_detection" # Must be first for platform detection
     "executables"        # Executable setup
     "environment"        # Environment setup
-    "shell"              # Shell configuration
+    "history"            # History configuration + hgrep/recent/remember/recalls
+    "completion"         # Completion zstyles and compdefs
+    "aliases"            # Alias definitions + git_cleanup/docker_cleanup
+    "ls"                 # dircolors/ls/eza aliases
+    "keybindings"        # setup_readline (vi mode, fzf, atuin, tmux-sessionizer)
+    "integrations"       # zoxide + atuin-fzf-history widget
+    "shell"              # Shell orchestration (setup_shell_options, init_shell)
     "prompt"             # Prompt setup (plx init + OSC 7 + startup banner)
     "tmux_title"         # Helpers for pinning tmux titles around wrapped commands
     "ssh"                # SSH configuration
