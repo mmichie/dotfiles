@@ -30,7 +30,6 @@ in
 
   # System-level dotfiles
   home.file.".inputrc".source = mkLink "system/.inputrc";
-  home.file.".dircolors".source = mkLink "system/.dircolors";
   home.file.".tmux-cht-command".source = mkLink "system/.tmux-cht-command";
   home.file.".tmux-cht-languages".source = mkLink "system/.tmux-cht-languages";
 

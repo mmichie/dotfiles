@@ -1,21 +1,6 @@
 #!/bin/zsh
 
-# Dircolors setup
-setup_dircolors() {
-    if [[ "$TERM" != "dumb" ]]; then
-        local dircolors_cmd="$(whence gdircolors 2>/dev/null || whence dircolors 2>/dev/null)"
-        local dir_colors="$HOME/.dircolors"
-
-        if [[ -x "$dircolors_cmd" ]] && [[ -r "$dir_colors" ]]; then
-            eval "$($dircolors_cmd -b "$dir_colors")"
-        elif [[ -x "$dircolors_cmd" ]]; then
-            eval "$($dircolors_cmd -b)"
-        fi
-    fi
-}
-
-# LS colors setup. Dircolors/LS_COLORS is primed by setup_dircolors (called
-# from init_shell); here we just set the aliases + BSD-ls fallback vars.
+# LS aliases + BSD-ls fallback. LS_COLORS comes from vivid in setup_integrations.
 setup_ls_colors() {
     if is_osx; then
         if command -v gls &>/dev/null; then
@@ -35,7 +20,7 @@ setup_ls_colors() {
     alias l="ls -CF"
 }
 
-# Setup eza if available, using existing dircolors
+# Setup eza if available
 setup_eza() {
     # Only proceed if eza is installed
     if ! command -v eza &>/dev/null; then
