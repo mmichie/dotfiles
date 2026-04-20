@@ -41,4 +41,7 @@ in
 
   # Claude Code settings
   home.file.".claude/settings.json".source = mkLink "claude/settings.json";
+  home.file.".claude/CLAUDE.md".source = mkLink "claude/CLAUDE.md";
+  home.file.".claude/statusline-command.sh".source = mkLink "claude/statusline-command.sh";
+  home.file.".claude/commands/work.md".source = mkLink "claude/commands/work.md";
 }
