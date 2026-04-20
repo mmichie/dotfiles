@@ -44,4 +44,9 @@ in
   home.file.".claude/CLAUDE.md".source = mkLink "claude/CLAUDE.md";
   home.file.".claude/statusline-command.sh".source = mkLink "claude/statusline-command.sh";
   home.file.".claude/commands/work.md".source = mkLink "claude/commands/work.md";
+
+  # Upstream agents vendored from davila7/claude-code-templates — refresh via
+  # `just claude-update`.
+  home.file.".claude/agents/development-tools/code-reviewer.md".source =
+    mkLink "claude/agents/development-tools/code-reviewer.md";
 }

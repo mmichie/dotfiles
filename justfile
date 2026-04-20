@@ -77,3 +77,34 @@ repl:
 # Garbage collect old generations
 gc:
     nix-collect-garbage -d
+
+# Refresh vendored Claude Code agents from davila7/claude-code-templates upstream
+claude-update:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{justfile_directory()}}
+    AGENTS=(
+        "development-tools/code-reviewer.md"
+    )
+    for agent in "${AGENTS[@]}"; do
+        local="configs/claude/agents/${agent}"
+        tmp=$(mktemp)
+        gh api "repos/davila7/claude-code-templates/contents/cli-tool/components/agents/${agent}" --jq .content \
+            | base64 -d > "$tmp"
+        if cmp -s "$local" "$tmp"; then
+            echo "up-to-date: ${agent}"
+            rm -f "$tmp"
+            continue
+        fi
+        echo
+        echo "=== ${agent} ==="
+        diff -u "$local" "$tmp" || true
+        read -rp "Overwrite? [y/N] " yn
+        if [[ "$yn" =~ ^[Yy]$ ]]; then
+            mv "$tmp" "$local"
+            echo "updated: ${agent}"
+        else
+            rm -f "$tmp"
+            echo "skipped: ${agent}"
+        fi
+    done
