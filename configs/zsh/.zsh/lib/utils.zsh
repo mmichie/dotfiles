@@ -189,27 +189,21 @@ PYEOF
 
 # Load and display environment variables from a .env file
 loadenv() {
-    if [ -f ".env" ]; then
-        echo "Loading environment variables:"
-        while IFS= read -r line || [[ -n "$line" ]]; do
-            if [[ ! "$line" =~ ^# && "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
-                varname=${line%%=*}
-                export "$line"
-                echo "Loaded: $varname"
-            fi
-        done < .env
-        echo "All environment variables loaded successfully."
-    else
+    if [[ ! -f ".env" ]]; then
         echo "Error: .env file does not exist in the current directory."
+        return 1
     fi
+    echo "Loading environment variables:"
+    _parse_env_file ".env" 1
+    echo "All environment variables loaded successfully."
 }
 
 d() { [[ -n $1 ]] && dirs "$@" || dirs -v; }
-1() { cd -1; }
-2() { cd -2; }
-3() { cd -3; }
-4() { cd -4; }
-5() { cd -5; }
+# Quick jump to directory-stack positions 1-5
+() {
+    local n
+    for n in 1 2 3 4 5; do eval "$n() { cd -$n; }"; done
+}
 
 # Create directory and cd into it
 mkcd() { mkdir -p "$@" && cd "$@"; }

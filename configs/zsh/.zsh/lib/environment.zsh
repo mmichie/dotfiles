@@ -4,19 +4,28 @@
 # non-interactive ones spawned by tmux run-shell). The call at .zshrc:174
 # re-runs it after macOS's path_helper reorders PATH for login shells.
 
-# Load environment variables from .env file
-load_env_file() {
-    local env_file="$1"
-    [[ ! -f "$env_file" ]] && return 1
+# Parse a .env file and export its vars. Second arg (optional): set to 1
+# to echo each loaded var name. Strips a single matching pair of outer
+# quotes (double or single) from values; preserves quotes elsewhere.
+_parse_env_file() {
+    local env_file="$1" verbose="${2:-0}"
+    [[ -f "$env_file" ]] || return 1
 
-    local line
+    local line key value
     while IFS= read -r line || [[ -n "$line" ]]; do
         [[ -z "$line" || "$line" = \#* ]] && continue
-        if [[ "$line" = [A-Za-z_]*([A-Za-z0-9_])=* ]]; then
-            local cleaned_line="${line//\"/}"
-            cleaned_line="${cleaned_line//\'/}"
-            export "$cleaned_line"
-        fi
+        [[ "$line" = [A-Za-z_]*([A-Za-z0-9_])=* ]] || continue
+
+        key="${line%%=*}"
+        value="${line#*=}"
+
+        case "$value" in
+            \"*\") value="${value#\"}"; value="${value%\"}" ;;
+            \'*\') value="${value#\'}"; value="${value%\'}" ;;
+        esac
+
+        export "$key=$value"
+        (( verbose )) && echo "Loaded: $key"
     done < "$env_file"
 }
 
@@ -54,11 +63,10 @@ setup_environment() {
     # (the resolve-javac subshell chain was 4-5ms). First `java` / `javac` /
     # `gradle` / etc. invocation triggers the real export; subsequent calls
     # see the populated env.
-    java() { _java_home_lazy; unfunction java javac gradle mvn sbt 2>/dev/null; command java "$@"; }
-    javac() { _java_home_lazy; unfunction java javac gradle mvn sbt 2>/dev/null; command javac "$@"; }
-    gradle() { _java_home_lazy; unfunction java javac gradle mvn sbt 2>/dev/null; command gradle "$@"; }
-    mvn() { _java_home_lazy; unfunction java javac gradle mvn sbt 2>/dev/null; command mvn "$@"; }
-    sbt() { _java_home_lazy; unfunction java javac gradle mvn sbt 2>/dev/null; command sbt "$@"; }
+    local _cmd
+    for _cmd in java javac gradle mvn sbt; do
+        eval "$_cmd() { _java_home_lazy; unfunction java javac gradle mvn sbt 2>/dev/null; command $_cmd \"\$@\"; }"
+    done
     _java_home_lazy() {
         local javac_bin
         javac_bin=$(command -v javac 2>/dev/null) || return
@@ -99,5 +107,5 @@ setup_environment() {
     fi
 
     # ── Local overrides ──────────────────────────────────────────
-    load_env_file "$HOME/.env"
+    _parse_env_file "$HOME/.env"
 }

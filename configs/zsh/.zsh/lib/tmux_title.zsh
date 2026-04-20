@@ -33,3 +33,25 @@ _tmux_title_pop() {
     tmux rename-window -t "$window_id" "$dir_title"
     tmux set-window-option -t "$window_id" automatic-rename on
 }
+
+# Run a command with a pinned tmux title. Captures pane_id/window_id,
+# pushes the title, traps INT/TERM/EXIT for cleanup, runs the command,
+# then pops on normal exit. No-op (just runs the command) outside tmux.
+#
+# Usage: _tmux_title_wrap "🔐 host" command ssh ...
+_tmux_title_wrap() {
+    local title="$1"; shift
+    if [[ -z "$TMUX" ]]; then
+        "$@"
+        return
+    fi
+    local pane_id=$(tmux display-message -p '#{pane_id}')
+    local window_id=$(tmux display-message -p '#{window_id}')
+    _tmux_title_push "$pane_id" "$window_id" "$title"
+    trap "_tmux_title_pop '$pane_id' '$window_id'" INT TERM EXIT
+    "$@"
+    local exit_code=$?
+    trap - INT TERM EXIT
+    _tmux_title_pop "$pane_id" "$window_id"
+    return $exit_code
+}
