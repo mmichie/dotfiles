@@ -13,13 +13,11 @@
       "Monitor",
       "WebSearch",
       "WebFetch",
-
       "Bash(grep:*)",
       "Bash(rg:*)",
       "Bash(fd:*)",
       "Bash(find:*)",
       "Bash(ag:*)",
-
       "Bash(git log:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
@@ -44,7 +42,6 @@
       "Bash(git for-each-ref:*)",
       "Bash(git count-objects:*)",
       "Bash(git name-rev:*)",
-
       "Bash(gh pr list:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr status:*)",
@@ -61,7 +58,6 @@
       "Bash(gh workflow list:*)",
       "Bash(gh workflow view:*)",
       "Bash(gh auth status:*)",
-
       "Bash(which:*)",
       "Bash(type:*)",
       "Bash(command -v:*)",
@@ -74,7 +70,6 @@
       "Bash(date:*)",
       "Bash(uptime:*)",
       "Bash(sw_vers:*)",
-
       "Bash(ls:*)",
       "Bash(cat:*)",
       "Bash(head:*)",
@@ -89,7 +84,6 @@
       "Bash(diff:*)",
       "Bash(realpath:*)",
       "Bash(readlink:*)",
-
       "Bash(jq:*)",
       "Bash(yq:*)",
       "Bash(uniq:*)",
@@ -98,14 +92,11 @@
       "Bash(column:*)",
       "Bash(base64:*)",
       "Bash(shasum:*)",
-
       "Bash(dig:*)",
       "Bash(nslookup:*)",
       "Bash(host:*)",
       "Bash(ping:*)",
-
       "Bash(ps:*)",
-
       "Bash(nix eval:*)",
       "Bash(nix flake show:*)",
       "Bash(nix flake metadata:*)",
@@ -115,20 +106,19 @@
       "Bash(nix why-depends:*)",
       "Bash(nix-store --query:*)",
       "Bash(nix-store -q:*)",
-
       "Bash(brew list:*)",
       "Bash(brew info:*)",
       "Bash(brew --prefix:*)",
       "Bash(brew deps:*)",
-
       "Bash(just --list:*)",
       "Bash(just -l:*)",
       "Bash(just --summary:*)",
       "Bash(just --show:*)",
-
       "Bash(man:*)",
       "Bash(defaults read:*)",
-      "Bash(claude --version:*)"
+      "Bash(claude --version:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)"
     ]
   },
   "statusLine": {
