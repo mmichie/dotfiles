@@ -45,6 +45,11 @@
 
   programs.zsh.enable = true;
 
+  fonts.packages = with pkgs; [
+    nerd-fonts.hack
+    iosevka
+  ];
+
   system = {
     primaryUser = "mim";
 

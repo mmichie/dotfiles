@@ -17,7 +17,7 @@ _:
     ];
 
     brews = [
-      "dosbox-x"
+      "dosbox-x" # nixpkgs build broken on aarch64-darwin (SCREEN_METAL undeclared in render.cpp)
       "tensor9ine/tensor9/tensor9"
     ];
 
@@ -66,10 +66,6 @@ _:
       # Gaming
       "steam"
       "nvidia-geforce-now"
-
-      # Fonts
-      "font-hack-nerd-font"
-      "font-iosevka"
     ];
   };
 }
