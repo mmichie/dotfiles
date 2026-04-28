@@ -98,6 +98,7 @@ in
     neovim
 
     # ── Network & Security ─────────────────────────────────────────────
+    _1password-cli
     nmap
     socat
     mtr
@@ -122,10 +123,8 @@ in
     tmux
     dolt
     tree
-    (direnv.overrideAttrs (old: {
-      env = (old.env or { }) // {
-        CGO_ENABLED = "1";
-      };
+    (direnv.overrideAttrs (_: {
+      doCheck = false;
     }))
     nix-direnv
     rclone

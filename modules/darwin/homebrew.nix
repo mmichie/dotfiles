@@ -40,7 +40,6 @@ _:
       "slack"
       "zoom"
       "1password"
-      "1password-cli"
 
       # Window Management
       "nikitabobko/tap/aerospace"
