@@ -3,9 +3,9 @@
 # Apply system configuration (detects host via `hostname -s` on Darwin/NixOS)
 switch:
     @if [ "$(uname)" = "Darwin" ]; then \
-        sudo darwin-rebuild switch --flake ".#$(hostname -s)"; \
+        sudo "$(command -v darwin-rebuild)" switch --flake ".#$(hostname -s)"; \
     elif [ -f /etc/NIXOS ]; then \
-        sudo nixos-rebuild switch --flake ".#$(hostname -s)"; \
+        sudo "$(command -v nixos-rebuild)" switch --flake ".#$(hostname -s)"; \
     else \
         home-manager switch --flake .#mim@linux; \
     fi
