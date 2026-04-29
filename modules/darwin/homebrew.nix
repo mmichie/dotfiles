@@ -29,6 +29,7 @@ _:
       "ghostty"
 
       # Development
+      "claude"
       # "docker-desktop"  # Homebrew cask install bug — manage manually
       # "vmware-fusion"  # Broadcom download server broken
       "zed"
