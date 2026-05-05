@@ -10,8 +10,8 @@ switch:
         home-manager switch --flake .#mim@linux; \
     fi
 
-# Update all flake inputs and show what changed
-update:
+# Update all flake inputs, show input + package diffs
+update: && dry-run
     @cp flake.lock /tmp/flake.lock.before
     nix flake update
     @echo ""
@@ -21,6 +21,8 @@ update:
         <(jq -r '.nodes | to_entries[] | select(.value.locked.rev != null) | "\(.key) \(.value.locked.rev[0:7])"' flake.lock | sort) \
         | grep '^[<>]' || echo "No inputs changed."
     @rm -f /tmp/flake.lock.before
+    @echo ""
+    @echo "=== Package diff ==="
 
 # Check flake validity
 check:
