@@ -30,7 +30,7 @@ _:
 
       # Development
       "claude"
-      # "docker-desktop"  # Homebrew cask install bug — manage manually
+      "docker-desktop"
       # "vmware-fusion"  # Broadcom download server broken
       "zed"
 
