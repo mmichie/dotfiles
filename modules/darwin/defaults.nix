@@ -108,6 +108,15 @@ _:
         "com.apple.finder" = {
           DisableAllAnimations = true;
         };
+        "org.eyebeam.SelfControl" = {
+          Blocklist = [
+            "facebook.com"
+            "instagram.com"
+            "twitter.com"
+            "x.com"
+            "reddit.com"
+          ];
+        };
       };
     };
   };

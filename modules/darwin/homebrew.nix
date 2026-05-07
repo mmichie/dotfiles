@@ -60,6 +60,7 @@ _:
       "tailscale-app"
       "hazeover"
       "scroll-reverser"
+      "selfcontrol"
       "keka"
       "fuse-t"
       "veracrypt-fuse-t"
