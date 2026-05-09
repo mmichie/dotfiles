@@ -12,8 +12,20 @@ if [[ "$*" == *"--latlon"* ]]; then
     latlon_mode=1
 fi
 
+# Fast-fail when the app bundle is missing. Without this, `open` fails but
+# we still spin in the polling loop below for the full timeout (35s in
+# location modes), which blocks tmux's `plx weather` invocation and makes
+# the city flicker off whenever plx's 15-min cache expires.
+APP_BUNDLE="$HOME/Applications/wifi-location.app"
+if [[ ! -d "$APP_BUNDLE" ]]; then
+    if [[ "$latlon_mode" == 0 ]]; then
+        echo "||"
+    fi
+    exit 1
+fi
+
 # Launch app bundle via open (required for Location Services auth)
-env OUTPUT_FILE="$OUTPUT_FILE" open ~/Applications/wifi-location.app --args "$@"
+env OUTPUT_FILE="$OUTPUT_FILE" open "$APP_BUNDLE" --args "$@"
 
 # Wait for output file (max 3 seconds for fast mode, 35 seconds for location modes)
 max_wait=30
