@@ -92,5 +92,15 @@ atuin-fzf-history() {
     zle reset-prompt
 }
 
-# Create the widget
+# Create the widget and bind ^R to it. setup_readline (in 45-keybindings.zsh)
+# leaves ^R on history-incremental-search-backward; we override here so the
+# bindkey runs after `zle -N` registers the widget. atuin-fzf-history needs
+# fzf (it falls back to fc if atuin is missing, but always pipes to fzf).
 zle -N atuin-fzf-history
+if command -v fzf &>/dev/null; then
+    bindkey -M viins '^R' atuin-fzf-history
+    bindkey -M vicmd '^R' atuin-fzf-history
+fi
+
+setup_integrations
+setup_zoxide

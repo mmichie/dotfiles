@@ -49,9 +49,9 @@ setup_readline() {
     # Edit current command line in $EDITOR
     _bind '^X^E' edit-command-line
 
-    # fzf widgets + atuin history search (overrides ^R above)
+    # fzf widgets (^R is rebound to atuin-fzf-history in 50-integrations.zsh
+    # after that widget is registered)
     if command -v fzf &>/dev/null; then
-        _bind '^R' atuin-fzf-history
         _bind '^T' fzf-file-widget
         _bind '^[c' fzf-cd-widget
     fi
@@ -64,3 +64,5 @@ setup_readline() {
 
     unfunction _bind
 }
+
+setup_readline

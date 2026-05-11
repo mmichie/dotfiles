@@ -101,11 +101,8 @@ setup_environment() {
 
     umask 022
 
-    # ── Platform executables ─────────────────────────────────────
-    if type setup_platform_executables &>/dev/null; then
-        setup_platform_executables
-    fi
-
     # ── Local overrides ──────────────────────────────────────────
     _parse_env_file "$HOME/.env"
 }
+
+setup_environment

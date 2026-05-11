@@ -180,8 +180,7 @@ check_security() {
     fi
 }
 
-# Main function to display system health
-display_system_health() {
+system_health() {
     setopt local_options null_glob
 
     local fast_mode=${1:-0}

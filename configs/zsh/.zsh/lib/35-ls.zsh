@@ -64,3 +64,6 @@ _ls_command() {
         eza --group-directories-first --icons "$@"
     fi
 }
+
+# eza has internal fallback to setup_ls_colors when eza is absent
+setup_eza

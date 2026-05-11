@@ -32,3 +32,5 @@ setup_completions() {
     compdef _files ln chmod chown chgrp
     compdef _jobs fg bg disown jobs
 }
+
+setup_completions

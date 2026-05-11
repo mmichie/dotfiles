@@ -1,8 +1,7 @@
 #!/bin/zsh
 
-# Shell orchestration — individual setup_* functions live in dedicated
-# modules (history, aliases, completion, keybindings, ls, integrations);
-# init_shell below is called from .zshrc after all modules are sourced.
+# Shell options. Set early so EXTENDED_GLOB is on before later modules
+# (e.g. _parse_env_file's pattern matching) parse anything that needs it.
 
 setup_shell_options() {
     setopt interactive_comments
@@ -23,13 +22,4 @@ setup_shell_options() {
     setopt ALWAYS_TO_END       # Move cursor to end of word after completion
 }
 
-init_shell() {
-    setup_shell_options
-    setup_aliases
-    setup_readline
-    setup_completions
-    setup_history
-    # eza with internal fallback to setup_ls_colors when eza is absent
-    setup_eza
-    setup_zoxide
-}
+setup_shell_options

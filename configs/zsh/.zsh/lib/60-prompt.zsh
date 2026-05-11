@@ -37,3 +37,5 @@ init_prompt() {
     add-zsh-hook precmd osc7_cwd
     eval "$(plx init zsh)"
 }
+
+init_prompt

@@ -91,3 +91,5 @@ setup_aliases() {
     alias -s {gif,jpg,jpeg,png}='open'
     alias -s {html,htm}='open'
 }
+
+setup_aliases

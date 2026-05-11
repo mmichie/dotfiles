@@ -11,3 +11,5 @@ setup_platform_executables() {
         alias dosbox-x='dosbox-x -conf ~/.config/dosbox-x/dosbox-x.conf'
     fi
 }
+
+setup_platform_executables

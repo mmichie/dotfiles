@@ -58,3 +58,5 @@ setup_history() {
         fi
     }
 }
+
+setup_history

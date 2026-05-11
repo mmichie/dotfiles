@@ -56,89 +56,30 @@ ZSH_INITIALIZED=1
 # Source global definitions if available
 [[ -f /etc/zshrc ]] && source /etc/zshrc
 
-# Module loading helper. Note: the local is named _path, NOT module_path —
-# `module_path` is a zsh special array aliased to $MODULE_PATH, and shadowing
-# it as a scalar breaks zmodload auto-loading inside the sourced module
-# (e.g. fzf --zsh's `[[ =~ ]]` triggers an auto-load of zsh/regex).
-load_module() {
-    local module_type=$1
-    local module_name=$2
-    local _path
-
-    case "$module_type" in
-        "lib")      _path="$SHELL_LIB_DIR/${module_name}.zsh" ;;
-        "function") _path="$SHELL_FUNCTIONS_DIR/${module_name}.zsh" ;;
-        *)          return 1 ;;
-    esac
-
-    if [[ -f "$_path" ]]; then
-        source "$_path"
-        return 0
-    fi
-    return 1
-}
-
-# Load core library modules in specific order.
-# Function-defining modules (history, completion, aliases, ls, keybindings,
-# integrations) must load before shell.zsh, which orchestrates them via
-# init_shell after .zshrc finishes sourcing.
-core_modules=(
-    "platform_detection" # Must be first for platform detection
-    "executables"        # Executable setup
-    "clipboard"          # clipcopy/clippaste with detect-once stubs
-    "environment"        # Environment setup
-    "history"            # History configuration + hgrep/recent/remember/recalls
-    "completion"         # Completion zstyles and compdefs
-    "aliases"            # Alias definitions + git_cleanup/docker_cleanup
-    "ls"                 # ls/eza aliases
-    "keybindings"        # setup_readline (vi mode, fzf, atuin, tmux-sessionizer)
-    "integrations"       # zoxide + atuin-fzf-history widget
-    "shell"              # Shell orchestration (setup_shell_options, init_shell)
-    "prompt"             # Prompt setup (plx init + OSC 7 + startup banner)
-    "tmux_title"         # Helpers for pinning tmux titles around wrapped commands
-    "ssh"                # SSH configuration
-    "tmux_emoji_titles"  # Automatic emoji titles for tmux windows
-    "utils"              # Utility functions
-)
-
-for module in "${core_modules[@]}"; do
-    load_module "lib" "$module"
+# Load library modules in numeric-prefix order. Each module is self-contained:
+# it defines its functions, sets its options, and runs its own setup at
+# source time. Filename prefix (00-, 05-, 10-, ...) encodes the load order
+# — no orchestrator function or module list needed.
+for module in "$SHELL_LIB_DIR"/[0-9]*.zsh; do
+    source "$module"
 done
+unset module
 
-# Lazy load function modules — on first call, replace the stub with the
-# real implementation from the module, then dispatch to it.
-_lazy_module_fn() {
-    local stub="$1" module="$2" real="$3"
-    eval "$stub() { unfunction $stub; load_module function $module; $real \"\$@\"; }"
-}
-
-_lazy_module_fn tips          tips          tips
-_lazy_module_fn system_health system_health display_system_health
-
-# Initialize core components. fzf --zsh is sourced inside keybindings.zsh
-# at module-load so setup_readline's ^R → atuin-fzf-history binding lands
-# after fzf's own ^R binding.
-setup_environment
-init_shell
-init_prompt
-setup_integrations
-
-# Display system status on first shell (login or first interactive, not subshells)
-if [[ -o login || -z "$INFLUX_SHOWN" ]] && command -v gum &>/dev/null; then
-    export INFLUX_SHOWN=1
-    notify_shell_status
-    tips
-fi
-
-# Final cleanup
-unset core_modules
+# Lazy commands that aren't needed on every shell start. autoload sources the
+# file from $fpath on first call, defines the function, and dispatches to it.
+autoload -Uz tips system_health
 
 # Disable correction for specific commands
 CORRECT_IGNORE='.*|claude'
 
-# Load claude wrapper function
-if [[ -f "$SHELL_FUNCTIONS_DIR/claude_wrapper.zsh" ]]; then
-    source "$SHELL_FUNCTIONS_DIR/claude_wrapper.zsh"
+# claude wrapper depends on _tmux_title_push/_pop from 70-tmux-title.zsh
+[[ -f "$SHELL_FUNCTIONS_DIR/claude_wrapper.zsh" ]] && source "$SHELL_FUNCTIONS_DIR/claude_wrapper.zsh"
+
+# Display system status on first interactive shell
+if [[ -o login || -z "$INFLUX_SHOWN" ]] && command -v gum &>/dev/null; then
+    export INFLUX_SHOWN=1
+    notify_shell_status
+    tips
 fi
 
 # macOS path_helper fix: Login shells may have PATH reset by /etc/zprofile
