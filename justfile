@@ -80,6 +80,34 @@ repl:
 gc:
     nix-collect-garbage -d
 
+# Measure interactive zsh startup time. Runs N timed shells after a warmup,
+# reports min/median/max, fails if median exceeds the budget (default 250ms).
+# Use `just profile 300` to override the budget, or `just profile-deep` for
+# a zprof breakdown of where the time is spent.
+profile budget_ms="250" runs="10":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Profiling zsh startup ({{runs}} runs after 1 warmup, budget {{budget_ms}}ms)..."
+    zsh -ic exit >/dev/null 2>&1  # warmup: pre-populate fs cache, compinit dump, etc.
+    samples=$(for _ in $(seq 1 {{runs}}); do
+        /usr/bin/time -p zsh -ic exit 2>&1 | awk '/^real/ {printf "%d\n", $2 * 1000}'
+    done | sort -n)
+    min=$(echo "$samples" | head -1)
+    median=$(echo "$samples" | sed -n "$(( {{runs}} / 2 + 1 ))p")
+    max=$(echo "$samples" | tail -1)
+    printf "  min:    %4d ms\n  median: %4d ms\n  max:    %4d ms\n  budget: %4d ms\n" \
+        "$min" "$median" "$max" "{{budget_ms}}"
+    if (( median > {{budget_ms}} )); then
+        echo "FAIL: median exceeds budget — run \`just profile-deep\` to investigate"
+        exit 1
+    fi
+    echo "OK"
+
+# Show zprof breakdown of zsh startup (which functions are slow). Uses the
+# PROFILE_STARTUP hook in .zshrc which loads zsh/zprof and dumps a report.
+profile-deep:
+    @PROFILE_STARTUP=1 zsh -ic exit 2>&1 | head -40
+
 # Refresh vendored Claude Code agents from davila7/claude-code-templates upstream
 claude-update:
     #!/usr/bin/env bash
