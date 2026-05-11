@@ -85,13 +85,8 @@ if [[ -o login || -z "$INFLUX_SHOWN" ]] && command -v gum &>/dev/null; then
     tips
 fi
 
-# macOS path_helper fix: Login shells may have PATH reset by /etc/zprofile
-# Re-run setup_path to ensure our paths are in the correct order
-if is_osx && [[ -o login ]]; then
-    setup_path
-fi
-
 # Source local config (not in dotfiles repo, for secrets/machine-specific settings)
+# Login-only setup (e.g. macOS path_helper re-application) lives in .zprofile.
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
 
 # Display profiling results if PROFILE_STARTUP is set (must be last to capture everything)
