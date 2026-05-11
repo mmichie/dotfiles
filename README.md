@@ -1,5 +1,8 @@
 # dotfiles
 
+[![Check](https://github.com/mmichie/dotfiles/actions/workflows/check.yml/badge.svg)](https://github.com/mmichie/dotfiles/actions/workflows/check.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Personal dotfiles managed by [Nix](https://nixos.org/) — nix-darwin on macOS, full NixOS in a VM, standalone home-manager on Linux. Config files live in `configs/` and are symlinked into `$HOME` via `mkOutOfStoreSymlink` (mutable — edits take effect immediately, no rebuild needed).
 
 ## Quick Start
