@@ -52,12 +52,15 @@ PYEOF
 
     _format_file_text() {
         local file=$1 metadata=$2 content=$3
-        local size modified type lines ext path checksum
-        IFS='|' read -r size modified type lines ext path checksum <<< "$metadata"
+        # NOTE: don't `local path` — `path` is zsh's special array tied to $PATH;
+        # shadowing it with a scalar zeroes $PATH inside the function and breaks
+        # command lookup (e.g. the cat below). Use `rel_path` instead.
+        local size modified type lines ext rel_path checksum
+        IFS='|' read -r size modified type lines ext rel_path checksum <<< "$metadata"
         cat <<EOF
 --- File Metadata ---
 Filename: $file
-Relative Path: $path
+Relative Path: $rel_path
 File Size: $size
 Last Modified: $modified
 File Type: $type
@@ -76,12 +79,14 @@ EOF
 
         local metadata=$(_get_file_metadata "$file")
         local content=$(<"$file")
-        local size modified type lines ext path checksum
-        IFS='|' read -r size modified type lines ext path checksum <<< "$metadata"
+        # See note in _format_file_text — avoid `local path` (shadows zsh's
+        # PATH-linked special array).
+        local size modified type lines ext rel_path checksum
+        IFS='|' read -r size modified type lines ext rel_path checksum <<< "$metadata"
 
         if $use_json; then
-            python3 "$python_script" "$content" "$file" "$path" "$size" "$modified" "$type" "$lines" "$ext" "$checksum" <<< "$json_output" > "$temp_file"
-            [[ $? -eq 0 ]] && json_output=$(<"$temp_file") || { echo "Error processing: $file" >&2; cat "$temp_file" >&2; }
+            python3 "$python_script" "$content" "$file" "$rel_path" "$size" "$modified" "$type" "$lines" "$ext" "$checksum" <<< "$json_output" > "$temp_file"
+            [[ $? -eq 0 ]] && json_output=$(<"$temp_file") || { echo "Error processing: $file" >&2; command cat "$temp_file" >&2; }
         else
             all_contents+=$(_format_file_text "$file" "$metadata" "$content")
         fi

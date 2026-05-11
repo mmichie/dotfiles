@@ -254,3 +254,8 @@ provide_recommendations() {
         printf "%s\n" "${recommendations[@]}"
     fi
 }
+
+# Self-invoke on first autoload — file is "init code" because of the many
+# check_* helper defs, so zsh wouldn't auto-dispatch without this. Subsequent
+# calls run the cached system_health() definition directly.
+system_health "$@"

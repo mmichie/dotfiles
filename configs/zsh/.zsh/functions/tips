@@ -161,3 +161,9 @@ show_tool_tips() {
             ;;
     esac
 }
+
+# Self-invoke on first autoload. zsh auto-dispatches only when the file is a
+# pure function definition; with our arrays + helpers above, the file is
+# "initialization code" and would otherwise define-without-call on first use.
+# Subsequent calls bypass the file and run the cached tips() definition.
+tips "$@"
