@@ -39,3 +39,6 @@ backup.tar.gz
 # Build artifacts
 bin/wifi-location-go/build/
 bin/bin/t9dev
+
+# Python bytecode caches from bin/ scripts
+bin/bin/__pycache__/

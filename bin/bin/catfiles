@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+"""catfiles — dump file contents with metadata, optionally JSON, optionally to clipboard.
+
+Usage: catfiles [-r] [-p PATTERN] [-j] [PATH ...]
+
+  -r, --recursive   Walk subdirectories (only meaningful with --pattern or a dir arg)
+  -p, --pattern P   Glob pattern, default `*`. Implies discovery mode (else PATH args
+                    are treated as explicit files).
+  -j, --json        Emit a JSON object keyed by relative path instead of text blocks.
+  PATH              Files or directories. With no args, all regular files in CWD.
+
+Output goes to the system clipboard when a backend is available (pbcopy on macOS,
+wl-copy / xclip / xsel on Linux); otherwise it's printed to stdout. Per-file
+"Processed: …" progress lines go to stderr.
+
+Rewritten in Python — the previous zsh function embedded a Python script via
+heredoc to handle JSON, and had a latent $PATH-shadowing bug from `local path`.
+"""
+
+from __future__ import annotations
+
+import argparse
+import fnmatch
+import hashlib
+import json
+import shutil
+import subprocess
+import sys
+from datetime import datetime
+from pathlib import Path
+
+# Tried in order; first whose binary is on PATH wins.
+CLIPBOARD_BACKENDS = [
+    ("pbcopy", []),                                     # macOS
+    ("wl-copy", []),                                    # Wayland
+    ("xclip", ["-selection", "clipboard", "-in"]),      # X11 (xclip)
+    ("xsel", ["--clipboard", "--input"]),               # X11 (xsel)
+]
+
+
+def human_size(n: int) -> str:
+    """Match `du -h` style: 12K, 4.3M, etc."""
+    for unit in ("B", "K", "M", "G", "T"):
+        if n < 1024:
+            return f"{n:.0f}{unit}" if unit == "B" or n < 10 else f"{n:.1f}{unit}"
+        n /= 1024  # type: ignore[assignment]
+    return f"{n:.1f}P"
+
+
+def file_type(path: Path) -> str:
+    """`file -b` for accurate descriptions; fall back to extension if `file` is absent."""
+    try:
+        return subprocess.check_output(["file", "-b", str(path)], text=True).strip()
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return path.suffix.lstrip(".") or "unknown"
+
+
+def md5_hex(path: Path) -> str:
+    h = hashlib.md5()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def line_count(path: Path) -> int:
+    with path.open("rb") as f:
+        return sum(1 for _ in f)
+
+
+def gather_metadata(path: Path, cwd: Path) -> dict:
+    stat = path.stat()
+    try:
+        rel = str(path.resolve().relative_to(cwd))
+    except ValueError:
+        rel = str(path.resolve())
+    return {
+        "filename": path.name,
+        "relative_path": rel,
+        "file_size": human_size(stat.st_size),
+        "last_modified": datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+        "file_type": file_type(path),
+        "line_count": line_count(path),
+        "file_extension": path.suffix.lstrip("."),
+        "md5_checksum": md5_hex(path),
+    }
+
+
+def read_content(path: Path) -> str:
+    """Best-effort text decode; binary files round-trip with replacement characters."""
+    try:
+        return path.read_text()
+    except UnicodeDecodeError:
+        return path.read_bytes().decode("utf-8", errors="replace")
+
+
+def format_text_block(meta: dict, content: str) -> str:
+    return (
+        f"--- File Metadata ---\n"
+        f"Filename: {meta['filename']}\n"
+        f"Relative Path: {meta['relative_path']}\n"
+        f"File Size: {meta['file_size']}\n"
+        f"Last Modified: {meta['last_modified']}\n"
+        f"File Type: {meta['file_type']}\n"
+        f"Line Count: {meta['line_count']}\n"
+        f"File Extension: {meta['file_extension']}\n"
+        f"MD5 Checksum: {meta['md5_checksum']}\n"
+        f"--- File Contents ---\n"
+        f"{content}\n\n"
+    )
+
+
+def discover(args: argparse.Namespace) -> list[Path]:
+    """Resolve CLI args into the list of files to process."""
+    cwd = Path.cwd()
+    pattern_given = args.pattern != "*"
+
+    # Pattern mode: walk a single root (first PATH arg or CWD) and filter by glob.
+    if pattern_given or args.recursive:
+        root = Path(args.paths[0]) if args.paths else cwd
+        if args.recursive:
+            return [p for p in root.rglob(args.pattern) if p.is_file()]
+        return [p for p in root.iterdir() if p.is_file() and fnmatch.fnmatch(p.name, args.pattern)]
+
+    # Explicit list mode: each PATH must be a file (or dir → its top-level files).
+    if args.paths:
+        files: list[Path] = []
+        for arg in args.paths:
+            p = Path(arg)
+            if p.is_file():
+                files.append(p)
+            elif p.is_dir():
+                files.extend(f for f in p.iterdir() if f.is_file())
+            else:
+                print(f"Error: {arg} does not exist or is not a regular file.", file=sys.stderr)
+        return files
+
+    # No args: all regular files in CWD.
+    return [p for p in cwd.iterdir() if p.is_file()]
+
+
+def copy_to_clipboard(text: str) -> bool:
+    for cmd, extra in CLIPBOARD_BACKENDS:
+        if shutil.which(cmd):
+            try:
+                subprocess.run([cmd, *extra], input=text, text=True, check=True)
+                return True
+            except subprocess.CalledProcessError:
+                continue  # try the next backend
+    return False
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        prog="catfiles",
+        description="Dump file contents with metadata, optionally as JSON, optionally to clipboard.",
+    )
+    parser.add_argument("-r", "--recursive", action="store_true")
+    parser.add_argument("-p", "--pattern", default="*")
+    parser.add_argument("-j", "--json", dest="as_json", action="store_true")
+    parser.add_argument("paths", nargs="*")
+    args = parser.parse_args()
+
+    files = discover(args)
+    if not files:
+        print("No files were processed.", file=sys.stderr)
+        return 1
+
+    cwd = Path.cwd()
+    text_chunks: list[str] = []
+    json_payload: dict = {}
+
+    for path in files:
+        try:
+            meta = gather_metadata(path, cwd)
+            content = read_content(path)
+        except OSError as e:
+            print(f"Error processing {path}: {e}", file=sys.stderr)
+            continue
+
+        if args.as_json:
+            json_payload[meta["relative_path"]] = {**meta, "content": content}
+        else:
+            text_chunks.append(format_text_block(meta, content))
+        print(f"Processed: {path}", file=sys.stderr)
+
+    output = json.dumps(json_payload, indent=2) if args.as_json else "".join(text_chunks)
+
+    if copy_to_clipboard(output):
+        print("All file contents copied to clipboard.", file=sys.stderr)
+    else:
+        sys.stdout.write(output)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
