@@ -1,0 +1,4 @@
+# Nested tmux on a separate socket — gets orange theme via TMUX_LEVEL
+tnest() {
+    TMUX= tmux -L nested new-session -A -s nested "$@"
+}

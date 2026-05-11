@@ -1,0 +1,4 @@
+# Check HTTP headers
+http_headers() {
+    /usr/bin/curl -I -L "$@"
+}

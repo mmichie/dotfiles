@@ -1,0 +1,8 @@
+# Open the current directory (or specified path) in Finder
+o() {
+    if [ $# -eq 0 ]; then
+        open .
+    else
+        open "$@"
+    fi
+}

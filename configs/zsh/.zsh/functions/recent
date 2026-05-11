@@ -1,0 +1,4 @@
+recent() {
+    local n=${1:-10}
+    history -${n}
+}

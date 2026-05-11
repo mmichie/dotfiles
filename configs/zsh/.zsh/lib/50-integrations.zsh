@@ -1,101 +1,36 @@
 #!/bin/zsh
 
-# Third-party shell integrations (atuin, direnv, vivid, work profile).
-# Called from .zshrc after init_shell.
+# Third-party shell integrations: atuin, direnv, vivid, zoxide, work profile.
+
 setup_integrations() {
     # Work profile (machine-specific env, not in dotfiles repo)
     [[ -f "$HOME/.bash_work_profile" ]] && source "$HOME/.bash_work_profile"
 
-    # Atuin shell history. Disable its bindings — setup_readline binds ^R
-    # to the atuin-fzf-history widget defined below.
-    if command -v atuin &>/dev/null; then
-        eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
-    fi
+    # Atuin shell history. Its ^R binding is disabled here; we override with
+    # the atuin-fzf-history widget bound below.
+    command -v atuin  &>/dev/null && eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
 
     # Direnv per-directory environment
-    if command -v direnv &>/dev/null; then
-        eval "$(direnv hook zsh)"
-    fi
+    command -v direnv &>/dev/null && eval "$(direnv hook zsh)"
 
     # Vivid ls colors
-    if command -v vivid &>/dev/null; then
-        export LS_COLORS="$(vivid generate tokyonight-night)"
-    fi
+    command -v vivid  &>/dev/null && export LS_COLORS="$(vivid generate tokyonight-night)"
 }
 
-# Setup zoxide for smart directory navigation
+# zoxide smart directory navigation. zadd/ztop helpers live as autoloaded
+# functions in $SHELL_FUNCTIONS_DIR.
 setup_zoxide() {
-    if command -v zoxide &>/dev/null; then
-        # Initialize zoxide with zsh integration
-        eval "$(zoxide init zsh)"
-
-        # Configure zoxide
-        export _ZO_ECHO=1            # Print the matched directory before navigating to it
-        export _ZO_RESOLVE_SYMLINKS=1 # Resolve symlinked directories to their true path
-        export _ZO_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zoxide" # Set data directory
-
-        alias cdi="zi"               # Interactive directory selection
-
-        # Create a function to add current directory with a custom name
-        zadd() {
-            if [[ $# -eq 0 ]]; then
-                echo "Usage: zadd <name> - Add current directory with custom name"
-                return 1
-            fi
-            zoxide add "$(pwd)" --name "$1"
-        }
-
-        # Create a function to show top directories
-        ztop() {
-            local count=${1:-10}
-            zoxide query --list | head -n "$count"
-        }
-    fi
+    command -v zoxide &>/dev/null || return
+    eval "$(zoxide init zsh)"
+    export _ZO_ECHO=1                                                  # Print matched dir before cd
+    export _ZO_RESOLVE_SYMLINKS=1                                      # Resolve symlinks to true path
+    export _ZO_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zoxide"
+    alias cdi="zi"                                                     # Interactive directory selection
 }
 
-# Custom function to search atuin history with fzf
-atuin-fzf-history() {
-    local selected
-    if command -v atuin &>/dev/null; then
-        # Use atuin to get history and pipe to fzf
-        selected=$(atuin search --cmd-only --limit 10000 2>/dev/null | \
-            fzf --height 40% \
-                --reverse \
-                --tac \
-                --no-sort \
-                --exact \
-                --query="${LBUFFER}" \
-                --preview 'echo {}' \
-                --preview-window down:3:wrap \
-                --bind 'ctrl-y:execute-silent(echo -n {} | pbcopy)+abort' \
-                --header 'Press CTRL-Y to copy command to clipboard')
-    else
-        # Fallback to regular fzf history if atuin is not available
-        selected=$(fc -rl 1 | \
-            fzf --height 40% \
-                --reverse \
-                --tac \
-                --no-sort \
-                --exact \
-                --query="${LBUFFER}" \
-                --preview 'echo {}' \
-                --preview-window down:3:wrap \
-                --bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort' \
-                --header 'Press CTRL-Y to copy command to clipboard' | \
-            sed 's/^ *[0-9]* *//')
-    fi
-
-    if [[ -n "$selected" ]]; then
-        LBUFFER="$selected"
-        zle redisplay
-    fi
-    zle reset-prompt
-}
-
-# Create the widget and bind ^R to it. setup_readline (in 45-keybindings.zsh)
-# leaves ^R on history-incremental-search-backward; we override here so the
-# bindkey runs after `zle -N` registers the widget. atuin-fzf-history needs
-# fzf (it falls back to fc if atuin is missing, but always pipes to fzf).
+# Register atuin-fzf-history as a ZLE widget. The function body is autoloaded
+# from $SHELL_FUNCTIONS_DIR on first ^R press. Binding the widget requires
+# `zle -N` to know the name — the function need not exist yet.
 zle -N atuin-fzf-history
 if command -v fzf &>/dev/null; then
     bindkey -M viins '^R' atuin-fzf-history

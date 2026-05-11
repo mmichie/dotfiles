@@ -1,0 +1,112 @@
+# Cat files with metadata, optionally copy to clipboard or output JSON.
+# Usage: catfiles [-r] [-p pattern] [-j] [directory or files...]
+catfiles() {
+    local pattern="*" recursive=false use_find=false use_json=false
+    local all_contents="" json_output='{}'
+
+    while getopts "rp:j" opt; do
+        case ${opt} in
+            r ) recursive=true; use_find=true ;;
+            p ) pattern=$OPTARG; use_find=true ;;
+            j ) use_json=true ;;
+            \? ) echo "Usage: catfiles [-r] [-p pattern] [-j] [directory or files...]"; return 1 ;;
+        esac
+    done
+    shift $((OPTIND -1))
+
+    local temp_file=$(mktemp)
+
+    local python_script=$(mktemp)
+    cat << 'PYEOF' > "$python_script"
+import json, sys
+try:
+    data = json.loads(sys.stdin.read())
+    content = sys.argv[1].encode("unicode_escape").decode("utf-8").replace('"', '\\"')
+    data[sys.argv[3]] = {
+        "filename": sys.argv[2], "relative_path": sys.argv[3], "file_size": sys.argv[4],
+        "last_modified": sys.argv[5], "file_type": sys.argv[6], "line_count": int(sys.argv[7]),
+        "file_extension": sys.argv[8], "md5_checksum": sys.argv[9], "content": content
+    }
+    print(json.dumps(data, indent=2))
+except Exception as e:
+    print(json.dumps({"error": str(e)}), file=sys.stderr); sys.exit(1)
+PYEOF
+
+    _get_file_metadata() {
+        local file=$1
+        local file_size=$(du -h "$file" | cut -f1)
+        local last_modified=$(date -r "$file" "+%Y-%m-%d %H:%M:%S")
+        local file_type=$(file -b "$file")
+        local line_count=$(wc -l < "$file")
+        local file_extension="${file##*.}"
+        local full_path=$(realpath "$file")
+        local relative_path="${full_path#$PWD/}"
+        local checksum
+        if [[ "$SYSTEM_OS_TYPE" == "OSX" ]]; then
+            checksum=$(md5 -q "$file")
+        else
+            checksum=$(md5sum "$file" | cut -d' ' -f1)
+        fi
+        echo "${file_size}|${last_modified}|${file_type}|${line_count}|${file_extension}|${relative_path}|${checksum}"
+    }
+
+    _format_file_text() {
+        local file=$1 metadata=$2 content=$3
+        local size modified type lines ext path checksum
+        IFS='|' read -r size modified type lines ext path checksum <<< "$metadata"
+        cat <<EOF
+--- File Metadata ---
+Filename: $file
+Relative Path: $path
+File Size: $size
+Last Modified: $modified
+File Type: $type
+Line Count: $lines
+File Extension: $ext
+MD5 Checksum: $checksum
+--- File Contents ---
+$content
+
+EOF
+    }
+
+    _process_file() {
+        local file=$1
+        [[ ! -f "$file" ]] && { echo "Error: $file does not exist or is a directory." >&2; return; }
+
+        local metadata=$(_get_file_metadata "$file")
+        local content=$(<"$file")
+        local size modified type lines ext path checksum
+        IFS='|' read -r size modified type lines ext path checksum <<< "$metadata"
+
+        if $use_json; then
+            python3 "$python_script" "$content" "$file" "$path" "$size" "$modified" "$type" "$lines" "$ext" "$checksum" <<< "$json_output" > "$temp_file"
+            [[ $? -eq 0 ]] && json_output=$(<"$temp_file") || { echo "Error processing: $file" >&2; cat "$temp_file" >&2; }
+        else
+            all_contents+=$(_format_file_text "$file" "$metadata" "$content")
+        fi
+        echo "Processed: $file"
+    }
+
+    if $use_find; then
+        local search_dir="${1:-.}"
+        local find_opts=(-type f -name "$pattern")
+        $recursive || find_opts=(-maxdepth 1 "${find_opts[@]}")
+        find "$search_dir" "${find_opts[@]}" | while read -r file; do _process_file "$file"; done
+    elif [[ $# -eq 0 ]]; then
+        for file in *(.) ; do _process_file "$file"; done
+    else
+        for file in "$@"; do _process_file "$file"; done
+    fi
+
+    $use_json && all_contents=$json_output
+    if [[ -z "$all_contents" ]]; then
+        echo "No files were processed."
+    elif echo "$all_contents" | clipcopy 2>/dev/null; then
+        echo "All file contents copied to clipboard."
+    else
+        echo "$all_contents"
+    fi
+
+    rm -f "$temp_file" "$python_script"
+}

@@ -1,0 +1,10 @@
+# Save a command to ~/.important_commands for later recall
+remember() {
+    if [[ $# -eq 0 ]]; then
+        echo "Usage: remember <command> - Save important command for future reference"
+        return 1
+    fi
+    local remember_file="$HOME/.important_commands"
+    echo "$(date +"%Y-%m-%d %H:%M:%S") $@" >> "$remember_file"
+    echo "Command saved to $remember_file"
+}

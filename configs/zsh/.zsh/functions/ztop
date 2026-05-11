@@ -1,0 +1,5 @@
+# Show top N zoxide-tracked directories
+ztop() {
+    local count=${1:-10}
+    zoxide query --list | head -n "$count"
+}

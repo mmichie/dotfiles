@@ -1,0 +1,11 @@
+# Load and display environment variables from a .env file in $PWD.
+# Depends on _parse_env_file defined in lib/10-environment.zsh.
+loadenv() {
+    if [[ ! -f ".env" ]]; then
+        echo "Error: .env file does not exist in the current directory."
+        return 1
+    fi
+    echo "Loading environment variables:"
+    _parse_env_file ".env" 1
+    echo "All environment variables loaded successfully."
+}

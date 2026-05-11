@@ -1,0 +1,7 @@
+hgrep() {
+    if [[ $# -eq 0 ]]; then
+        echo "Usage: hgrep <pattern>"
+        return 1
+    fi
+    fc -l 1 -1 | grep --color=auto -i "$@"
+}

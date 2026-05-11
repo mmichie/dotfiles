@@ -1,0 +1,4 @@
+# dirs wrapper: no args shows numbered stack, args pass through to dirs
+d() {
+    [[ -n $1 ]] && dirs "$@" || dirs -v
+}

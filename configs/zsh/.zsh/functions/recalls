@@ -1,0 +1,13 @@
+# Show or grep saved commands from ~/.important_commands
+recalls() {
+    local remember_file="$HOME/.important_commands"
+    if [[ ! -f "$remember_file" ]]; then
+        echo "No saved commands yet."
+        return 0
+    fi
+    if [[ $# -eq 0 ]]; then
+        cat "$remember_file"
+    else
+        grep -i "$@" "$remember_file"
+    fi
+}

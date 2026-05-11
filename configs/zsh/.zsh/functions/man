@@ -1,0 +1,18 @@
+# Enhanced man pages via bat syntax highlighting.
+# macOS mandoc outputs ANSI SGR codes even when piped; BSD col strips only
+# ESC+[ leaving residue like "4m" or "0m" as literal text. Use perl to strip
+# full ANSI sequences and overstrike before bat applies its own highlighting.
+man() {
+    if command -v bat &>/dev/null; then
+        command man "$@" | perl -pe 's/\e\[[0-9;]*[mGKH]//g; s/.\x08//g' | bat --color=always -l man -p
+    else
+        env \
+            LESS_TERMCAP_md=$'\e[1;36m' \
+            LESS_TERMCAP_me=$'\e[0m' \
+            LESS_TERMCAP_se=$'\e[0m' \
+            LESS_TERMCAP_so=$'\e[1;40;92m' \
+            LESS_TERMCAP_ue=$'\e[0m' \
+            LESS_TERMCAP_us=$'\e[1;32m' \
+            man "$@"
+    fi
+}

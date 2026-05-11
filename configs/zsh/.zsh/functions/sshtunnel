@@ -1,0 +1,8 @@
+# Create SSH tunnel
+sshtunnel() {
+    if [[ $# -ne 3 ]]; then
+        echo "usage: sshtunnel host remote-port local_port"
+    else
+        /usr/bin/ssh "$1" -L "$3":localhost:"$2"
+    fi
+}

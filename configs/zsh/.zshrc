@@ -65,15 +65,18 @@ for module in "$SHELL_LIB_DIR"/[0-9]*.zsh; do
 done
 unset module
 
-# Lazy commands that aren't needed on every shell start. autoload sources the
-# file from $fpath on first call, defines the function, and dispatches to it.
-autoload -Uz tips system_health
+# Autoload every file under $SHELL_FUNCTIONS_DIR. Each becomes a function
+# defined on first call: zsh sources the file from $fpath, the definition
+# inside is registered, and the function is dispatched with the original
+# args. Skip *.zsh files (sourced explicitly elsewhere, if any).
+for _fn in "$SHELL_FUNCTIONS_DIR"/*(N); do
+    [[ "$_fn" == *.zsh ]] && continue
+    autoload -Uz "${_fn:t}"
+done
+unset _fn
 
 # Disable correction for specific commands
 CORRECT_IGNORE='.*|claude'
-
-# claude wrapper depends on _tmux_title_push/_pop from 70-tmux-title.zsh
-[[ -f "$SHELL_FUNCTIONS_DIR/claude_wrapper.zsh" ]] && source "$SHELL_FUNCTIONS_DIR/claude_wrapper.zsh"
 
 # Display system status on first interactive shell
 if [[ -o login || -z "$INFLUX_SHOWN" ]] && command -v gum &>/dev/null; then

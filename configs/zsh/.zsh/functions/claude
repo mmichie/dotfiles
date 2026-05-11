@@ -1,6 +1,5 @@
-#!/bin/zsh
-
-# Claude wrapper: pins tmux window title, keeps shell from exiting on claude quirks
+# Claude wrapper: pins tmux window title, keeps shell from exiting on claude quirks.
+# Depends on _tmux_title_push/_tmux_title_pop from lib/70-tmux-title.zsh.
 claude() {
     local claude_cmd=$(command -v claude 2>/dev/null)
     if [[ -z "$claude_cmd" ]]; then

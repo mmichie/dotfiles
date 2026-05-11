@@ -1,0 +1,8 @@
+# Add current directory to zoxide with a custom name
+zadd() {
+    if [[ $# -eq 0 ]]; then
+        echo "Usage: zadd <name> - Add current directory with custom name"
+        return 1
+    fi
+    zoxide add "$(pwd)" --name "$1"
+}
