@@ -1,0 +1,29 @@
+Use ,tt to open a new tab, ,tc to close it
+Use ,tn for next tab, ,tp for previous tab
+Navigate between windows with Ctrl+h/j/k/l
+Clear search highlighting with ,<Space>
+,e toggles the file explorer (Neo-tree)
+,ff opens fuzzy file finder (Telescope)
+,fg searches for text in files (live grep)
+,fb shows open buffers in Telescope
+,fh searches help tags
+,db toggles debug breakpoint
+,dc continues debugging
+,ds steps over in debugger
+,di steps into in debugger
+,do steps out in debugger
+,du opens debug UI
+,so opens symbols outline
+gd jumps to definition
+K shows hover documentation
+,rn renames symbol under cursor
+,ca shows code actions
+gr shows references
+,f formats current buffer
+Use Ctrl-\ to toggle floating terminal
+Tab accepts Copilot suggestion
+Alt-] and Alt-[ cycle through Copilot suggestions
+Alt-w accepts word from Copilot
+Alt-l accepts line from Copilot
+Ctrl-] dismisses Copilot suggestion
+Shift-h and Shift-l navigate between tabs

@@ -1,0 +1,16 @@
+!!: Repeat last command
+!<num>: Repeat command by history event number
+!<prefix>: Repeat last command starting with <prefix>
+!?<string>?: Repeat last command containing <string>
+!:s/foo/bar/: Replace 'foo' with 'bar' in previous command
+!^: First argument of last command
+!$: Last argument of last command
+Alt+. (Esc .): Insert last word of previous command line
+Ctrl+R: Reverse incremental search in history
+Ctrl+W: Delete previous word
+Ctrl+U: Delete to start of line
+Ctrl+K: Delete to end of line
+Ctrl+Y: Yank last killed text
+Alt+B/F: Move backward/forward one word in command line
+Ctrl+X Ctrl+E: Edit current command line in $EDITOR
+^foo^bar: Inline substitution in the last command

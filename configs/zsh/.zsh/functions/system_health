@@ -24,10 +24,10 @@ check_system_load() {
         cores=$(nproc 2>/dev/null || echo 1)
     fi
 
-    load_per_core=$(echo "scale=2; $load / $cores" | bc -l 2>/dev/null)
+    load_per_core=$(printf "%.2f" "$((1.0 * load / cores))")
 
     local out=$(_health_out load)
-    if (( $(echo "$load_per_core > 1" | bc -l 2>/dev/null) )); then
+    if (( load_per_core > 1 )); then
         echo -e "  ${yellow}System Load:${reset} $load (${load_per_core} per core) ${red}(High load, investigate)${reset}" > "$out"
     else
         echo -e "  ${yellow}System Load:${reset} $load (${load_per_core} per core)" > "$out"
@@ -40,13 +40,13 @@ check_memory_usage() {
     if is_osx; then
         memory_usage=$(vm_stat | awk '/Pages active/ {print $3}' | sed 's/\.//')
         total_memory=$(sysctl hw.memsize | awk '{print $2}')
-        memory_usage=$(echo "scale=2; $memory_usage * 4096 / $total_memory * 100" | bc -l 2>/dev/null)
+        memory_usage=$(printf "%.2f" "$((1.0 * memory_usage * 4096 / total_memory * 100))")
     else
         memory_usage=$(free | awk '/Mem:/ {printf("%.2f", $3/$2 * 100.0)}')
     fi
 
     local out=$(_health_out memory)
-    if (( $(echo "$memory_usage > 90" | bc -l 2>/dev/null) )); then
+    if (( memory_usage > 90 )); then
         echo -e "  ${yellow}Memory Usage:${reset} ${memory_usage}% ${red}(High usage, consider freeing up memory)${reset}" > "$out"
     else
         echo -e "  ${yellow}Memory Usage:${reset} ${memory_usage}%" > "$out"
@@ -132,7 +132,7 @@ check_cpu_temperature() {
     # osx-cpu-temp output looks like "56.3°C" — strip non-numeric suffix for bc
     local raw=$(osx-cpu-temp)
     local temp=${raw%%[^0-9.]*}
-    if [[ -n "$temp" ]] && (( $(echo "$temp > 80" | bc -l 2>/dev/null) )); then
+    if [[ -n "$temp" ]] && (( temp > 80 )); then
         echo -e "  ${yellow}CPU Temperature:${reset} ${temp}°C ${red}(High temperature, check cooling)${reset}" > "$out"
     else
         echo -e "  ${yellow}CPU Temperature:${reset} ${temp:-unknown}°C" > "$out"
@@ -227,7 +227,7 @@ provide_recommendations() {
     local recommendations=()
 
     local memory_usage=$(awk '{print $3}' "$dir/memory" 2>/dev/null | sed 's/%//')
-    if [[ -n "$memory_usage" ]] && (( $(echo "$memory_usage > 90" | bc -l 2>/dev/null) )); then
+    if [[ -n "$memory_usage" ]] && (( memory_usage > 90 )); then
         recommendations+=("- Consider closing unnecessary applications to free up memory.")
     fi
 
