@@ -11,6 +11,8 @@ setup_aliases() {
     alias history="history 1" # behave more like bash
     alias gclean="git_cleanup"
     alias dclean="docker_cleanup"
+    # plx subsumes the old shell system_health: ~33ms warm-cache vs 5-13s.
+    command -v plx &>/dev/null && alias health="plx health"
     alias grep="grep --color=auto -d skip"
     alias grpe="grep --color=auto -d skip"
 
