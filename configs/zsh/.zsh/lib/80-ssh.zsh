@@ -53,7 +53,7 @@ restart_ssh_agent() {
 
 add_ssh_keys() {
     local key_count=0
-    for key in "$HOME/.ssh"/id_*; do
+    for key in "$HOME/.ssh"/id_*(N); do
         [[ -f "$key" && "$key" != *.pub ]] || continue
         if ! ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')"; then
             ssh-add "$key" && ((key_count++))

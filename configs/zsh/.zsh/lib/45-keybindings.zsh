@@ -19,14 +19,13 @@ zle -N down-line-or-beginning-search
 autoload -Uz edit-command-line
 zle -N edit-command-line
 
-# Readline and widget keybindings. After bindkey -v, plain `bindkey` only
-# targets viins; vicmd (post-ESC) keeps its vi defaults. We bind to both
-# keymaps via a _bind helper so shortcuts work regardless of mode.
-# The atuin-fzf-history widget is registered in integrations.zsh.
+# Readline and widget keybindings. Bind to viins only — vicmd (post-ESC)
+# keeps its vi defaults (notably ^R=redo, ^D=list-choices). The atuin-fzf-
+# history widget is registered in integrations.zsh.
 setup_readline() {
     bindkey -v
 
-    _bind() { bindkey -M viins "$1" "$2"; bindkey -M vicmd "$1" "$2"; }
+    _bind() { bindkey -M viins "$1" "$2"; }
 
     # Basic navigation
     _bind '^A' beginning-of-line
@@ -59,7 +58,6 @@ setup_readline() {
     # tmux-sessionizer for quick project switching (-s = string binding)
     if command -v tmux-sessionizer &>/dev/null; then
         bindkey -M viins -s '^F' 'tmux-sessionizer\n'
-        bindkey -M vicmd -s '^F' 'tmux-sessionizer\n'
     fi
 
     unfunction _bind

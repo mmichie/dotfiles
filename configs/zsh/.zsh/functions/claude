@@ -23,12 +23,12 @@ claude() {
     fi
     trap "$cleanup_cmd" INT TERM EXIT
 
-    # Run claude in a subshell with EXIT trap to keep the outer shell alive
+    # Subshell isolates env changes; without it the outer shell sees them.
+    local exit_code
     (
-        trap 'exit 0' EXIT
         command "$claude_cmd" "$@"
     )
-    local exit_code=$?
+    exit_code=$?
 
     trap - INT TERM EXIT
     [[ -n "$TMUX" ]] && _tmux_title_pop "$pane_id" "$window_id"

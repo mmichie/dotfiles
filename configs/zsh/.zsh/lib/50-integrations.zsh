@@ -17,8 +17,8 @@ setup_integrations() {
     command -v vivid  &>/dev/null && export LS_COLORS="$(vivid generate tokyonight-night)"
 }
 
-# zoxide smart directory navigation. zadd/ztop helpers live as autoloaded
-# functions in $SHELL_FUNCTIONS_DIR.
+# zoxide smart directory navigation. ztop helper lives as an autoloaded
+# function in $SHELL_FUNCTIONS_DIR.
 setup_zoxide() {
     command -v zoxide &>/dev/null || return
     eval "$(zoxide init zsh)"
@@ -34,7 +34,9 @@ setup_zoxide() {
 zle -N atuin-fzf-history
 if command -v fzf &>/dev/null; then
     bindkey -M viins '^R' atuin-fzf-history
-    bindkey -M vicmd '^R' atuin-fzf-history
+    # fzf's `source <(fzf --zsh)` in 45-keybindings.zsh also bound vicmd ^R
+    # to fzf-history-widget; restore vi's redo there.
+    bindkey -M vicmd '^R' redo
 fi
 
 setup_integrations
