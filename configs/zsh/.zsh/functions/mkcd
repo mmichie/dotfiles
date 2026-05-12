@@ -1,3 +1,8 @@
+# Single arg only — `cd "$@"` errors when given multiple paths.
 mkcd() {
-    mkdir -p "$@" && cd "$@"
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: mkcd <dir>" >&2
+        return 1
+    fi
+    mkdir -p "$1" && cd "$1"
 }
