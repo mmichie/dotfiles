@@ -18,18 +18,19 @@
 
   # authorized_keys must be a real user-owned file. home.file writes via a
   # /nix/store symlink whose target is root-owned, which sshd's StrictModes
-  # rejects on macOS. Write it during activation instead.
+  # rejects on macOS. Write it during activation instead. Using printf (not
+  # heredoc) so nix-fmt's reindentation doesn't break the embedded content.
   home.activation.writeAuthorizedKeys = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-        mkdir -p "$HOME/.ssh"
-        chmod 700 "$HOME/.ssh"
-        if [ -L "$HOME/.ssh/authorized_keys" ]; then
-          rm "$HOME/.ssh/authorized_keys"
-        fi
-        tmp="$HOME/.ssh/.authorized_keys.tmp.$$"
-        cat > "$tmp" <<'KEYS'
-    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFu6EGwcAtua7e2eBu3KNTGdBKP+0UOim1M0cvZgzF6U mmichie@gmail.com
-    KEYS
-        chmod 600 "$tmp"
-        mv "$tmp" "$HOME/.ssh/authorized_keys"
+    mkdir -p "$HOME/.ssh"
+    chmod 700 "$HOME/.ssh"
+    if [ -L "$HOME/.ssh/authorized_keys" ]; then
+      rm "$HOME/.ssh/authorized_keys"
+    fi
+    tmp="$HOME/.ssh/.authorized_keys.tmp.$$"
+    printf '%s\n' \
+      'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFu6EGwcAtua7e2eBu3KNTGdBKP+0UOim1M0cvZgzF6U mmichie@gmail.com' \
+      > "$tmp"
+    chmod 600 "$tmp"
+    mv "$tmp" "$HOME/.ssh/authorized_keys"
   '';
 }
