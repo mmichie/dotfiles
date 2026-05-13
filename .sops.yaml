@@ -13,9 +13,11 @@
 
 keys:
   - &mims_mbp age104578lqk2s482c6g537570ztv2v8r9egyuweel5jadlc9qjf8dhq4cyguq
+  - &moab_mbp age16z6aaru0y89wpf0uzdcz6pc40tllx8sp7htvnmh09xn62zr8s5tqd36fku
 
 creation_rules:
   - path_regex: ^secrets/[^/]+$
     key_groups:
       - age:
           - *mims_mbp
+          - *moab_mbp
