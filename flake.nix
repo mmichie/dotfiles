@@ -57,8 +57,8 @@
       darwinConfigurations = {
         "mims-mbp" = mkDarwinHost { hostname = "mims-mbp"; };
 
-        "moab-mbp" = mkDarwinHost {
-          hostname = "moab-mbp";
+        "mim-moab" = mkDarwinHost {
+          hostname = "mim-moab";
           extraHomeModules = [ { my.isWork = true; } ];
         };
 
