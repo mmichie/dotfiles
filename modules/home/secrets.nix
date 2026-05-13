@@ -15,12 +15,5 @@
       path = "${config.home.homeDirectory}/.local/share/atuin/key";
       mode = "0400";
     };
-
-    secrets."atuin_session" = {
-      format = "binary";
-      sopsFile = ../../secrets/atuin-session;
-      path = "${config.home.homeDirectory}/.local/share/atuin/session";
-      mode = "0400";
-    };
   };
 }
