@@ -1,0 +1,21 @@
+# sops recipient configuration. Public keys only — safe to commit.
+#
+# Adding a machine:
+#   1. Generate its key:  age-keygen -o ~/.config/sops/age/keys.txt && chmod 600 ~/.config/sops/age/keys.txt
+#   2. Print the pubkey:  age-keygen -y ~/.config/sops/age/keys.txt
+#   3. Add it below as a new anchor and include it in every key_groups list.
+#   4. On an existing machine:  sops updatekeys secrets/*.yaml
+#   5. Commit and push; new machine pulls and runs its platform's switch command.
+#
+# Removing a machine: drop the anchor, run `sops updatekeys`, AND rotate every
+# secret value that the removed machine ever decrypted — the old recipient
+# already saw the plaintext.
+
+keys:
+  - &mims_mbp age104578lqk2s482c6g537570ztv2v8r9egyuweel5jadlc9qjf8dhq4cyguq
+
+creation_rules:
+  - path_regex: ^secrets/[^/]+$
+    key_groups:
+      - age:
+          - *mims_mbp

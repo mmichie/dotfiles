@@ -22,6 +22,11 @@
     };
 
     crane.url = "github:ipetkov/crane";
+
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -31,6 +36,7 @@
       nix-darwin,
       home-manager,
       plx,
+      sops-nix,
       ...
     }:
     let
@@ -41,6 +47,7 @@
           nix-darwin
           home-manager
           plx
+          sops-nix
           ;
       };
       inherit (mkHost) mkDarwinHost mkNixosHost mkHomeConfig;

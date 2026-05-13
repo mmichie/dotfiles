@@ -4,6 +4,7 @@
   nix-darwin,
   home-manager,
   plx,
+  sops-nix,
   ...
 }:
 
@@ -41,9 +42,11 @@ let
 
   # Shared across all classes
   coreHomeModules = [
+    sops-nix.homeManagerModules.sops
     ../modules/home/options.nix
     ../modules/home/lib.nix
     ../home/shared.nix
+    ../modules/home/secrets.nix
     ../modules/home/packages-core.nix
     ../modules/home/shell.nix
     ../modules/home/git.nix
