@@ -1,0 +1,65 @@
+# Run a command with env vars loaded from a 1Password item's notesPlain field.
+# The note body should be in .env format (KEY=value per line). Any op://
+# references inside values are resolved at invocation time by 'op run', so
+# nothing sensitive ever lands on disk persistently.
+# Usage: op-env <item-name-or-id> [--account NAME] -- <cmd> [args...]
+op-env() {
+    emulate -L zsh
+    local account="famfam.1password.com"
+    local item=""
+    while (( $# )); do
+        case "$1" in
+            --account)
+                account="$2"
+                shift 2
+                ;;
+            -h | --help)
+                cat <<USAGE
+Usage: op-env <item-name-or-id> [--account NAME] -- <cmd> [args...]
+
+Reads the 'notesPlain' field of a 1Password item (expected to be in .env
+format) and runs <cmd> with those vars set. 'op run' resolves any op://
+references inside values.
+USAGE
+                return 0
+                ;;
+            --)
+                shift
+                break
+                ;;
+            -*)
+                echo "op-env: unknown option: $1" >&2
+                return 2
+                ;;
+            *)
+                if [[ -z "$item" ]]; then
+                    item="$1"
+                    shift
+                else
+                    break
+                fi
+                ;;
+        esac
+    done
+    if [[ -z "$item" || $# -eq 0 ]]; then
+        echo "op-env: usage: op-env <item> [--account NAME] -- <cmd>" >&2
+        return 2
+    fi
+    if ! command -v op &>/dev/null; then
+        echo "op-env: 1Password CLI (op) not installed" >&2
+        return 1
+    fi
+    local env_content
+    env_content=$(op item get "$item" --account "$account" --fields notesPlain --reveal 2>/dev/null) || {
+        echo "op-env: cannot read 1Password item '$item' from account '$account'" >&2
+        return 1
+    }
+    local tmpfile
+    tmpfile=$(mktemp -t op-env) || return 1
+    chmod 600 "$tmpfile"
+    print -r -- "$env_content" >"$tmpfile"
+    op run --account "$account" --env-file="$tmpfile" -- "$@"
+    local rc=$?
+    rm -f "$tmpfile"
+    return $rc
+}
