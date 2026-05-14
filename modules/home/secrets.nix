@@ -16,9 +16,10 @@
         launchctl unload "$PLIST_TARGET" 2>/dev/null || true
         launchctl load "$PLIST_TARGET" 2>/dev/null || true
         # Run the now-current sops-nix-user directly so new secrets materialize
-        # immediately rather than at next login.
+        # immediately rather than at next login. /usr/bin must be on PATH so
+        # sops-install-secrets can exec getconf for DARWIN_USER_TEMP_DIR.
         SOPS_SCRIPT=$(grep -oE '/nix/store/[a-z0-9]+-sops-nix-user' "$PLIST_TARGET" | head -1)
-        [ -x "$SOPS_SCRIPT" ] && "$SOPS_SCRIPT" || true
+        [ -x "$SOPS_SCRIPT" ] && PATH="/usr/bin:/bin:$PATH" "$SOPS_SCRIPT" || true
       fi
     fi
   '';
