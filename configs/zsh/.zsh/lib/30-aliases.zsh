@@ -61,10 +61,6 @@ setup_aliases() {
     alias -s {txt,md,markdown,rst}=$EDITOR
     alias -s {gif,jpg,jpeg,png}='open'
     alias -s {html,htm}='open'
-
-    # Run a command with env vars from a 1Password secure note.
-    # See ~/.zsh/functions/op-env for the underlying function.
-    alias moab-env='op-env "moab .env" --'
 }
 
 # Numeric directory-stack jumps: type `1`, `2`, ..., `5` to cd -1, cd -2, etc.
