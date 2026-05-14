@@ -47,13 +47,6 @@
         mode = "0400";
       };
 
-      "dotenv" = {
-        format = "binary";
-        sopsFile = ../../secrets/env;
-        path = "${config.home.homeDirectory}/.env";
-        mode = "0400";
-      };
-
       "cargo_credentials" = {
         format = "binary";
         sopsFile = ../../secrets/cargo-credentials;
