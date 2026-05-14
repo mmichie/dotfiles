@@ -29,6 +29,9 @@ bin/bin/gam7/
 # Compiled zsh files (zcompile output)
 *.zwc
 
+# zsh completion dump cache (rebuilt at shell startup)
+.zcompdump*
+
 # Nix
 result
 result-*
