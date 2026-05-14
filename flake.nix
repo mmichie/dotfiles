@@ -59,7 +59,10 @@
 
         "mim-moab" = mkDarwinHost {
           hostname = "mim-moab";
-          extraHomeModules = [ { my.isWork = true; } ];
+          extraHomeModules = [
+            { my.isWork = true; }
+            ./hosts/mim-moab/home.nix
+          ];
         };
 
         "tensor9-mbp" = mkDarwinHost {
