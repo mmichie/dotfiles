@@ -106,6 +106,7 @@ in
     wireshark-cli
     sshuttle
     sslscan
+    testssl
     ipmitool
     sshpass
     stable.samba
