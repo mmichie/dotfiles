@@ -60,6 +60,17 @@
         path = "${config.home.homeDirectory}/.cargo/credentials.toml";
         mode = "0400";
       };
+    }
+    // lib.optionalAttrs config.my.isWork {
+      # Work-only secret — encrypted to mim-moab's age key only. Declared only
+      # on hosts where my.isWork = true. Personal machines can't decrypt the
+      # blob even if they pulled it.
+      "zshrc_work_local" = {
+        format = "binary";
+        sopsFile = ../../secrets/zshrc-work-local;
+        path = "${config.home.homeDirectory}/.zshrc-work-local";
+        mode = "0400";
+      };
     };
   };
 }

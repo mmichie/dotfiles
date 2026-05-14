@@ -88,6 +88,7 @@ fi
 # Source local config (not in dotfiles repo, for secrets/machine-specific settings)
 # Login-only setup (e.g. macOS path_helper re-application) lives in .zprofile.
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
+[ -f ~/.zshrc-work-local ] && source ~/.zshrc-work-local
 
 # Display profiling results if PROFILE_STARTUP is set (must be last to capture everything)
 if [[ -n "$PROFILE_STARTUP" ]]; then

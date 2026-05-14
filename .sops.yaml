@@ -16,6 +16,14 @@ keys:
   - &mim_moab age16z6aaru0y89wpf0uzdcz6pc40tllx8sp7htvnmh09xn62zr8s5tqd36fku
 
 creation_rules:
+  # Work-only secrets — encrypted only to the moab age key so they're truly
+  # absent from personal machines (cannot decrypt even if file is present).
+  # More specific path_regex; checked before the catch-all below.
+  - path_regex: ^secrets/zshrc-work-local$
+    key_groups:
+      - age:
+          - *mim_moab
+
   - path_regex: ^secrets/[^/]+$
     key_groups:
       - age:
