@@ -7,5 +7,12 @@
     ".zsh".source = mkLink "zsh/.zsh";
   };
 
-  xdg.configFile."direnv".source = mkLink "direnv";
+  # direnv + nix-direnv via home-manager so the right direnvrc and the
+  # nix-direnv share files are wired up under ~/.config/direnv. The zsh hook
+  # is still installed manually in configs/zsh/.zsh/lib/50-integrations.zsh.
+  programs.direnv = {
+    enable = true;
+    nix-direnv.enable = true;
+    config.whitelist.prefix = [ "~/src" ];
+  };
 }

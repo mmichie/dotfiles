@@ -124,10 +124,8 @@ in
     tmux
     dolt
     tree
-    (direnv.overrideAttrs (_: {
-      doCheck = false;
-    }))
-    nix-direnv
+    # direnv + nix-direnv installed via programs.direnv in modules/home/shell.nix
+    # so home-manager wires the share/nix-direnv path correctly.
     rclone
     restic
     pstree
