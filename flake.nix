@@ -51,6 +51,13 @@
           ;
       };
       inherit (mkHost) mkDarwinHost mkNixosHost mkHomeConfig;
+
+      systems = [
+        "aarch64-darwin"
+        "aarch64-linux"
+        "x86_64-linux"
+      ];
+      forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
     in
     {
       # ── macOS (nix-darwin with embedded home-manager) ──────────────
@@ -85,10 +92,23 @@
       };
 
       # ── Formatter ─────────────────────────────────────────────────
-      formatter = {
-        aarch64-darwin = nixpkgs.legacyPackages.aarch64-darwin.nixfmt-tree;
-        aarch64-linux = nixpkgs.legacyPackages.aarch64-linux.nixfmt-tree;
-        x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
-      };
+      formatter = forAllSystems (pkgs: pkgs.nixfmt-tree);
+
+      # ── Dev shell ─────────────────────────────────────────────────
+      # Matches the tools invoked by lefthook.yml so `nix develop` gives
+      # contributors (and CI) the same environment the pre-commit hooks use.
+      devShells = forAllSystems (pkgs: {
+        default = pkgs.mkShellNoCC {
+          packages = [
+            pkgs.nixfmt-tree
+            pkgs.statix
+            pkgs.shellcheck
+            pkgs.shfmt
+            pkgs.lefthook
+            pkgs.just
+            pkgs.gh
+          ];
+        };
+      });
     };
 }
