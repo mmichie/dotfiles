@@ -36,6 +36,9 @@ bin/bin/gam7/
 result
 result-*
 
+# nix-direnv cache for the repo's devShell
+.direnv/
+
 # Secrets backup from `just secrets-backup` — must never be committed
 backup.tar.gz
 
