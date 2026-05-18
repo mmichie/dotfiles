@@ -7,9 +7,9 @@ in
     type: default: description:
     mkOption { inherit type default description; };
   mkBoolOpt =
-    default:
+    default: description:
     mkOption {
-      inherit default;
+      inherit default description;
       type = types.bool;
       example = true;
     };

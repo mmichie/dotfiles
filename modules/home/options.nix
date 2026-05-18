@@ -17,6 +17,6 @@ in
       stateVersion = mkOpt' lib.types.str "24.11" "Home-manager state version.";
     };
 
-    isWork = mkBoolOpt false;
+    isWork = mkBoolOpt false "Whether this host is a work machine (gates work-only secrets and tooling).";
   };
 }
