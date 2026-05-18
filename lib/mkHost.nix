@@ -62,11 +62,16 @@ let
     ../modules/home/packages-dev.nix
   ];
 
+  # Darwin-only home modules (excluded from Linux/NixOS closures)
+  darwinHomeModules = [
+    ../modules/home/secrets-darwin.nix
+  ];
+
   # ── Class definitions ────────────────────────────────────────────────
 
   classConfig = {
     darwin-workstation = {
-      homeModules = coreHomeModules ++ workstationHomeModules;
+      homeModules = coreHomeModules ++ workstationHomeModules ++ darwinHomeModules;
       homeBase = ../hostclass/darwin-workstation.nix;
     };
     linux-workstation = {
