@@ -8,7 +8,9 @@
     export PYENV_ROOT="$HOME/.pyenv"
     eval "$(pyenv init --path)"
     eval "$(pyenv init -)"
-    eval "$(pyenv virtualenv-init -)"
+    # virtualenv-init dropped: its precmd hook calls pyenv on every prompt and
+    # uses GNU stat syntax that fails silently on macOS. Activate venvs by hand
+    # with `pyenv activate <name>` or `pyenv shell <version>`.
 
     # Keg-only versioned formula — expose psql, pg_ctl, etc.
     export PATH="/opt/homebrew/opt/postgresql@18/bin:$PATH"
