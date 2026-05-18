@@ -1,53 +1,5 @@
 { pkgs, ... }:
 
-let
-  beads = (pkgs.buildGoModule.override { go = pkgs.go_1_26; }) rec {
-    pname = "beads";
-    version = "0.55.4";
-    src = pkgs.fetchFromGitHub {
-      owner = "steveyegge";
-      repo = "beads";
-      rev = "v${version}";
-      hash = "sha256-HTcmGKn2NNoBEg5yRsnVIATNdte5Xw8E86D09e1X5nk=";
-    };
-    vendorHash = "sha256-cMvxGJBMUszIbWwBNmWe+ws4m3mfyEZgapxVYNYc5c4=";
-    subPackages = [ "cmd/bd" ];
-    doCheck = false;
-    env.CGO_ENABLED = "1";
-    buildInputs = [ pkgs.icu ];
-    nativeBuildInputs = [
-      pkgs.git
-      pkgs.pkg-config
-    ];
-    meta = {
-      description = "Distributed issue tracker for AI-supervised workflows";
-      mainProgram = "bd";
-    };
-  };
-
-  recs = pkgs.perlPackages.buildPerlPackage {
-    pname = "App-RecordStream";
-    version = "4.0.25";
-    src = pkgs.fetchurl {
-      url = "mirror://cpan/authors/id/T/TS/TSIBLEY/App-RecordStream-4.0.25.tar.gz";
-      hash = "sha256-B/qWMdLfQXqZE163F/96MeFMRrDpuO8fWiD4Z5ditMs=";
-    };
-    propagatedBuildInputs = with pkgs.perlPackages; [
-      JSONMaybeXS
-      TextCSV
-      DateManip
-      TextAutoformat
-      ModulePluggable
-      IOString
-      PodPerldoc
-    ];
-    nativeCheckInputs = [ pkgs.perlPackages.ModuleVersionsReport ];
-    meta = {
-      description = "Command-line analysis tools for record-oriented data";
-      mainProgram = "recs";
-    };
-  };
-in
 {
   home.packages = with pkgs; [
     # ── Core CLI & Shell ───────────────────────────────────────────────

@@ -17,9 +17,12 @@ let
     plx = plx.packages.${system}.default;
   };
 
+  customPackagesOverlay = import ../overlays;
+
   overlays = system: [
     (stableOverlay system)
     (plxOverlay system)
+    customPackagesOverlay
   ];
 
   # Pin nix registry to flake inputs so `nix run nixpkgs#foo` uses flake.lock.
