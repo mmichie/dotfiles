@@ -2,7 +2,7 @@
 {
   sops = {
     age = {
-      keyFile = "${config.home.homeDirectory}/.config/sops/age/keys.txt";
+      keyFile = config.my.sops.keyFile;
       generateKey = false;
     };
 
