@@ -148,6 +148,6 @@ _tmux_emoji_preexec() {
     fi
 }
 
-# Register preexec hook (precmd dir title is now handled by plx prompt)
+# Register preexec hook (precmd dir title is now handled by chevron prompt)
 typeset -ga preexec_functions
 preexec_functions+=(_tmux_emoji_preexec)

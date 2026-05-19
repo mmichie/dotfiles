@@ -1,5 +1,29 @@
 {
   "nodes": {
+    "chevron": {
+      "inputs": {
+        "crane": [
+          "crane"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "rust-overlay": "rust-overlay"
+      },
+      "locked": {
+        "lastModified": 1779156181,
+        "narHash": "sha256-nhOuz+1pyGOSgQ855P8IFUMo3kOVP/93bxj265AZbR8=",
+        "owner": "shiprock",
+        "repo": "chevron",
+        "rev": "ee5e3c435a70983a46438b6f90338d3ccc27fc17",
+        "type": "github"
+      },
+      "original": {
+        "owner": "shiprock",
+        "repo": "chevron",
+        "type": "github"
+      }
+    },
     "crane": {
       "locked": {
         "lastModified": 1779130139,
@@ -22,11 +46,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1779142625,
-        "narHash": "sha256-yPLN0ppoEVaUyHW7fcHB3NotIlJEDWquJnJsJlNuXsU=",
+        "lastModified": 1779143091,
+        "narHash": "sha256-qxiUVquHM09KOV1aD4We9q0ooPWO4qOc0v9J9NDWSAo=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "f968ed5961dc72645fbed289684a2ee3f9abf0ed",
+        "rev": "736c2084ea750a049ecdbdd7ff5817d2eeeef444",
         "type": "github"
       },
       "original": {
@@ -87,45 +111,21 @@
         "type": "github"
       }
     },
-    "plx": {
-      "inputs": {
-        "crane": [
-          "crane"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "rust-overlay": "rust-overlay"
-      },
-      "locked": {
-        "lastModified": 1779141251,
-        "narHash": "sha256-OX1xJD++ZMl4tCBVS7TRW3d1JcYSVrOmFxZOIVqlgco=",
-        "owner": "mmichie",
-        "repo": "plx",
-        "rev": "1268b896a95a2fe2a86b94da6c21dacd0b668422",
-        "type": "github"
-      },
-      "original": {
-        "owner": "mmichie",
-        "repo": "plx",
-        "type": "github"
-      }
-    },
     "root": {
       "inputs": {
+        "chevron": "chevron",
         "crane": "crane",
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
         "nixpkgs": "nixpkgs",
         "nixpkgs-stable": "nixpkgs-stable",
-        "plx": "plx",
         "sops-nix": "sops-nix"
       }
     },
     "rust-overlay": {
       "inputs": {
         "nixpkgs": [
-          "plx",
+          "chevron",
           "nixpkgs"
         ]
       },

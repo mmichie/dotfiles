@@ -1,12 +1,12 @@
 #!/bin/zsh
 
-# Show a startup banner via plx (kitty graphics protocol).
+# Show a startup banner via chevron (kitty graphics protocol).
 notify_shell_status() {
-    if ! command -v plx &>/dev/null; then
-        echo "Warning: plx not found; skipping banner." >&2
+    if ! command -v chevron &>/dev/null; then
+        echo "Warning: chevron not found; skipping banner." >&2
         return 1
     fi
-    plx banner 2
+    chevron banner 2
 }
 
 # Percent-encode a path per RFC 3986 (unreserved + / pass through).
@@ -35,7 +35,7 @@ osc7_cwd() {
 init_prompt() {
     autoload -Uz add-zsh-hook
     add-zsh-hook precmd osc7_cwd
-    eval "$(plx init zsh)"
+    eval "$(chevron init zsh)"
 }
 
 init_prompt

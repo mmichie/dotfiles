@@ -42,7 +42,7 @@
     procs
     btop
     htop
-    plx
+    chevron
     delta
     difftastic
 

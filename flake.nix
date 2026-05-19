@@ -15,8 +15,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    plx = {
-      url = "github:mmichie/plx";
+    chevron = {
+      url = "github:shiprock/chevron";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.crane.follows = "crane";
     };
@@ -35,7 +35,7 @@
       nixpkgs-stable,
       nix-darwin,
       home-manager,
-      plx,
+      chevron,
       sops-nix,
       ...
     }:
@@ -46,7 +46,7 @@
           nixpkgs-stable
           nix-darwin
           home-manager
-          plx
+          chevron
           sops-nix
           ;
       };

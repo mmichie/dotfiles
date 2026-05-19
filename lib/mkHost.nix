@@ -3,7 +3,7 @@
   nixpkgs-stable,
   nix-darwin,
   home-manager,
-  plx,
+  chevron,
   sops-nix,
   ...
 }:
@@ -13,15 +13,15 @@ let
     stable = nixpkgs-stable.legacyPackages.${system};
   };
 
-  plxOverlay = system: final: prev: {
-    plx = plx.packages.${system}.default;
+  chevronOverlay = system: final: prev: {
+    chevron = chevron.packages.${system}.default;
   };
 
   customPackagesOverlay = import ../overlays;
 
   overlays = system: [
     (stableOverlay system)
-    (plxOverlay system)
+    (chevronOverlay system)
     customPackagesOverlay
   ];
 
@@ -34,7 +34,7 @@ let
       nixpkgs-stable
       nix-darwin
       home-manager
-      plx
+      chevron
       ;
   };
   registryHomeModule = {

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Claude Code status line — mirrors plx/starship prompt style
+# Claude Code status line — mirrors chevron/starship prompt style
 # Displays: user@host  cwd  git-branch  model  context%
 
 input=$(cat)
