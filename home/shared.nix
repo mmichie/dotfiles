@@ -35,8 +35,7 @@ in
   home.file.".tmux-cht-command".source = mkLink "system/.tmux-cht-command";
   home.file.".tmux-cht-languages".source = mkLink "system/.tmux-cht-languages";
 
-  # TUI monitors — file-level so runtime state (btop.log, themes) stays native
-  xdg.configFile."btop/btop.conf".source = mkLink "btop/btop.conf";
+  # htop config — file-level so runtime state stays native
   xdg.configFile."htop/htoprc".source = mkLink "htop/htoprc";
 
   # Claude Code settings
