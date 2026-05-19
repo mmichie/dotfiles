@@ -49,4 +49,4 @@ setup_path
 
 # Route plx weather's location lookup through the Go CoreLocation bridge
 # (macOS only; on other platforms plx falls back to IP geolocation).
-[[ "$OSTYPE" == darwin* ]] && export PLX_WEATHER_LOCATION_CMD="wifi-location --latlon"
+[[ "$OSTYPE" == darwin* ]] && export CHEVRON_WEATHER_LOCATION_CMD="wifi-location --latlon"
