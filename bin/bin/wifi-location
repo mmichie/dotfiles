@@ -6,7 +6,7 @@ OUTPUT_FILE="/tmp/wifi-location-$$.txt"
 trap 'rm -f "$OUTPUT_FILE"' EXIT
 
 # --latlon mode: stdout is "lat|lon" and empty stdout + non-zero exit
-# signals "no fix" to plx weather --location-cmd.
+# signals "no fix" to chevron weather --location-cmd.
 latlon_mode=0
 if [[ "$*" == *"--latlon"* ]]; then
     latlon_mode=1
@@ -14,8 +14,8 @@ fi
 
 # Fast-fail when the app bundle is missing. Without this, `open` fails but
 # we still spin in the polling loop below for the full timeout (35s in
-# location modes), which blocks tmux's `plx weather` invocation and makes
-# the city flicker off whenever plx's 15-min cache expires.
+# location modes), which blocks tmux's `chevron weather` invocation and makes
+# the city flicker off whenever chevron's 15-min cache expires.
 APP_BUNDLE="$HOME/Applications/wifi-location.app"
 if [[ ! -d "$APP_BUNDLE" ]]; then
     if [[ "$latlon_mode" == 0 ]]; then

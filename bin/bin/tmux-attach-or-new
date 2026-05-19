@@ -4,7 +4,7 @@
 # (seen by run-shell) and, since tmux.conf no longer overrides it, the
 # global env too (seen by #() commands). One canonical list.
 
-# Source OPEN_WEATHER_API_KEY etc. for plx weather in the status bar
+# Source OPEN_WEATHER_API_KEY etc. for chevron weather in the status bar
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
 
 TMUX=$(command -v tmux)

@@ -189,7 +189,7 @@ import (
 func main() {
 	// Parse command-line flags
 	fetchLocation := flag.Bool("location", false, "Fetch CoreLocation coordinates (WiFi-based positioning, 1-15 seconds)")
-	latLonOnly := flag.Bool("latlon", false, "Output just \"lat|lon\" (for plx weather --location-cmd). Exits non-zero with empty stdout if coordinates are unavailable.")
+	latLonOnly := flag.Bool("latlon", false, "Output just \"lat|lon\" (for chevron weather --location-cmd). Exits non-zero with empty stdout if coordinates are unavailable.")
 	flag.Parse()
 
 	// --latlon implies --location (we need coordinates to output them)
@@ -231,7 +231,7 @@ func main() {
 	}
 
 	// --latlon: output just "lat|lon" and exit non-zero if unavailable.
-	// plx weather --location-cmd tolerates an empty stdout + non-zero exit by
+	// chevron weather --location-cmd tolerates an empty stdout + non-zero exit by
 	// falling back to IP geolocation. This path reuses the CoreLocation result
 	// above; no new frameworks calls.
 	exitCode := 0

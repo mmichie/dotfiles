@@ -47,6 +47,6 @@ setup_path() {
 
 setup_path
 
-# Route plx weather's location lookup through the Go CoreLocation bridge
-# (macOS only; on other platforms plx falls back to IP geolocation).
+# Route chevron weather's location lookup through the Go CoreLocation bridge
+# (macOS only; on other platforms chevron falls back to IP geolocation).
 [[ "$OSTYPE" == darwin* ]] && export CHEVRON_WEATHER_LOCATION_CMD="wifi-location --latlon"

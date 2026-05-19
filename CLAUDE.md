@@ -10,7 +10,7 @@ Personal dotfiles managed by **Nix** — nix-darwin on macOS, full NixOS in a VM
 - **Dev toolchains** in `modules/home/packages-dev.nix`
 - **~25 macOS GUI apps** as Homebrew casks in `modules/darwin/homebrew.nix`
 - **macOS defaults** in `modules/darwin/defaults.nix`
-- **Custom Rust binary** [`plx`](https://github.com/mmichie/plx) consumed as a flake input
+- **Custom Rust binary** [`chevron`](https://github.com/shiprock/chevron) consumed as a flake input
 
 ## Common Commands
 
@@ -108,7 +108,7 @@ bin/                          # Personal scripts
 - **Host classes**: `lib/mkHost.nix` defines `darwin-workstation` and `linux-workstation` classes. Adding a new host is one constructor call plus a thin hardware config.
 - **CLI tools via nixpkgs**: Core tools in `modules/home/packages-core.nix`, dev toolchains in `packages-dev.nix`.
 - **GUI apps via Homebrew casks**: macOS GUI apps stay in `modules/darwin/homebrew.nix` (nix can't manage .app bundles well).
-- **Flake inputs for custom tools**: [`plx`](https://github.com/mmichie/plx) (powerline segments) is consumed as a flake input, built via Crane in its own repo.
+- **Flake inputs for custom tools**: [`chevron`](https://github.com/shiprock/chevron) (powerline segments) is consumed as a flake input, built via Crane in its own repo.
 - **Pre-commit hooks**: lefthook enforces nix-fmt, statix linting, shellcheck, and conventional commit messages.
 
 ### Key Components
@@ -123,7 +123,7 @@ bin/                          # Personal scripts
 #### Shell Configuration
 `configs/zsh/.zshrc` uses a modular design with optimized startup:
 - Core libraries loaded in order: platform_detection → environment → shell → prompt
-- Tools: atuin (history), vivid (ls colors), plx (prompt), fzf, zoxide
+- Tools: atuin (history), vivid (ls colors), chevron (prompt), fzf, zoxide
 
 ## Platform Targets
 
@@ -138,4 +138,4 @@ bin/                          # Personal scripts
 - **nix-darwin** (macOS): System-level config + Homebrew cask management
 - **home-manager**: User-level config, packages, and symlinks
 - **Homebrew** (macOS only): GUI app casks — CLI tools come from nixpkgs
-- **Crane**: Used by the [`plx`](https://github.com/mmichie/plx) flake input for Rust builds
+- **Crane**: Used by the [`chevron`](https://github.com/shiprock/chevron) flake input for Rust builds

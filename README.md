@@ -54,7 +54,7 @@ Ghostty, AeroSpace, 1Password, Chrome, Obsidian, Zed, Slack, Discord, Spotify, e
 Dock, Finder, keyboard, screenshots, spaces, firewall — applied on every `darwin-rebuild switch`.
 
 **Shell** (`configs/zsh/`):
-zsh with a modular library system, [`plx`](https://github.com/mmichie/plx) prompt (powerline segments in Rust), atuin history with fzf integration, vivid ls colors, tmux emoji window titles.
+zsh with a modular library system, [`chevron`](https://github.com/shiprock/chevron) prompt (powerline segments in Rust), atuin history with fzf integration, vivid ls colors, tmux emoji window titles.
 
 ## Repo Layout
 
@@ -109,7 +109,7 @@ bin/                          # Personal scripts + platform binaries
 - **Mutable symlinks**: `mkOutOfStoreSymlink` points symlinks at the git working tree, not the Nix store. Edit a config, see the change immediately. Same workflow as GNU Stow.
 - **CLI from Nix, GUI from Homebrew**: Nix handles all command-line tools cross-platform. macOS GUI apps stay as Homebrew casks because `.app` bundles don't work well from the Nix store.
 - **Host classes**: `lib/mkHost.nix` defines `darwin-workstation` and `linux-workstation` classes that compose module sets. Adding a new host is one `mkDarwinHost` or `mkNixosHost` call plus a thin hardware config.
-- **Flake inputs for custom tools**: [`plx`](https://github.com/mmichie/plx) (powerline segments) lives in its own repo and is consumed as a flake input, built via Crane.
+- **Flake inputs for custom tools**: [`chevron`](https://github.com/shiprock/chevron) (powerline segments) lives in its own repo and is consumed as a flake input, built via Crane.
 - **Declarative Homebrew cleanup**: `cleanup = "uninstall"` removes any cask not listed in the config. (`"zap"` is avoided — it breaks Docker Desktop receipts.)
 - **Pre-commit hooks**: lefthook enforces nix-fmt formatting, statix linting, shellcheck, and conventional commit messages on every commit.
 
