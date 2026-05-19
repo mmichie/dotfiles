@@ -35,9 +35,6 @@ in
   home.file.".tmux-cht-command".source = mkLink "system/.tmux-cht-command";
   home.file.".tmux-cht-languages".source = mkLink "system/.tmux-cht-languages";
 
-  # htop config — file-level so runtime state stays native
-  xdg.configFile."htop/htoprc".source = mkLink "htop/htoprc";
-
   # Claude Code settings
   home.file.".claude/settings.json".source = mkLink "claude/settings.json";
   home.file.".claude/CLAUDE.md".source = mkLink "claude/CLAUDE.md";
