@@ -16,10 +16,20 @@ elif [ -b /dev/vda ]; then
   DISK="/dev/vda"
 fi
 
-echo "==> Installing NixOS to ${DISK}"
-echo "    This will ERASE the entire disk."
-read -rp "    Continue? [y/N] " confirm
-[[ "$confirm" =~ ^[Yy]$ ]] || exit 1
+if mountpoint -q /mnt; then
+  echo "error: /mnt is already mounted — refusing to run" >&2
+  exit 1
+fi
+
+echo "==> Target disk:"
+lsblk -dno NAME,SIZE,MODEL,SERIAL "${DISK}" 2>/dev/null || lsblk -dno NAME,SIZE,MODEL "${DISK}"
+echo
+echo "    This will ERASE ALL DATA on ${DISK}."
+read -rp "    Type the disk path (${DISK}) to confirm: " confirm
+if [ "$confirm" != "${DISK}" ]; then
+  echo "aborted (got: '$confirm', expected: '${DISK}')" >&2
+  exit 1
+fi
 
 # ── Partition (GPT + EFI) ────────────────────────────────────────
 echo "==> Partitioning ${DISK}"
