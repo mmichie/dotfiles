@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Personal dotfiles managed by **Nix** — nix-darwin on macOS, full NixOS in a VM, standalone home-manager on Linux. Config files live in `configs/` and are symlinked into `$HOME` via `mkOutOfStoreSymlink` (mutable — edits take effect immediately without rebuilding).
 
-- **~120 CLI tools** declared in `modules/home/packages-core.nix`
+- **~80 CLI tools** declared in `modules/home/packages-core.nix`
 - **Dev toolchains** in `modules/home/packages-dev.nix`
-- **~25 macOS GUI apps** as Homebrew casks in `modules/darwin/homebrew.nix`
+- **~30 macOS GUI apps** as Homebrew casks in `modules/darwin/homebrew.nix`
 - **macOS defaults** in `modules/darwin/defaults.nix`
 - **Custom Rust binary** [`chevron`](https://github.com/shiprock/chevron) consumed as a flake input
 
@@ -94,11 +94,11 @@ hosts/vm-aarch64/             # NixOS VM config (DWM, VMware, aarch64-linux)
 hostclass/
   darwin-workstation.nix      # macOS-specific home config (aerospace, karabiner)
   linux-workstation.nix       # Linux-specific home config (clipboard tools, git signing)
-home/                         # shared.nix (cross-platform), linux.nix
+home/                         # shared.nix (cross-platform)
 modules/darwin/               # homebrew.nix (casks), defaults.nix (macOS prefs)
-modules/home/                 # options, packages-core, packages-dev, shell, git, editor, terminal
+modules/home/                 # options, lib, packages-core/dev, shell, git, editor, terminal, secrets, secrets-darwin
 configs/                      # Raw config files (symlinked by home-manager)
-  aerospace/ direnv/ ghostty/ git/ karabiner/ nvim/ ssh/ system/ tmux/ wezterm/ zsh/
+  aerospace/ claude/ ghostty/ git/ karabiner/ nvim/ ssh/ system/ tmux/ wezterm/ zsh/
 bin/                          # Personal scripts
 .github/workflows/            # CI: nix flake check + fmt on push
 ```

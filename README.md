@@ -41,13 +41,13 @@ just secrets-restore # restore from backup.tar.gz
 
 ## What's Managed
 
-**~120 CLI tools** via nixpkgs (`modules/home/packages-core.nix`):
+**~80 CLI tools** via nixpkgs (`modules/home/packages-core.nix`):
 ripgrep, fd, fzf, bat, eza, zoxide, atuin, delta, difftastic, neovim, tmux, nvd, statix, rclone, restic, hexyl, tealdeer, transcrypt, and more.
 
 **Dev toolchains** via nixpkgs (`modules/home/packages-dev.nix`):
 Go, Rust, Python, Node.js, Java, kubectl, helm, ansible, awscli, opentofu, ffmpeg, pandoc, and nerd fonts.
 
-**~25 macOS GUI apps** via Homebrew casks (`modules/darwin/homebrew.nix`):
+**~30 macOS GUI apps** via Homebrew casks (`modules/darwin/homebrew.nix`):
 Ghostty, AeroSpace, 1Password, Chrome, Obsidian, Zed, Slack, Discord, Spotify, etc.
 
 **macOS defaults** (`modules/darwin/defaults.nix`):
@@ -73,28 +73,29 @@ hostclass/
   linux-workstation.nix       # Linux-specific home config (clipboard tools, git signing)
 home/
   shared.nix                  # Cross-platform home-manager base
-  linux.nix                   # Standalone Linux overrides
 modules/
   darwin/
-    homebrew.nix              # ~25 GUI casks, auto-removes unlisted apps on activation
+    homebrew.nix              # ~30 GUI casks, auto-removes unlisted apps on activation
     defaults.nix              # macOS system preferences
   home/
-    options.nix               # Custom Nix options (my.user.*, my.dotfilesPath)
-    packages-core.nix         # ~120 CLI tools (all platforms)
+    options.nix               # Custom Nix options (my.user.*, my.dotfilesPath, my.sops.keyFile)
+    lib.nix                   # mkLink helper for symlink declarations
+    packages-core.nix         # ~80 CLI tools (all platforms)
     packages-dev.nix          # Dev toolchains + fonts (workstations only)
-    shell.nix                 # zsh + direnv symlinks
+    shell.nix                 # zsh symlinks + home-manager-managed direnv
     git.nix                   # .gitconfig + .gitignore_global symlinks
     editor.nix                # Neovim config symlink
     terminal.nix              # Ghostty, WezTerm, tmux, SSH config + authorized keys
+    secrets.nix               # sops-nix config + secret declarations
+    secrets-darwin.nix        # macOS-only launchd reload activation
 configs/
   aerospace/                  # Tiling window manager (macOS)
-  direnv/                     # direnvrc + direnv.toml (auto-allows ~/src/)
+  claude/                     # Claude Code settings + bundled agents
   ghostty/                    # Terminal emulator
   git/                        # .gitconfig, .gitignore_global
   karabiner/                  # Keyboard remapping (macOS)
   nvim/                       # Neovim config (lazy.nvim)
   ssh/                        # SSH client config
-  btop/ htop/                 # TUI monitor configs (file-level symlinks)
   system/                     # .inputrc, .actrc, .ideavimrc, tmux-cht lists
   tmux/                       # tmux.conf + plugins (git submodules)
   wezterm/                    # Backup terminal emulator
