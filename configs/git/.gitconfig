@@ -112,6 +112,9 @@
 [includeIf "gitdir:~/src/tensor9.com-v2/"]
 	path = ~/.gitconfig-prime-local
 
+[includeIf "gitdir:~/src/moab/"]
+	path = ~/.gitconfig-kyusu-local
+
 [url "ssh://git@github.com/"]
 #	insteadOf = https://github.com/
 
