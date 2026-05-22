@@ -1,9 +1,13 @@
 #!/bin/zsh
 
-# First thing: measure shell startup time if PROFILE_STARTUP is set
+# First thing: measure shell startup time if PROFILE_STARTUP is set.
+# Set PROFILE_STARTUP_RESET=1 alongside to force a cold rebuild of the
+# compinit dump (otherwise PROFILE_STARTUP measures the warm fast path,
+# which is what you usually want).
 if [[ -n "$PROFILE_STARTUP" ]]; then
-  # Reset zsh cache (check both legacy $HOME and the new cache-dir location)
-  rm -f "$HOME/.zcompdump" "$HOME/.cache/zsh/.zcompdump" 2>/dev/null
+  if [[ -n "$PROFILE_STARTUP_RESET" ]]; then
+    rm -f "$HOME/.zcompdump" "$HOME/.cache/zsh/.zcompdump" 2>/dev/null
+  fi
   zmodload zsh/zprof
 fi
 
