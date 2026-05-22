@@ -47,7 +47,7 @@ ripgrep, fd, fzf, bat, eza, zoxide, atuin, delta, difftastic, neovim, tmux, nvd,
 **Dev toolchains** via nixpkgs (`modules/home/packages-dev.nix`):
 Go, Rust, Python, Node.js, Java, kubectl, helm, ansible, awscli, opentofu, ffmpeg, pandoc, and nerd fonts.
 
-**~30 macOS GUI apps** via Homebrew casks (`modules/darwin/homebrew.nix`):
+**~35 macOS GUI apps** via Homebrew casks (`modules/darwin/homebrew.nix`):
 Ghostty, AeroSpace, 1Password, Chrome, Obsidian, Zed, Slack, Discord, Spotify, etc.
 
 **macOS defaults** (`modules/darwin/defaults.nix`):
@@ -66,7 +66,9 @@ lefthook.yml                  # Pre-commit hooks (nix-fmt, statix, shellcheck, c
 lib/
   mkHost.nix                  # Host constructors — mkDarwinHost, mkNixosHost, mkHomeConfig
 hosts/
-  mims-mbp/                   # nix-darwin system config (Touch ID sudo, launchd GC, Spotlight)
+  mims-mbp/                   # personal nix-darwin (Touch ID sudo, launchd GC, Spotlight)
+  mim-moab/                   # work nix-darwin (my.isWork = true)
+  tensor9-mbp/                # work nix-darwin (my.isWork = true)
   vm-aarch64/                 # NixOS VM (DWM + VMware Fusion on Apple Silicon)
 hostclass/
   darwin-workstation.nix      # macOS-specific home config (aerospace, karabiner)
