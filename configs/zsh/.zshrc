@@ -75,8 +75,10 @@ for _fn in "$SHELL_FUNCTIONS_DIR"/*(N); do
 done
 unset _fn
 
-# Disable correction for specific commands
-CORRECT_IGNORE='.*|claude'
+# Disable correction for dotfile-named commands and `claude` (zsh alternation
+# requires the parens — `.*|claude` without grouping is a literal string match
+# that never fires, so correction effectively ran on every command).
+CORRECT_IGNORE='(.*|claude)'
 
 # Display system status on first interactive shell
 if [[ -o login || -z "$INFLUX_SHOWN" ]] && command -v gum &>/dev/null; then

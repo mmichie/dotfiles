@@ -16,20 +16,11 @@ setup_aliases() {
     alias grep="grep --color=auto -d skip"
     alias grpe="grep --color=auto -d skip"
 
-    # Pagers: moor (mouse + modern) preferred over less.
-    if command -v moor &>/dev/null; then
-        alias less="moor"
-        alias more="moor"
-        alias mr="moor"
-        alias mw="moor -wrap"
-    else
-        alias less="less -S --mouse"
-        alias more="less"
-    fi
+    alias less="less -S --mouse"
+    alias more="less"
 
     # Modern-tool overrides (opt-in via PATH).
     command -v duf       &>/dev/null && alias df="duf"
-    command -v jless     &>/dev/null && alias jl="jless"
     command -v gping     &>/dev/null && alias pg="gping"
     command -v bandwhich &>/dev/null && alias bw="sudo bandwhich"
 
