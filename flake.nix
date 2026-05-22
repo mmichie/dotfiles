@@ -18,10 +18,7 @@
     chevron = {
       url = "github:shiprock/chevron";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.crane.follows = "crane";
     };
-
-    crane.url = "github:ipetkov/crane";
 
     sops-nix = {
       url = "github:Mic92/sops-nix";

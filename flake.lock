@@ -2,20 +2,18 @@
   "nodes": {
     "chevron": {
       "inputs": {
-        "crane": [
-          "crane"
-        ],
+        "crane": "crane",
         "nixpkgs": [
           "nixpkgs"
         ],
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1779156181,
-        "narHash": "sha256-nhOuz+1pyGOSgQ855P8IFUMo3kOVP/93bxj265AZbR8=",
+        "lastModified": 1779406396,
+        "narHash": "sha256-7/n55h61LfVQtBS5OnM1ovcKOg5BiDWgkAkBoYJ3N/Y=",
         "owner": "shiprock",
         "repo": "chevron",
-        "rev": "ee5e3c435a70983a46438b6f90338d3ccc27fc17",
+        "rev": "0580f150a00771c5071f158630957985f33fd0a0",
         "type": "github"
       },
       "original": {
@@ -114,7 +112,6 @@
     "root": {
       "inputs": {
         "chevron": "chevron",
-        "crane": "crane",
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
         "nixpkgs": "nixpkgs",
