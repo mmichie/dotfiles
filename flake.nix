@@ -16,7 +16,11 @@
     };
 
     chevron = {
-      url = "github:shiprock/chevron";
+      # Track the unstable branch so this dotfiles checkout exercises
+      # in-flight chevron work continuously. Pin to a tag
+      # (github:shiprock/chevron/v0.6.0) on machines that need a known
+      # quiet build.
+      url = "github:shiprock/chevron/unstable";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
