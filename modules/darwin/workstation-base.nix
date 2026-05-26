@@ -46,7 +46,7 @@
   programs.zsh.enable = true;
 
   fonts.packages = with pkgs; [
-    iosevka
+    nerd-fonts.iosevka
   ];
 
   system = {
