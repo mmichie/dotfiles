@@ -4,7 +4,7 @@
 switch:
     @if [ "$(uname)" = "Darwin" ]; then \
         sudo "$(command -v darwin-rebuild)" switch --flake ".#$(hostname -s)"; \
-    elif [ -f /etc/NIXOS ]; then \
+    elif [ -f /etc/NIXOS ] && [ -d "hosts/$(hostname -s)" ]; then \
         sudo "$(command -v nixos-rebuild)" switch --flake ".#$(hostname -s)"; \
     else \
         home-manager switch --flake .#mim@linux; \
