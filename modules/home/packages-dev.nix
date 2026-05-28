@@ -34,6 +34,7 @@
 
     # ── Development — C/C++ ────────────────────────────────────────────
     cmake
+    gnumake
     clang-tools
 
     # ── Development — Other ────────────────────────────────────────────
