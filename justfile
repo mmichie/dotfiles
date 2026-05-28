@@ -32,7 +32,7 @@ check:
 dry-run:
     @if [ "$(uname)" = "Darwin" ]; then \
         darwin-rebuild build --flake ".#$(hostname -s)" && nvd diff /run/current-system result; \
-    elif [ -f /etc/NIXOS ]; then \
+    elif [ -f /etc/NIXOS ] && [ -d "hosts/$(hostname -s)" ]; then \
         nixos-rebuild dry-activate --flake ".#$(hostname -s)"; \
     else \
         home-manager build --flake .#mim@linux; \
