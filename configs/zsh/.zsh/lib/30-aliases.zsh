@@ -13,6 +13,12 @@ setup_aliases() {
     alias dclean="docker_cleanup"
     # chevron subsumes the old shell system_health: ~33ms warm-cache vs 5-13s.
     command -v chevron &>/dev/null && alias health="chevron health"
+    # PTY-based per-command output capture (chevron-1yn.4). Output bytes
+    # land at $XDG_RUNTIME_DIR/chevron/outputs/<ulid>.log; query via
+    # `chevron history --grep-output PATTERN` or `chevron history --show-output <id>`.
+    # Use deliberately on commands worth remembering: `chcap cargo build`,
+    # `chcap make release`, etc. Skip for interactive programs (vim, ssh).
+    command -v chevron &>/dev/null && alias chcap="chevron capture"
     alias grep="grep --color=auto -d skip"
     alias grpe="grep --color=auto -d skip"
 

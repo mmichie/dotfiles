@@ -77,6 +77,27 @@ setup_environment() {
     # ── Claude Code ──────────────────────────────────────────────
     export CLAUDE_CODE_EFFORT_LEVEL="max"
 
+    # ── Chevron (daily-drive opt-ins) ────────────────────────────
+    # CHEVRON_HISTORY=1 (default): preexec/precmd publish command-
+    #   lifecycle events to chevrond → SQLite commands log.
+    #   `chevron history --grep 'cargo test'` to query.
+    # CHEVRON_LIVE=1: chevrond push events (.git changes + cmd-end)
+    #   redraw the prompt without keystroke — branch indicator
+    #   updates after a background `git fetch`, command finished
+    #   in another pane, etc.
+    # CHEVRON_ASYNC=1: stale-then-fresh prompt — render cached
+    #   prompt immediately, spawn background re-render, redraw via
+    #   zle reset-prompt when fresh data lands. Zero perceived
+    #   latency on the keystroke hot path.
+    # Output capture (per-command): `chcap <cmd>` alias wraps a
+    #   command in PTY interposition; bytes land in
+    #   $XDG_RUNTIME_DIR/chevron/outputs/<ulid>.log. Search via
+    #   `chevron history --grep-output PATTERN` / replay via
+    #   `chevron history --show-output <id>`.
+    export CHEVRON_HISTORY=1
+    export CHEVRON_LIVE=1
+    export CHEVRON_ASYNC=1
+
     # ── Development ──────────────────────────────────────────────
     export PYTHONUNBUFFERED=1
     export FZF_DEFAULT_OPTS="--height 40% --border"
