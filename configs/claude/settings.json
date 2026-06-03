@@ -138,5 +138,6 @@
   "alwaysThinkingEnabled": true,
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark-daltonized",
-  "editorMode": "vim"
+  "editorMode": "vim",
+  "skipWorkflowUsageWarning": true
 }
