@@ -109,24 +109,35 @@ _make_agent_stubs() {
     make_stub "$T_AGENT_STUBS" ssh-add
 }
 
+# Build the env(1) assignment vector for a sandboxed shell into $reply.
+# Single source of truth for the sandbox environment — used by
+# run_sandbox_zsh and by tests that need a custom zsh invocation (xtrace).
+_sandbox_env_args() {
+    local home="$1"
+    reply=(
+        HOME="$home"
+        PATH="$T_AGENT_STUBS:$PATH"
+        TERM=dumb
+        USER="${USER:-tester}"
+        TMPDIR="$home/tmp"
+        INFLUX_SHOWN=1
+        CHEVRON_DISABLE=1
+    )
+    [[ -n "$T_AGENT_SOCK" ]] && reply+=(SSH_AUTH_SOCK="$T_AGENT_SOCK")
+}
+
 # run_sandbox_zsh <home> <command-string> [VAR=val ...]
 # Interactive zsh against a sandbox HOME with a minimal controlled env.
 # --no-globalrcs keeps /etc/zsh* (nix-darwin, path_helper) out of the picture;
 # INFLUX_SHOWN + non-login suppresses the banner/tips block.
+# Note: do not pass PATH=... as an extra — macOS env(1) serves the FIRST of
+# duplicate bindings to getenv, so the override is silently ignored. Prepend
+# to $path inside the command string instead.
 run_sandbox_zsh() {
     local home="$1" cmd="$2"
     shift 2
-    env -i \
-        HOME="$home" \
-        PATH="$T_AGENT_STUBS:$PATH" \
-        TERM=dumb \
-        USER="${USER:-tester}" \
-        TMPDIR="$home/tmp" \
-        INFLUX_SHOWN=1 \
-        CHEVRON_DISABLE=1 \
-        ${T_AGENT_SOCK:+SSH_AUTH_SOCK=$T_AGENT_SOCK} \
-        "$@" \
-        zsh --no-globalrcs -i -c "$cmd"
+    _sandbox_env_args "$home"
+    env -i "${reply[@]}" "$@" zsh --no-globalrcs -i -c "$cmd"
 }
 
 # make_stub <dir> <name> [body]
