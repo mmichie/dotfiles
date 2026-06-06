@@ -55,7 +55,9 @@ USAGE
         return 1
     }
     local tmpfile
-    tmpfile=$(mktemp -t op-env) || return 1
+    # Explicit template: GNU mktemp (nix coreutils) rejects `-t op-env`
+    # ("too few X's"); BSD accepts both forms.
+    tmpfile=$(mktemp "${TMPDIR:-/tmp}/op-env.XXXXXXXX") || return 1
     chmod 600 "$tmpfile"
     print -r -- "$env_content" >"$tmpfile"
     op run --account "$account" --env-file="$tmpfile" -- "$@"
