@@ -114,6 +114,13 @@ profile budget_ms="250" runs="10":
 profile-deep:
     @PROFILE_STARTUP=1 zsh -ic exit 2>&1 | head -40
 
+# Measure COLD vs warm startup in a hermetic sandbox of the repo config
+# (fresh HOME per cold run, so compinit + tool-init caches pay full price).
+# Wall-clock stays local on purpose; the structural invariants behind these
+# numbers are gated machine-independently in tests/test_performance.zsh.
+profile-cold budget_ms="1000" runs="5":
+    zsh tests/profile-cold.zsh {{budget_ms}} {{runs}}
+
 # Refresh vendored Claude Code agents from davila7/claude-code-templates upstream
 claude-update:
     #!/usr/bin/env bash
