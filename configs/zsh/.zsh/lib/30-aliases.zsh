@@ -36,7 +36,7 @@ setup_aliases() {
     alias nsr="netstat -rn"
     alias nsa="netstat -an | sed -n '1,/Active UNIX domain sockets/p'"
     alias lsock="sudo lsof -i -P"
-    alias keypress="read -s -n1 keypress; echo \$keypress"
+    alias keypress="read -sk1 keypress; echo \$keypress"  # zsh read: -k1 reads one char (-n is a bashism)
 
     # Directory navigation
     alias :="cd .."
