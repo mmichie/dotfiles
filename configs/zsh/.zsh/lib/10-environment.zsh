@@ -68,8 +68,11 @@ setup_environment() {
         eval "$_cmd() { _java_home_lazy; unfunction java javac gradle mvn sbt 2>/dev/null; command $_cmd \"\$@\"; }"
     done
     _java_home_lazy() {
+        # whence -p: path search only. `command -v javac` would return the
+        # lazy wrapper *function* name (it's still defined at this point),
+        # which :A would then resolve relative to $PWD — garbage JAVA_HOME.
         local javac_bin
-        javac_bin=$(command -v javac 2>/dev/null) || return
+        javac_bin=$(whence -p javac 2>/dev/null) || return
         javac_bin=${javac_bin:A}  # zsh :A = absolute + resolve symlinks
         export JAVA_HOME="${javac_bin:h:h}"
     }
