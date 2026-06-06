@@ -14,7 +14,10 @@ _parse_env_file() {
     local line key value
     while IFS= read -r line || [[ -n "$line" ]]; do
         [[ -z "$line" || "$line" = \#* ]] && continue
-        [[ "$line" = [A-Za-z_]*([A-Za-z0-9_])=* ]] || continue
+        # Valid identifier then `=`. `#` (zero or more, EXTENDED_GLOB) — the
+        # ksh-style `*(...)` this replaced means something else in zsh and
+        # rejected single-char keys while passing names like FOO-BAR.
+        [[ "$line" = [A-Za-z_][A-Za-z0-9_]#=* ]] || continue
 
         key="${line%%=*}"
         value="${line#*=}"
