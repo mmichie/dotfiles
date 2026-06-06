@@ -37,8 +37,11 @@ just vm-build
 # Update flake inputs
 just update
 
-# Validate flake
+# Validate flake (includes checks.<system>.zsh-config — the zsh test suite)
 just check
+
+# Run the zsh config test suite (tests/run.zsh; also runs via lefthook + CI)
+just test
 
 # Preview changes without applying
 just dry-run

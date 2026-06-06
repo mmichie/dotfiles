@@ -27,11 +27,31 @@ jobs:
 
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
+      # No --all-systems: it would try to build checks.* for foreign systems
+      # and fail. Host configs are evaluated regardless, and the two-OS matrix
+      # builds each platform's checks natively.
       - name: Check flake
-        run: nix flake check --all-systems
+        run: nix flake check
 
       - name: Check formatting
         run: nix fmt -- --fail-on-change
 
       - name: Build closure
         run: nix build --no-link --print-out-paths ${{ matrix.build }}
+
+  # Run the zsh config test suite outside the nix build sandbox too — the
+  # flake check above builds checks.<system>.zsh-config hermetically; this
+  # job catches anything the sandbox masks.
+  zsh-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Run zsh config test suite
+        run: nix develop --command zsh tests/run.zsh

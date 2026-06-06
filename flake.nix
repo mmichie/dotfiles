@@ -32,6 +32,7 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       nixpkgs-stable,
       nix-darwin,
@@ -93,6 +94,17 @@
       # ── Formatter ─────────────────────────────────────────────────
       formatter = forAllSystems (pkgs: pkgs.nixfmt-tree);
 
+      # ── Checks ────────────────────────────────────────────────────
+      # Hermetic zsh config test suite (tests/run.zsh). Same suite as
+      # `just test`, the lefthook pre-commit hook, and the CI job.
+      checks = forAllSystems (pkgs: {
+        zsh-config = pkgs.runCommand "zsh-config-tests" { nativeBuildInputs = [ pkgs.zsh ]; } ''
+          cd ${self}
+          zsh tests/run.zsh
+          touch $out
+        '';
+      });
+
       # ── Dev shell ─────────────────────────────────────────────────
       # Matches the tools invoked by lefthook.yml so `nix develop` gives
       # contributors (and CI) the same environment the pre-commit hooks use.
@@ -106,6 +118,7 @@
             pkgs.lefthook
             pkgs.just
             pkgs.gh
+            pkgs.zsh
           ];
         };
       });

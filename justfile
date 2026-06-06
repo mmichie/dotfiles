@@ -24,9 +24,15 @@ update: && dry-run
     @echo ""
     @echo "=== Package diff ==="
 
-# Check flake validity
+# Check flake validity (builds checks.<current-system>, e.g. the zsh test
+# suite). No --all-systems: nix would try to BUILD foreign-system checks and
+# fail; host configs (darwin/nixos) are evaluated either way.
 check:
-    nix flake check --all-systems
+    nix flake check
+
+# Run the zsh config test suite (also wired into lefthook, CI, and flake checks)
+test:
+    zsh tests/run.zsh
 
 # Show what would change
 dry-run:
