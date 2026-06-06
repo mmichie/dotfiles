@@ -57,8 +57,11 @@ if [[ -n "$ZSH_INITIALIZED" ]]; then
 fi
 ZSH_INITIALIZED=1
 
-# Source global definitions if available
-[[ -f /etc/zshrc ]] && source /etc/zshrc
+# NOTE: do NOT manually source /etc/zshrc here. zsh already sources it for
+# interactive shells (GLOBAL_RCS), and nix-darwin's guard makes a re-source
+# a no-op only in that case — in a NO_GLOBAL_RCS shell the manual source
+# re-runs the whole file, including a bare `compinit` that prompts (and
+# aborts headless), clobbering the curated compinit above.
 
 # Load library modules in numeric-prefix order. Each module is self-contained:
 # it defines its functions, sets its options, and runs its own setup at
