@@ -9,6 +9,9 @@ _:
       autoUpdate = true;
       upgrade = true;
       cleanup = "uninstall"; # Remove casks not listed here (zap breaks docker-desktop receipt)
+      # Homebrew 5.1.15 made --cleanup interactive; this restores the old
+      # non-prompting uninstall. Drop once nix-darwin#1787 is fixed upstream.
+      extraFlags = [ "--force-cleanup" ];
     };
 
     taps = [
