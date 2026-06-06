@@ -40,10 +40,14 @@ setup_readline() {
     _bind '^[[1;3D' backward-word   # Alt+Left in most terminals
     _bind '^[[1;3C' forward-word    # Alt+Right in most terminals
 
-    # History search
+    # History search. Up/Down arrows send CSI (^[[A) or SS3 (^[OA, terminal
+    # application mode) — bind both. Bare ^[A is ESC+A, which no terminal
+    # sends for arrows.
     _bind '^R' history-incremental-search-backward
-    _bind '^[A' up-line-or-beginning-search
-    _bind '^[B' down-line-or-beginning-search
+    _bind '^[[A' up-line-or-beginning-search
+    _bind '^[[B' down-line-or-beginning-search
+    _bind '^[OA' up-line-or-beginning-search
+    _bind '^[OB' down-line-or-beginning-search
 
     # Edit current command line in $EDITOR
     _bind '^X^E' edit-command-line
