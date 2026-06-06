@@ -35,13 +35,18 @@ osc7_cwd() {
 init_prompt() {
     autoload -Uz add-zsh-hook
     add-zsh-hook precmd osc7_cwd
+    # Kill switch for sandboxed shells (test suite, scripted boots): skip
+    # chevron entirely — no daemon spawn, default prompt.
+    [[ -n "$CHEVRON_DISABLE" ]] && return 0
+    # No chevron (minimal box, CI) -> keep the default prompt quietly.
+    command -v chevron &>/dev/null || return 0
     # Pre-spawn chevrond so the first prompt's daemon-query (CHEVRON_ASYNC)
     # and the live subscriber (CHEVRON_LIVE) catch the daemon before
     # falling through to inline compute. `chevron daemon start` is
     # non-blocking and idempotent: returns immediately if a daemon is
     # already running (locked via chevrond.lock), otherwise spawns
     # detached. ~5ms one-time cost on the first shell of the boot.
-    command -v chevron &>/dev/null && chevron daemon start 2>/dev/null
+    chevron daemon start 2>/dev/null
     eval "$(chevron init zsh)"
 }
 
