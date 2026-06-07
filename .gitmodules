@@ -10,3 +10,9 @@
 [submodule "configs/tmux/plugins/dwm.tmux"]
 	path = configs/tmux/plugins/dwm.tmux
 	url = https://github.com/saysjonathan/dwm.tmux.git
+[submodule "configs/tmux/plugins/tmux-yank"]
+	path = configs/tmux/plugins/tmux-yank
+	url = https://github.com/tmux-plugins/tmux-yank
+[submodule "configs/tmux/plugins/tmux-thumbs"]
+	path = configs/tmux/plugins/tmux-thumbs
+	url = https://github.com/fcsonline/tmux-thumbs
