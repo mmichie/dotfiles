@@ -142,6 +142,7 @@
             pkgs.gh
             pkgs.zsh
             pkgs.tmux
+            pkgs.neovim # tests/test_nvim.zsh parse tier in CI
           ];
         };
       });
