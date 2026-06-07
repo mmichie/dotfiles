@@ -114,6 +114,9 @@ _make_agent_stubs() {
 # run_sandbox_zsh and by tests that need a custom zsh invocation (xtrace).
 _sandbox_env_args() {
     local home="$1"
+    # The __NIX*_DONE guards disarm nix's set-environment PATH rewrite:
+    # the zsh-package global zshenv is ALWAYS sourced (even under
+    # --no-globalrcs) and chains to the host /etc/zshenv where present.
     reply=(
         HOME="$home"
         PATH="$T_AGENT_STUBS:$PATH"
@@ -122,6 +125,8 @@ _sandbox_env_args() {
         TMPDIR="$home/tmp"
         INFLUX_SHOWN=1
         CHEVRON_DISABLE=1
+        __NIX_DARWIN_SET_ENVIRONMENT_DONE=1
+        __NIXOS_SET_ENVIRONMENT_DONE=1
     )
     [[ -n "$T_AGENT_SOCK" ]] && reply+=(SSH_AUTH_SOCK="$T_AGENT_SOCK")
 }

@@ -54,4 +54,4 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
       - name: Run zsh config test suite
-        run: nix develop --command zsh tests/run.zsh
+        run: nix develop --command zsh --no-globalrcs tests/run.zsh

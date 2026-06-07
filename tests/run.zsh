@@ -25,9 +25,10 @@ runner=(zsh --no-globalrcs)
 (( $+commands[timeout] )) && runner=(timeout 120 zsh --no-globalrcs)
 for f in "${files[@]}"; do
     print -r -- "-- ${f:t}"
-    # --no-globalrcs: without it, nix-darwin's /etc/zshenv rewrites the test
-    # process's PATH (dropping store paths, appending /usr/bin), which then
-    # leaks into every sandboxed shell the test spawns.
+    # --no-globalrcs skips global zprofile/zshrc/zlogin. Note it does NOT
+    # skip the global zshenv (always sourced); the nix set-environment PATH
+    # rewrite there is disarmed via __NIX*_SET_ENVIRONMENT_DONE guards,
+    # exported by the flake check script and by _sandbox_env_args.
     "${runner[@]}" "$f"
     rc=$?
     (( rc == 124 )) && print -r -- "  not ok - ${f:t} TIMED OUT after 120s"

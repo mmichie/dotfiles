@@ -1,6 +1,10 @@
 {
   description = "mim's dotfiles — nix-darwin + home-manager";
 
+  # Include vendored submodules (tmux plugins) in the flake source so
+  # checks.* can exercise the real tmux config, tpm included.
+  inputs.self.submodules = true;
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-25.05";
@@ -95,14 +99,32 @@
       formatter = forAllSystems (pkgs: pkgs.nixfmt-tree);
 
       # ── Checks ────────────────────────────────────────────────────
-      # Hermetic zsh config test suite (tests/run.zsh). Same suite as
-      # `just test`, the lefthook pre-commit hook, and the CI job.
+      # Hermetic config test suite (tests/run.zsh) — zsh modules + tmux
+      # config on isolated server sockets. Same suite as `just test`, the
+      # lefthook pre-commit hook, and the CI job.
       checks = forAllSystems (pkgs: {
-        zsh-config = pkgs.runCommand "zsh-config-tests" { nativeBuildInputs = [ pkgs.zsh ]; } ''
-          cd ${self}
-          zsh tests/run.zsh
-          touch $out
-        '';
+        zsh-config =
+          pkgs.runCommand "zsh-config-tests"
+            {
+              nativeBuildInputs = [
+                pkgs.zsh
+                pkgs.tmux
+              ];
+            }
+            ''
+              cd ${self}
+              # nixpkgs zsh compiles its global rc dir into the store, and
+              # that zshenv is ALWAYS sourced (--no-globalrcs only skips
+              # zprofile/zshrc/zlogin). On non-NixOS it chains to the HOST's
+              # /etc/zshenv — visible in the relaxed darwin sandbox — whose
+              # set-environment replaces PATH with the system profile
+              # template, silently swapping pinned store inputs for host
+              # tools. Both set-environment scripts honor a guard:
+              export __NIX_DARWIN_SET_ENVIRONMENT_DONE=1
+              export __NIXOS_SET_ENVIRONMENT_DONE=1
+              zsh --no-globalrcs tests/run.zsh
+              touch $out
+            '';
       });
 
       # ── Dev shell ─────────────────────────────────────────────────
@@ -119,6 +141,7 @@
             pkgs.just
             pkgs.gh
             pkgs.zsh
+            pkgs.tmux
           ];
         };
       });

@@ -30,9 +30,12 @@ update: && dry-run
 check:
     nix flake check
 
-# Run the zsh config test suite (also wired into lefthook, CI, and flake checks)
+# Run the config test suite (also wired into lefthook, CI, and flake checks).
+# --no-globalrcs keeps global zprofile/zshrc out of the runner; the global
+# zshenv always runs regardless, but its set-environment PATH rewrite is
+# already disarmed in interactive descendants (__NIX_DARWIN_SET_ENVIRONMENT_DONE).
 test:
-    zsh tests/run.zsh
+    zsh --no-globalrcs tests/run.zsh
 
 # Show what would change
 dry-run:
