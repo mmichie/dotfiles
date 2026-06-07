@@ -212,6 +212,9 @@
   };
 
   programs.zsh.enable = true;
+  # Same rationale as darwin: ~/.zshrc runs its own fingerprinted compinit;
+  # the global one in /etc/zshrc would be a second, slower compinit.
+  programs.zsh.enableGlobalCompInit = false;
 
   # ── Security ───────────────────────────────────────────────────
   security.sudo.wheelNeedsPassword = false; # Single-user dev VM

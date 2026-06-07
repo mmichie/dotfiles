@@ -44,6 +44,12 @@
   };
 
   programs.zsh.enable = true;
+  # No compinit in the generated /etc/zshrc: it runs a FULL bare compinit
+  # (security audit + dump check on ~/.zcompdump) before ~/.zshrc's
+  # fingerprinted `compinit -C` fast path even gets a chance — measured at
+  # ~36ms per shell. bashcompinit goes with it; nothing in configs/zsh
+  # uses bash-style completions.
+  programs.zsh.enableGlobalCompInit = false;
 
   fonts.packages = with pkgs; [
     nerd-fonts.iosevka
