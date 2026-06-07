@@ -117,16 +117,18 @@ bin/                          # Personal scripts
 ### Key Components
 
 #### Environment & PATH
-`configs/zsh/.zsh/lib/environment.zsh` configures PATH via `typeset -U path` (zsh native dedup):
-- User paths: `$HOME/bin`, `$HOME/.local/bin`, `$HOME/.claude/local`
-- Nix profile paths: `~/.nix-profile/bin`, `/etc/profiles/per-user/$USER/bin`
-- Language paths: Go
-- Re-runs `setup_path` on macOS login shells to fix path_helper reordering
+`configs/zsh/.zshenv` builds PATH via `typeset -U path` (zsh native dedup) for every zsh invocation:
+- User paths: `$HOME/bin`, `$HOME/.local/bin`
+- Nix profile paths: `~/.nix-profile/bin`, `/etc/profiles/per-user/$USER/bin`, system profiles
+- Language paths (Go), Homebrew, system paths
+- `configs/zsh/.zprofile` re-runs `setup_path` on macOS login shells after path_helper reordering
 
 #### Shell Configuration
-`configs/zsh/.zshrc` uses a modular design with optimized startup:
-- Core libraries loaded in order: platform_detection → environment → shell → prompt
-- Tools: atuin (history), vivid (ls colors), chevron (prompt), fzf, zoxide
+`configs/zsh/.zshrc` sources numbered modules from `.zsh/lib/` (`00-platform.zsh` ... `80-ssh.zsh`); the filename prefix encodes load order, no orchestrator needed:
+- Tool integrations (fzf, atuin, direnv, vivid, zoxide, chevron) initialize from mtime-invalidated caches (`_refresh_cache`, zcompiled) instead of `eval $(tool init)` per shell
+- compinit runs against a fingerprinted dump in `~/.cache/zsh` (`-C` fast path unless fpath changed)
+- `source ~/.zshrc` reloads cleanly — modules are written to be idempotent
+- Test suite: `tests/run.zsh` (`just test`); startup timing: `just profile` (real env) and `just profile-cold` (hermetic sandbox)
 
 ## Platform Targets
 
