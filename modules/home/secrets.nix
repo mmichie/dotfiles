@@ -30,6 +30,23 @@
         path = "${config.home.homeDirectory}/.cargo/credentials.toml";
         mode = "0400";
       };
+
+      # GAM7 static credentials. The mutable oauth2.txt (rewritten on token
+      # refresh) and gam.cfg stay machine-local — carried between machines by
+      # `just secrets-backup`, not sops.
+      "gam_client_secrets" = {
+        format = "binary";
+        sopsFile = ../../secrets/gam-client-secrets;
+        path = "${config.home.homeDirectory}/.gam/client_secrets.json";
+        mode = "0400";
+      };
+
+      "gam_oauth2service" = {
+        format = "binary";
+        sopsFile = ../../secrets/gam-oauth2service;
+        path = "${config.home.homeDirectory}/.gam/oauth2service.json";
+        mode = "0400";
+      };
     }
     // lib.optionalAttrs config.my.isWork {
       # Work-only secret — encrypted to mim-moab's age key only. Declared only

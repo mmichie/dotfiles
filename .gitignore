@@ -11,10 +11,6 @@ tags
 undo*
 .DS_Store
 
-# Platform symlinks in bin/
-bin/bin/fzf
-bin/bin/intu
-bin/bin/gam7/
 
 # Claude-specific files
 .claude/

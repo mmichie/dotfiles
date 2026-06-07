@@ -63,7 +63,11 @@ vm-switch:
         . vm:/nix-config
     ssh vm "sudo nixos-rebuild switch --flake /nix-config#vm-aarch64"
 
-# Backup SSH keys and GPG keyring to backup.tar.gz (for machine migration)
+# Backup SSH keys, GPG keyring, and GAM runtime state to backup.tar.gz.
+# GAM's client_secrets.json + oauth2service.json come from sops, so they're
+# excluded here (they'd be dangling symlinks anyway); oauth2.txt (mutable
+# token cache) and gam.cfg are the machine-local state worth carrying.
+# gamcache is regenerable.
 secrets-backup:
     tar -czvf backup.tar.gz \
         -C "$HOME" \
@@ -71,15 +75,21 @@ secrets-backup:
         --exclude='.gnupg/S.*' \
         --exclude='.gnupg/*.conf' \
         --exclude='.ssh/environment' \
+        --exclude='.gam/gamcache' \
+        --exclude='.gam/client_secrets.json' \
+        --exclude='.gam/oauth2service.json' \
+        --exclude='.gam/*.lock' \
         .ssh/ \
-        .gnupg/
+        .gnupg/ \
+        .gam/
 
-# Restore SSH keys and GPG keyring from backup.tar.gz
+# Restore SSH keys, GPG keyring, and GAM state from backup.tar.gz
 secrets-restore:
     @[ -f backup.tar.gz ] || (echo "Error: backup.tar.gz not found"; exit 1)
     tar -xzvf backup.tar.gz -C "$HOME"
     chmod 700 "$HOME/.ssh" "$HOME/.gnupg"
     chmod 600 "$HOME/.ssh/"* || true
+    [ -d "$HOME/.gam" ] && chmod 700 "$HOME/.gam" && chmod 600 "$HOME/.gam/oauth2.txt" 2>/dev/null || true
 
 # Open nix repl with all flake outputs pre-loaded (configs, formatter, etc.)
 repl:

@@ -1,6 +1,12 @@
 { pkgs, ... }:
 {
   home.packages = with pkgs; [
+    # ── Google Workspace admin ─────────────────────────────────────────
+    # GAM7 (GAM-team/GAM). Reads config + creds from ~/.gam; client_secrets
+    # and oauth2service come from sops (see modules/home/secrets.nix),
+    # oauth2.txt is machine-local runtime state (carried by secrets-backup).
+    gam
+
     # ── Terminals ─────────────────────────────────────────────────────
     wezterm
 
