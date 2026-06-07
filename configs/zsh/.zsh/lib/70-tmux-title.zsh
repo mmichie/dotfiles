@@ -16,6 +16,10 @@
 
 _tmux_title_push() {
     local pane_id="$1" window_id="$2" title="$3"
+    # Shell-local mirror of @priority_title so the per-command emoji preexec
+    # can check "is a title pinned?" without a tmux subprocess. Cross-pane
+    # pins are not visible here — accepted tradeoff for a fork-free hot path.
+    typeset -g _TMUX_TITLE_PINNED=1
     tmux set-option -t "$pane_id" -p @custom_title "$title"
     tmux set-option -t "$window_id" -w @priority_title "$title"
     tmux rename-window -t "$window_id" "$title"
@@ -24,11 +28,12 @@ _tmux_title_push() {
 
 _tmux_title_pop() {
     local pane_id="$1" window_id="$2"
+    unset _TMUX_TITLE_PINNED
     [[ -z "$pane_id" || -z "$window_id" ]] && return
     tmux set-option -t "$pane_id" -p @custom_title ""
     tmux set-option -t "$pane_id" -p @is_root ""
     tmux set-option -t "$window_id" -w @priority_title ""
-    local dir_title=$(basename "$PWD")
+    local dir_title=${PWD:t}
     tmux set-option -t "$pane_id" -p @dir_title "$dir_title"
     tmux rename-window -t "$window_id" "$dir_title"
     tmux set-window-option -t "$window_id" automatic-rename on

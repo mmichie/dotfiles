@@ -28,14 +28,15 @@ assert_contains "$out" "T3=/p%26q"          "ampersand percent-encoded"
 assert_contains "$out" "T4=/p%25q"          "percent itself percent-encoded"
 
 # ── _tmux_emoji_get_command (lib/75-tmux-emoji.zsh) ──────────────────
+# Returns via $REPLY (fork-free preexec hot path), not stdout.
 inner="$T_SCRATCH/emoji_inner.zsh"
 cat > "$inner" <<'EOF'
 source "$1/.zsh/lib/75-tmux-emoji.zsh"
-print -r -- "C1=$(_tmux_emoji_get_command 'sudo make install')"
-print -r -- "C2=$(_tmux_emoji_get_command 'time cargo build --release')"
-print -r -- "C3=$(_tmux_emoji_get_command '/usr/local/bin/python3 -m http.server')"
-print -r -- "C4=$(_tmux_emoji_get_command 'nohup ./run.sh arg')"
-print -r -- "C5=$(_tmux_emoji_get_command 'ls')"
+_tmux_emoji_get_command 'sudo make install';              print -r -- "C1=$REPLY"
+_tmux_emoji_get_command 'time cargo build --release';     print -r -- "C2=$REPLY"
+_tmux_emoji_get_command '/usr/local/bin/python3 -m http.server'; print -r -- "C3=$REPLY"
+_tmux_emoji_get_command 'nohup ./run.sh arg';             print -r -- "C4=$REPLY"
+_tmux_emoji_get_command 'ls';                             print -r -- "C5=$REPLY"
 EOF
 out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains "$out" "C1=make"    "strips sudo prefix"

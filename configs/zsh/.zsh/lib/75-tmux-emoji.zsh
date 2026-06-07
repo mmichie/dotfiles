@@ -114,7 +114,9 @@ TMUX_EMOJI_MAP=(
     claude     "✨"
 )
 
-# Extract the base command from a command line
+# Extract the base command from a command line. Returns via $REPLY —
+# this runs in preexec on every command typed, and a $(...) capture at the
+# call site would cost a subshell fork each time.
 _tmux_emoji_get_command() {
     local cmd="$1"
 
@@ -130,17 +132,21 @@ _tmux_emoji_get_command() {
     # Get basename (remove path)
     cmd="${cmd##*/}"
 
-    echo "$cmd"
+    # Plain assignment, not typeset -g: dynamic scoping must hit the
+    # caller's `local REPLY`, which -g would bypass.
+    REPLY="$cmd"
 }
 
-# Set emoji title when command starts
+# Set emoji title when command starts. Hot path: zero forks unless an emoji
+# actually needs setting — the pinned check is a shell variable maintained
+# by _tmux_title_push/pop (was a tmux show-options subprocess per command).
 _tmux_emoji_preexec() {
     [[ -z "$TMUX" ]] && return
+    [[ -n "$_TMUX_TITLE_PINNED" ]] && return
 
-    local priority_title=$(tmux show-options -w -v @priority_title 2>/dev/null)
-    [[ -n "$priority_title" ]] && return
-
-    local base_cmd=$(_tmux_emoji_get_command "$1")
+    local REPLY
+    _tmux_emoji_get_command "$1"
+    local base_cmd="$REPLY"
     local emoji="${TMUX_EMOJI_MAP[$base_cmd]}"
 
     if [[ -n "$emoji" && "$base_cmd" != "ssh" && "$base_cmd" != "claude" ]]; then
