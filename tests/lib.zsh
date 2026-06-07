@@ -137,7 +137,10 @@ run_sandbox_zsh() {
     local home="$1" cmd="$2"
     shift 2
     _sandbox_env_args "$home"
-    env -i "${reply[@]}" "$@" zsh --no-globalrcs -i -c "$cmd"
+    # </dev/null: under pty-allocating callers (lefthook) an inherited tty
+    # stdin lets startup tools negotiate with the terminal (cursor queries,
+    # graphics probes) and cross-talk between concurrent boots.
+    env -i "${reply[@]}" "$@" zsh --no-globalrcs -i -c "$cmd" </dev/null
 }
 
 # make_stub <dir> <name> [body]

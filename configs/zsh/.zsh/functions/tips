@@ -28,13 +28,16 @@ tips() {
     local tip="${all_tips[RANDOM % ${#all_tips[@]} + 1]}"
 
     if command -v gum >/dev/null 2>&1; then
+        # One gum call, not three: the inner $(gum style) invocations cost a
+        # fork+exec each (~16ms apiece). lipgloss is ANSI-aware, so inline
+        # 256-color escapes render identically inside the border.
         gum style \
             --border normal \
             --margin "1" \
             --padding "1" \
             --width 70 \
-            "$(gum style --foreground 212 '💡 Daily Tip:')" \
-            "$(gum style --foreground 99 "$tip")"
+            $'\e[38;5;212m💡 Daily Tip:\e[0m' \
+            $'\e[38;5;99m'"$tip"$'\e[0m'
     else
         echo "💡 Daily Tip:"
         echo "$tip"

@@ -59,4 +59,33 @@ else
     t_fail "warm-cache startup stderr clean" "${(j: | :)noise}"
 fi
 
+# ── Banner stamp: shown at most once per interval ────────────────────
+# Needs gum (the banner gate); skipped on minimal environments. INFLUX_SHOWN
+# is filtered from the env vector rather than overridden — macOS env(1)
+# serves the FIRST of duplicate bindings, so appending INFLUX_SHOWN= would
+# silently lose.
+if have gum; then
+    typeset sb2 out2
+    sb2="$(make_sandbox_home)"
+    _sandbox_env_args "$sb2"
+    reply=(${reply:#INFLUX_SHOWN=*})
+    out2=$(env -i "${reply[@]}" zsh --no-globalrcs -i -c \
+        'print -r -- "STAMP_AT_EXIT=$([[ -f $HOME/.cache/zsh/banner-stamp ]] && print -rn yes || print -rn no)"' \
+        2>"$T_SCRATCH/banner.err" </dev/null)
+    assert_contains "$out2" "Daily Tip" "banner+tip shown on first shell"
+    assert_contains "$out2" "STAMP_AT_EXIT=yes" "stamp exists inside the boot that wrote it"
+    if [[ -f "$sb2/.cache/zsh/banner-stamp" ]]; then
+        t_pass "banner stamp written"
+    else
+        t_fail "banner stamp written" "missing; cache dir: [$(ls -A $sb2/.cache/zsh 2>&1 | tr '\n' ' ')] stderr: [$(<$T_SCRATCH/banner.err)]"
+    fi
+    out2=$(env -i "${reply[@]}" zsh --no-globalrcs -i -c exit 2>/dev/null </dev/null)
+    assert_not_contains "$out2" "Daily Tip" "banner suppressed while stamp is fresh"
+    touch -t 200001010000 "$sb2/.cache/zsh/banner-stamp"
+    out2=$(env -i "${reply[@]}" zsh --no-globalrcs -i -c exit 2>/dev/null </dev/null)
+    assert_contains "$out2" "Daily Tip" "banner returns after stamp expires"
+else
+    t_skip "banner stamp behavior" "gum not in PATH"
+fi
+
 t_finish

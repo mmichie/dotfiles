@@ -1,7 +1,11 @@
 #!/bin/zsh
 
 # Show a startup banner via chevron (kitty graphics protocol).
+# CHEVRON_DISABLE covers this too: sandboxed/test shells must not run the
+# renderer at all — it negotiates with the terminal, which is exactly the
+# kind of side channel a captured boot cannot tolerate.
 notify_shell_status() {
+    [[ -n "$CHEVRON_DISABLE" ]] && return 0
     if ! command -v chevron &>/dev/null; then
         echo "Warning: chevron not found; skipping banner." >&2
         return 1
