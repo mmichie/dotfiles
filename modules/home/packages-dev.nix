@@ -2,9 +2,10 @@
 {
   home.packages = with pkgs; [
     # ── Google Workspace admin ─────────────────────────────────────────
-    # GAM7 (GAM-team/GAM). Reads config + creds from ~/.gam; client_secrets
-    # and oauth2service come from sops (see modules/home/secrets.nix),
-    # oauth2.txt is machine-local runtime state (carried by secrets-backup).
+    # GAM7 (GAM-team/GAM). The gam() wrapper (configs/zsh/.zsh/functions/gam)
+    # materializes client_secrets.json + oauth2service.json from 1Password on
+    # first use; oauth2.txt + gam.cfg are machine-local (carried by
+    # secrets-backup). Nothing GAM-secret lives in this repo.
     gam
 
     # ── Terminals ─────────────────────────────────────────────────────

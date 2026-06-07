@@ -1,0 +1,39 @@
+# GAM7 wrapper: materialize the static credentials from 1Password on first
+# use, then exec the real binary. Keeps the admin service-account key out of
+# the (public) dotfiles repo — 1Password is the source of truth; ~/.gam holds
+# only a local 0600 cache plus the mutable oauth2.txt/gam.cfg.
+#
+# Override the refs in ~/.zshrc.local if your vault/item names differ:
+#   OP_GAM_ACCOUNT, OP_GAM_CLIENT_SECRETS, OP_GAM_OAUTH2SERVICE
+gam() {
+    local account="${OP_GAM_ACCOUNT:-famfam.1password.com}"
+    local cs_ref="${OP_GAM_CLIENT_SECRETS:-op://Private/GAM/client_secrets.json}"
+    local svc_ref="${OP_GAM_OAUTH2SERVICE:-op://Private/GAM/oauth2service.json}"
+    local dir="$HOME/.gam"
+
+    # op read <ref> -> dest, 0600, only if missing. Returns nonzero (and
+    # leaves no partial file) so a failed unlock doesn't run gam credential-less.
+    _gam_pull() {
+        local ref="$1" dest="$2" tmp
+        [[ -s "$dest" ]] && return 0
+        if ! command -v op &>/dev/null; then
+            echo "gam: $dest missing and 1Password CLI (op) not installed" >&2
+            return 1
+        fi
+        mkdir -p "$dir"
+        tmp=$(mktemp "$dir/.pull.XXXXXX") || return 1
+        if op read --account "$account" "$ref" > "$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
+            chmod 600 "$tmp"; mv -f "$tmp" "$dest"
+        else
+            rm -f "$tmp"
+            echo "gam: could not fetch $ref from 1Password (account $account) — unlock 1Password and retry" >&2
+            return 1
+        fi
+    }
+
+    _gam_pull "$cs_ref"  "$dir/client_secrets.json"  || return 1
+    _gam_pull "$svc_ref" "$dir/oauth2service.json"   || return 1
+    unfunction _gam_pull
+
+    command gam "$@"
+}

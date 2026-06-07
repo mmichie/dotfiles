@@ -59,6 +59,11 @@ setup_integrations() {
     # Work profile (machine-specific env, not in dotfiles repo)
     [[ -f "$HOME/.bash_work_profile" ]] && source "$HOME/.bash_work_profile"
 
+    # 1Password shell-plugin aliases (op plugin init <cli> writes these).
+    # Routes e.g. aws/cargo through `op plugin run` so creds are injected
+    # from the vault at call time instead of living on disk.
+    [[ -f "$HOME/.config/op/plugins.sh" ]] && source "$HOME/.config/op/plugins.sh"
+
     # Invalidator paths come from zsh's $commands hash — $(command -v x)
     # forks a subshell per lookup even though command is a builtin.
 
