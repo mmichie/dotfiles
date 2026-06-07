@@ -46,7 +46,9 @@ vim.opt.showmatch = true
 local function ensure_dir(path)
     local ok, err = vim.uv.fs_stat(path)
     if not ok then
-        vim.uv.fs_mkdir(path, 511)  -- 511 = 0777 in octal
+        -- 448 = 0700: undo files replay edited file contents — never
+        -- world-readable.
+        vim.uv.fs_mkdir(path, 448)
     end
 end
 
@@ -107,12 +109,15 @@ autocmd('FileType', {
     end
 })
 
--- Trim trailing whitespace on save
+-- Trim trailing whitespace on save. Skip filetypes where trailing spaces
+-- are meaningful: markdown two-space hard breaks, diff/patch context lines.
+local trim_exclude = { markdown = true, diff = true, gitsendemail = true }
 local trim_whitespace = augroup('trim_whitespace', { clear = true })
 autocmd('BufWritePre', {
     group = trim_whitespace,
     pattern = '*',
     callback = function()
+        if trim_exclude[vim.bo.filetype] then return end
         local save_cursor = vim.fn.getpos(".")
         vim.cmd([[%s/\s\+$//e]])
         vim.fn.setpos(".", save_cursor)
@@ -129,8 +134,22 @@ vim.api.nvim_create_autocmd("BufWritePre", {
   group = format_sync_grp,
 })
 
+-- Diagnostic signs (set eagerly — this used to live inside neo-tree's
+-- lazy config and only applied after the first <leader>e).
+vim.diagnostic.config({
+    signs = {
+        text = {
+            [vim.diagnostic.severity.ERROR] = " ",
+            [vim.diagnostic.severity.WARN] = " ",
+            [vim.diagnostic.severity.INFO] = " ",
+            [vim.diagnostic.severity.HINT] = "󰌵",
+        },
+    },
+})
+
 -- Remember cursor position (but not for git commits)
 autocmd('BufReadPost', {
+    group = augroup('cursor_restore', { clear = true }),
     pattern = '*',
     callback = function()
         if vim.bo.filetype ~= 'gitcommit'

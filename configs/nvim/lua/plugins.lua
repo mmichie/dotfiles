@@ -44,7 +44,12 @@ return {
         'nvim-treesitter/nvim-treesitter',
         build = ':TSUpdate',
         config = function()
-            require('nvim-treesitter').setup({
+            -- master branch: the entrypoint is nvim-treesitter.configs, and
+            -- highlighting must be enabled explicitly. The old
+            -- require('nvim-treesitter').setup({...}) call was silently
+            -- ignored — no treesitter highlighting at all for filetypes
+            -- nvim does not cover by default.
+            require('nvim-treesitter.configs').setup({
                 ensure_installed = {
                     "lua", "vim", "vimdoc", "query",
                     "go", "gomod", "gosum", "gowork",
@@ -56,6 +61,7 @@ return {
                     "diff", "gitcommit", "gitignore",
                 },
                 auto_install = true,
+                highlight = { enable = true },
             })
         end,
     },
@@ -150,19 +156,9 @@ return {
         },
         keys = {
             { "<leader>e", "<cmd>Neotree toggle<CR>", desc = "Toggle Neo-tree" },
+            { "\\", "<cmd>Neotree reveal<CR>", desc = "Reveal in Neo-tree" },
         },
         config = function()
-            vim.diagnostic.config({
-                signs = {
-                    text = {
-                        [vim.diagnostic.severity.ERROR] = " ",
-                        [vim.diagnostic.severity.WARN] = " ",
-                        [vim.diagnostic.severity.INFO] = " ",
-                        [vim.diagnostic.severity.HINT] = "󰌵",
-                    },
-                },
-            })
-
             require("neo-tree").setup({
                 close_if_last_window = false,
                 popup_border_style = "rounded",
@@ -238,8 +234,6 @@ return {
                     }
                 },
             })
-
-            vim.keymap.set('n', '\\', '<cmd>Neotree reveal<CR>')
         end
     },
 
