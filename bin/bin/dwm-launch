@@ -1,16 +1,18 @@
-cd ~
-while true
-do
-  xsetroot -name "`date +"%Y-%m-%d %H:%M"`"
-  sleep 5
+#!/bin/sh
+# DWM session launcher (Linux/X11): clock loop into the root-window name,
+# a few terminals + browsers, then exec the WM. Invoked from ~/.xinitrc.
+cd "$HOME" || exit 1
+while true; do
+    xsetroot -name "$(date +"%Y-%m-%d %H:%M")"
+    sleep 5
 done &
 #/usr/local/bin/slstatus&
 
-kitty&
-kitty&
-kitty&
+kitty &
+kitty &
+kitty &
 
-google-chrome&
-google-chrome&
+google-chrome &
+google-chrome &
 
-exec /usr/local/bin/dwm 
+exec /usr/local/bin/dwm

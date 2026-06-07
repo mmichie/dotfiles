@@ -40,11 +40,9 @@ install: build
 	@cp -r $(BUNDLE_DIR) ~/Applications/
 	@codesign --force --deep --sign "Developer ID Application: Matthew Michie (TKW6ZHQF5Y)" ~/Applications/$(BUNDLE_NAME)
 
-	@echo "Copying wrapper script to ~/bin/..."
-	@cp launcher.sh ~/bin/$(BINARY_NAME)
-	@chmod +x ~/bin/$(BINARY_NAME)
 	@echo "✓ Installed app to ~/Applications/$(BUNDLE_NAME)"
-	@echo "✓ Installed wrapper to ~/bin/$(BINARY_NAME)"
+	@echo "  wrapper ~/bin/$(BINARY_NAME) is a tracked symlink to launcher.sh"
+	@echo "  (~/bin is the repo's bin/bin via mkOutOfStoreSymlink — no copy needed)"
 
 clean:
 	@echo "Cleaning build directory..."
