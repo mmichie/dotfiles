@@ -87,10 +87,11 @@ gc:
     nix-collect-garbage -d
 
 # Measure interactive zsh startup time. Runs N timed shells after a warmup,
-# reports min/median/max, fails if median exceeds the budget (default 250ms).
-# Use `just profile 300` to override the budget, or `just profile-deep` for
-# a zprof breakdown of where the time is spent.
-profile budget_ms="250" runs="10":
+# reports min/median/max, fails if median exceeds the budget (default 100ms;
+# warm startup measures ~65ms, ~30ms once the global-compinit removal is
+# switched in). Use `just profile 300` to override the budget, or
+# `just profile-deep` for a zprof breakdown of where the time is spent.
+profile budget_ms="100" runs="10":
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Profiling zsh startup ({{runs}} runs after 1 warmup, budget {{budget_ms}}ms)..."
