@@ -9,6 +9,9 @@
 
 # Re-run `cmd` and write its output to $cache_path when any of
 # $invalidators... is newer than the cache. Otherwise leave it alone.
+# Returns nonzero when the cache could not be (re)generated — callers
+# should `&& source` so a failed tool init degrades to "tool not set up
+# this shell" instead of sourcing garbage.
 # Sourceable caches (*.zsh only — data files like vivid-ls-colors are not
 # scripts) are zcompiled so later shells load wordcode; a missing .zwc next
 # to an existing cache is backfilled once (post-deploy).
@@ -19,18 +22,32 @@ _refresh_cache() {
     shift
     local inv
     if [[ ! -f $cache_path ]]; then
-        eval "$cmd" > "$cache_path"
-        _zcompile_cache "$cache_path"
+        _write_cache "$cache_path" "$cmd"
         return
     fi
     for inv in "$@"; do
         [[ -e $inv && $inv -nt $cache_path ]] || continue
-        eval "$cmd" > "$cache_path"
-        _zcompile_cache "$cache_path"
+        _write_cache "$cache_path" "$cmd"
         return
     done
     [[ "$cache_path" == *.zsh && ! -f "$cache_path.zwc" ]] && _zcompile_cache "$cache_path"
     return 0
+}
+
+# Atomic: generate into a temp file and mv into place only on success. The
+# old truncate-then-write left an empty cache behind a failed or
+# interrupted init, and every later shell sourced it forever (the binary
+# mtime invalidator never fires again).
+_write_cache() {
+    local cache_path="$1" cmd="$2"
+    local tmp="$cache_path.$$"
+    if eval "$cmd" > "$tmp"; then
+        command mv -f "$tmp" "$cache_path"
+        _zcompile_cache "$cache_path"
+    else
+        command rm -f "$tmp"
+        return 1
+    fi
 }
 
 _zcompile_cache() {
@@ -52,8 +69,8 @@ setup_integrations() {
     # setup_integrations() puts atuin-fzf-history and redo back on top.
     if command -v fzf &>/dev/null; then
         local fzf_cache="$SHELL_CACHE_DIR/fzf-init.zsh"
-        _refresh_cache "$fzf_cache" 'fzf --zsh' "$commands[fzf]"
-        source "$fzf_cache"
+        _refresh_cache "$fzf_cache" 'fzf --zsh' "$commands[fzf]" \
+            && source "$fzf_cache"
     fi
 
     # Atuin shell history. Cached init output; re-sources cleanly. The ^R
@@ -63,15 +80,15 @@ setup_integrations() {
         _refresh_cache "$atuin_cache" \
             'atuin init zsh --disable-up-arrow --disable-ctrl-r' \
             "$commands[atuin]" \
-            "$HOME/.config/atuin/config.toml"
-        source "$atuin_cache"
+            "$HOME/.config/atuin/config.toml" \
+            && source "$atuin_cache"
     fi
 
     # Direnv per-directory environment
     if command -v direnv &>/dev/null; then
         local direnv_cache="$SHELL_CACHE_DIR/direnv-hook.zsh"
-        _refresh_cache "$direnv_cache" 'direnv hook zsh' "$commands[direnv]"
-        source "$direnv_cache"
+        _refresh_cache "$direnv_cache" 'direnv hook zsh' "$commands[direnv]" \
+            && source "$direnv_cache"
     fi
 
     # Vivid ls colors. The theme name is baked into vivid's binary, so
@@ -79,8 +96,8 @@ setup_integrations() {
     if command -v vivid &>/dev/null; then
         local vivid_cache="$SHELL_CACHE_DIR/vivid-ls-colors"
         _refresh_cache "$vivid_cache" 'vivid generate tokyonight-night' \
-            "$commands[vivid]"
-        export LS_COLORS="$(<$vivid_cache)"
+            "$commands[vivid]" \
+            && export LS_COLORS="$(<$vivid_cache)"
     fi
 }
 
@@ -89,8 +106,8 @@ setup_integrations() {
 setup_zoxide() {
     command -v zoxide &>/dev/null || return
     local zoxide_cache="$SHELL_CACHE_DIR/zoxide-init.zsh"
-    _refresh_cache "$zoxide_cache" 'zoxide init zsh' "$commands[zoxide]"
-    source "$zoxide_cache"
+    _refresh_cache "$zoxide_cache" 'zoxide init zsh' "$commands[zoxide]" \
+        && source "$zoxide_cache"
     export _ZO_ECHO=1                                                  # Print matched dir before cd
     export _ZO_RESOLVE_SYMLINKS=1                                      # Resolve symlinks to true path
     export _ZO_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zoxide"

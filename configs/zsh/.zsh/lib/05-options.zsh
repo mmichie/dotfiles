@@ -12,7 +12,10 @@ setup_shell_options() {
     setopt PUSHD_IGNORE_DUPS   # Don't push multiple copies of same directory
     setopt PUSHD_SILENT        # Don't print directory stack after pushd/popd
     setopt EXTENDED_GLOB       # Use extended globbing syntax
-    setopt GLOB_DOTS            # Include dotfiles in glob matches without needing .*
+    # GLOB_DOTS deliberately NOT set: a global "bare * matches dotfiles"
+    # makes `rm *` include dotfiles and silently breaks functions and
+    # snippets that assume default globbing (it double-counted dotfiles in
+    # fs()). Use the (D) glob qualifier where dotfiles are wanted.
     setopt NO_CASE_GLOB        # Case insensitive globbing
     setopt NUMERIC_GLOB_SORT   # Sort filenames numerically when possible
     setopt NO_BEEP             # Don't beep on error

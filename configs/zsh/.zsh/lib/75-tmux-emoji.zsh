@@ -154,6 +154,7 @@ _tmux_emoji_preexec() {
     fi
 }
 
-# Register preexec hook (precmd dir title is now handled by chevron prompt)
+# Register preexec hook (precmd dir title is now handled by chevron prompt).
+# Containment-guarded so re-sourcing .zshrc cannot register it twice.
 typeset -ga preexec_functions
-preexec_functions+=(_tmux_emoji_preexec)
+(( ${preexec_functions[(Ie)_tmux_emoji_preexec]} )) || preexec_functions+=(_tmux_emoji_preexec)

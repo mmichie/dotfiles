@@ -17,6 +17,10 @@ notify_shell_status() {
 # Keeps OSC 7 URLs valid for paths with spaces or other specials.
 _urlencode_path() {
     emulate -L zsh
+    # Byte-wise, not character-wise: percent-encoding works on UTF-8 bytes
+    # (é -> %C3%A9). Under a UTF-8 locale, $str[i] yields whole characters
+    # and "'$c" the codepoint, producing invalid one-byte escapes.
+    local LC_ALL=C
     local str="$1" out="" c i
     for (( i=1; i<=${#str}; i++ )); do
         c=${str[i]}
@@ -55,8 +59,8 @@ init_prompt() {
     # `chevron init zsh` output is deterministic per binary — cache it like
     # the other tool inits instead of paying a fork+exec every shell.
     local chevron_cache="$SHELL_CACHE_DIR/chevron-init.zsh"
-    _refresh_cache "$chevron_cache" 'chevron init zsh' "$commands[chevron]"
-    source "$chevron_cache"
+    _refresh_cache "$chevron_cache" 'chevron init zsh' "$commands[chevron]" \
+        && source "$chevron_cache"
 }
 
 init_prompt

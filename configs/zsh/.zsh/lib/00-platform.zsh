@@ -35,7 +35,9 @@ detect_platform() {
     command -v docker &>/dev/null && SYSTEM_CAPABILITIES+=("docker")
     command -v systemctl &>/dev/null && SYSTEM_CAPABILITIES+=("systemd")
 
-    export SYSTEM_OS_TYPE SYSTEM_ARCH SYSTEM_CAPABILITIES
+    # Arrays cannot be exported in zsh — SYSTEM_CAPABILITIES stays
+    # shell-local (all consumers are in this shell); only scalars export.
+    export SYSTEM_OS_TYPE SYSTEM_ARCH
 }
 
 # Helper functions

@@ -1,9 +1,11 @@
 #!/bin/zsh
 
-readonly AGENT_SOCKET="$HOME/.ssh/.ssh-agent-socket"
-readonly AGENT_INFO="$HOME/.ssh/.ssh-agent-info"
-readonly ONEPASSWORD_SOCKET_MACOS="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
-readonly ONEPASSWORD_SOCKET_LINUX="$HOME/.1password/agent.sock"
+# Constants by convention, not readonly: `source ~/.zshrc` is the reload
+# path, and readonly would error on every re-source.
+typeset -g AGENT_SOCKET="$HOME/.ssh/.ssh-agent-socket"
+typeset -g AGENT_INFO="$HOME/.ssh/.ssh-agent-info"
+typeset -g ONEPASSWORD_SOCKET_MACOS="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+typeset -g ONEPASSWORD_SOCKET_LINUX="$HOME/.1password/agent.sock"
 
 # Export SSH_AUTH_SOCK pointing at a 1Password agent if one is running.
 # Returns 0 on hit, 1 on miss.
@@ -33,7 +35,11 @@ handle_ssh_agent() {
         source "$AGENT_INFO"
     fi
 
-    if ! ssh-add -l &>/dev/null || [[ ! -S "$AGENT_SOCKET" ]]; then
+    # ssh-add -l exit codes: 0 = agent has keys, 1 = agent alive but
+    # keyless, 2 = agent unreachable. Restarting on 1 leaked a fresh agent
+    # per shell on machines with no id_* keys to add.
+    ssh-add -l &>/dev/null
+    if (( $? == 2 )) || [[ ! -S "$AGENT_SOCKET" ]]; then
         restart_ssh_agent
     fi
 }
@@ -75,16 +81,37 @@ init_ssh() {
 
 init_ssh
 
-# SSH wrapper to auto-rename tmux windows to hostname
-unalias ssh 2>/dev/null
-ssh() {
-    # Extract hostname from last arg; strip user@ prefix and rsync-style :/path
-    local host="${@: -1}"
+# Parse the ssh destination out of an argv: skip flags (and the values of
+# flags that take one), stop at the first bare word. Returns via $REPLY.
+# The old "last arg" parse titled the window after the remote command for
+# `ssh host uptime`.
+_ssh_title_host() {
+    local -a argv=("$@")
+    local -i i=1
+    local a host=""
+    while (( i <= ${#argv} )); do
+        a="$argv[i]"
+        case "$a" in
+            --) host="${argv[i+1]:-}"; break ;;
+            -[bcDEeFIiJLlmOopQRSWw]) (( i += 2 )); continue ;;   # flag + value
+            -[bcDEeFIiJLlmOopQRSWw]*) (( i++ )); continue ;;     # joined -p2222
+            -*) (( i++ )); continue ;;                           # boolean flag
+            *) host="$a"; break ;;
+        esac
+    done
+    host="${host#ssh://}"
     host="${host#*@}"
     host="${host%%:*}"
     host="${host%%/*}"
+    REPLY="${host:-ssh}"
+}
 
-    _tmux_title_wrap "🔐 $host" command ssh "$@"
+# SSH wrapper to auto-rename tmux windows to hostname
+unalias ssh 2>/dev/null
+ssh() {
+    local REPLY
+    _ssh_title_host "$@"
+    _tmux_title_wrap "🔐 $REPLY" command ssh "$@"
 }
 
 # Sudo wrapper to warn about persistent root shells

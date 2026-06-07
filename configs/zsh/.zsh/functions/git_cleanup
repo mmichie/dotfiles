@@ -2,8 +2,13 @@ git_cleanup() {
     git fetch --prune || return
     local default_branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
     default_branch=${default_branch:-main}
+    # Merged into the *default branch*, not HEAD: run from a feature branch,
+    # bare --merged would offer branches merged into it but not into main.
+    local merge_ref="HEAD"
+    git show-ref --verify -q "refs/remotes/origin/$default_branch" \
+        && merge_ref="origin/$default_branch"
     local current_branch=$(git branch --show-current)
-    local branches=$(git branch --merged --format='%(refname:short)' |
+    local branches=$(git branch --merged "$merge_ref" --format='%(refname:short)' |
         grep -vE "^(${default_branch}|master|main|${current_branch})$")
     [[ -z "$branches" ]] && { echo "No merged branches to delete."; return; }
     echo "$branches" | xargs -n 1 git branch -d

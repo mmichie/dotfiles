@@ -1,8 +1,8 @@
 #!/bin/zsh
 
 # setup_path lives in .zshenv so it fires for every zsh (including the
-# non-interactive ones spawned by tmux run-shell). The call at .zshrc:174
-# re-runs it after macOS's path_helper reorders PATH for login shells.
+# non-interactive ones spawned by tmux run-shell). .zprofile re-runs it for
+# login shells after macOS's path_helper has reordered PATH.
 
 # Parse a .env file and export its vars. Second arg (optional): set to 1
 # to echo each loaded var name. Strips a single matching pair of outer

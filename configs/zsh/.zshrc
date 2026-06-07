@@ -22,6 +22,9 @@ declare -gx SHELL_CACHE_DIR="$HOME/.cache/zsh"
 
 # Set up fpath for zsh functions. (N-/) qualifier silently drops paths
 # that don't exist or aren't directories, so no existence loop needed.
+# -U keeps it duplicate-free so re-sourcing this file is idempotent (a
+# changed fingerprint would otherwise force a compinit rebuild per reload).
+typeset -gU fpath
 fpath=(
     /usr/share/zsh/site-functions(N-/)
     /usr/local/share/zsh/site-functions(N-/)
@@ -56,11 +59,9 @@ else
 fi
 unset _fpath_fingerprint
 
-# Prevent multiple sourcing
-if [[ -n "$ZSH_INITIALIZED" ]]; then
-    return 0
-fi
-ZSH_INITIALIZED=1
+# No re-source guard: `source ~/.zshrc` is the documented reload path, so
+# everything below is written to be idempotent — unique fpath/path, deduped
+# hook registration, mtime-gated cache work, add-zsh-hook semantics.
 
 # NOTE: do NOT manually source /etc/zshrc here. zsh already sources it for
 # interactive shells (GLOBAL_RCS), and nix-darwin's guard makes a re-source

@@ -13,6 +13,7 @@ print -r -- "M_PATH1=${path[1]}"
 [[ -o extended_glob ]]         && print -r -- "M_EXTENDED_GLOB=on"
 [[ -o share_history ]]         && print -r -- "M_SHARE_HISTORY=on"
 [[ -o interactive_comments ]]  && print -r -- "M_INT_COMMENTS=on"
+[[ -o glob_dots ]]             || print -r -- "M_GLOB_DOTS=off"
 print -r -- "M_HISTSIZE=$HISTSIZE"
 print -r -- "M_LL_ALIAS=${+aliases[ll]}"
 print -r -- "M_EXTRACT=$(whence -w extract)"
@@ -28,6 +29,7 @@ assert_contains "$out" "M_PATH1=$sb/bin"            "\$HOME/bin is PATH head"
 assert_contains "$out" "M_EXTENDED_GLOB=on"         "EXTENDED_GLOB set"
 assert_contains "$out" "M_SHARE_HISTORY=on"         "SHARE_HISTORY set"
 assert_contains "$out" "M_INT_COMMENTS=on"          "INTERACTIVE_COMMENTS set"
+assert_contains "$out" "M_GLOB_DOTS=off"            "GLOB_DOTS not set (bare * must exclude dotfiles)"
 assert_contains "$out" "M_HISTSIZE=600000"          "history sizing applied"
 assert_contains "$out" "M_LL_ALIAS=1"               "aliases defined"
 assert_contains "$out" "M_EXTRACT=extract: function" "functions dir autoloaded"
@@ -57,6 +59,31 @@ if (( ${#noise} == 0 )); then
     t_pass "warm-cache startup stderr clean"
 else
     t_fail "warm-cache startup stderr clean" "${(j: | :)noise}"
+fi
+
+# ── Reload: `source ~/.zshrc` must actually reload, idempotently ─────
+# This is the documented reload path (CLAUDE.md). A re-source guard used to
+# make it a silent no-op; now every module must tolerate repeat sourcing:
+# no duplicate fpath entries (would churn the compinit fingerprint), no
+# duplicate hook registrations, no readonly collisions, clean stderr.
+out=$(run_sandbox_zsh "$sb" '
+source ~/.zshrc
+source ~/.zshrc
+print -r -- "M_RELOAD=ok"
+print -r -- "M_FPATH_DUPES=$(( ${#fpath} - ${#${(@u)fpath}} ))"
+print -r -- "M_PREEXEC_DUPES=$(( ${#preexec_functions} - ${#${(@u)preexec_functions}} ))"
+print -r -- "M_PRECMD_DUPES=$(( ${#precmd_functions} - ${#${(@u)precmd_functions}} ))"
+' 2>"$errf")
+assert_contains "$out" "M_RELOAD=ok"        "source ~/.zshrc twice completes"
+assert_contains "$out" "M_FPATH_DUPES=0"    "reload leaves no duplicate fpath entries"
+assert_contains "$out" "M_PREEXEC_DUPES=0"  "reload leaves no duplicate preexec hooks"
+assert_contains "$out" "M_PRECMD_DUPES=0"   "reload leaves no duplicate precmd hooks"
+noise=(${(f)"$(<$errf)"})
+noise=(${noise:#*can?t change option: zle*})
+if (( ${#noise} == 0 )); then
+    t_pass "reload stderr clean"
+else
+    t_fail "reload stderr clean" "${(j: | :)noise}"
 fi
 
 # ── Banner stamp: shown at most once per interval ────────────────────

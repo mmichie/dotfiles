@@ -17,6 +17,7 @@ print -r -- "T1=$(_urlencode_path '/tmp/a b')"
 print -r -- "T2=$(_urlencode_path '/ok/AZ09._~-/x')"
 print -r -- "T3=$(_urlencode_path '/p&q')"
 print -r -- "T4=$(_urlencode_path '/p%q')"
+print -r -- "T5=$(_urlencode_path '/tmp/café')"
 EOF
 
 typeset sb out
@@ -26,6 +27,7 @@ assert_contains "$out" "T1=/tmp/a%20b"      "space percent-encoded"
 assert_contains "$out" "T2=/ok/AZ09._~-/x"  "unreserved chars pass through"
 assert_contains "$out" "T3=/p%26q"          "ampersand percent-encoded"
 assert_contains "$out" "T4=/p%25q"          "percent itself percent-encoded"
+assert_contains "$out" "T5=/tmp/caf%C3%A9"  "multibyte UTF-8 encoded per byte"
 
 # ── _tmux_emoji_get_command (lib/75-tmux-emoji.zsh) ──────────────────
 # Returns via $REPLY (fork-free preexec hot path), not stdout.
@@ -64,6 +66,16 @@ _refresh_cache "$cache" 'print -rn -- run3' "$inv"
 print -r -- "FRESH=$(<$cache)"
 _refresh_cache "$cache" 'print -rn -- run4' "/nonexistent/invalidator"
 print -r -- "NOINV=$(<$cache)"
+# Failure handling (regression: truncate-then-write left empty caches that
+# every later shell sourced forever).
+_refresh_cache "$2/fail.cache" 'false' "/nonexistent" 2>/dev/null
+print -r -- "FAILRC=$?"
+print -r -- "FAILFILES=$(ls "$2" | grep -c fail)"
+print -rn -- good > "$2/keep.cache"
+touch -t 200001010000 "$2/keep.cache"
+: > "$2/keep.inv"
+_refresh_cache "$2/keep.cache" 'false' "$2/keep.inv" 2>/dev/null
+print -r -- "KEEP=$(<$2/keep.cache)"
 EOF
 typeset cachedir="$T_SCRATCH/cachework"
 mkdir -p "$cachedir"
@@ -73,6 +85,29 @@ assert_contains "$out" "CREATE=run1" "creates cache when missing"
 assert_contains "$out" "STALE=run1"  "keeps cache when invalidator is older"
 assert_contains "$out" "FRESH=run3"  "rebuilds cache when invalidator is newer"
 assert_contains "$out" "NOINV=run3"  "missing invalidator leaves cache alone"
+assert_contains "$out" "FAILRC=1"    "failed generator returns nonzero"
+assert_contains "$out" "FAILFILES=0" "failed generator leaves no cache or temp file (regression)"
+assert_contains "$out" "KEEP=good"   "failed refresh preserves the old cache (regression)"
+
+# ── _ssh_title_host (lib/80-ssh.zsh) ─────────────────────────────────
+# Destination parsing for the tmux window title. Probed via a sandbox
+# shell: sourcing 80-ssh.zsh raw would run its agent logic.
+typeset sb_ssh
+sb_ssh="$(make_sandbox_home)"
+out=$(run_sandbox_zsh "$sb_ssh" '
+_ssh_title_host host1;                                          print -r -- "S1=$REPLY"
+_ssh_title_host -p 2222 user@host2;                             print -r -- "S2=$REPLY"
+_ssh_title_host host3 uptime -v;                                print -r -- "S3=$REPLY"
+_ssh_title_host -i key -L 8080:localhost:80 user@host4 echo hi; print -r -- "S4=$REPLY"
+_ssh_title_host ssh://user@host5:2200/;                         print -r -- "S5=$REPLY"
+_ssh_title_host -v;                                             print -r -- "S6=$REPLY"
+' 2>/dev/null)
+assert_contains "$out" "S1=host1" "bare destination"
+assert_contains "$out" "S2=host2" "flag with value before destination (regression: last-arg parse)"
+assert_contains "$out" "S3=host3" "remote command after destination ignored"
+assert_contains "$out" "S4=host4" "multiple valued flags skipped"
+assert_contains "$out" "S5=host5" "ssh:// URL form stripped"
+assert_contains "$out" "S6=ssh"   "no destination falls back to plain ssh"
 
 # ── extract (autoloaded function) ────────────────────────────────────
 if have tar && have gzip; then

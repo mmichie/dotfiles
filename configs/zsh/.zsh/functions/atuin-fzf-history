@@ -2,6 +2,20 @@
 # isn't installed. Registered via `zle -N` in lib/50-integrations.zsh; this
 # file is loaded on first ^R press.
 atuin-fzf-history() {
+    # Pick a real clipboard binary for the ctrl-y binding: fzf's
+    # execute-silent runs in a non-interactive shell, where the Linux
+    # `pbcopy` alias from 40-clipboard.zsh does not exist.
+    local copy="cat > /dev/null"   # no backend: ctrl-y degrades to a no-op
+    if (( $+commands[pbcopy] )); then
+        copy="pbcopy"
+    elif (( $+commands[wl-copy] )); then
+        copy="wl-copy"
+    elif (( $+commands[xclip] )); then
+        copy="xclip -selection clipboard -in"
+    elif (( $+commands[xsel] )); then
+        copy="xsel --clipboard --input"
+    fi
+
     local selected
     if command -v atuin &>/dev/null; then
         selected=$(atuin search --cmd-only --limit 10000 2>/dev/null | \
@@ -13,7 +27,7 @@ atuin-fzf-history() {
                 --query="${LBUFFER}" \
                 --preview 'echo {}' \
                 --preview-window down:3:wrap \
-                --bind 'ctrl-y:execute-silent(echo -n {} | pbcopy)+abort' \
+                --bind "ctrl-y:execute-silent(echo -n {} | $copy)+abort" \
                 --header 'Press CTRL-Y to copy command to clipboard')
     else
         selected=$(fc -rl 1 | \
@@ -25,7 +39,7 @@ atuin-fzf-history() {
                 --query="${LBUFFER}" \
                 --preview 'echo {}' \
                 --preview-window down:3:wrap \
-                --bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort' \
+                --bind "ctrl-y:execute-silent(echo -n {2..} | $copy)+abort" \
                 --header 'Press CTRL-Y to copy command to clipboard' | \
             sed 's/^ *[0-9]* *//')
     fi
