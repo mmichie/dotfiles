@@ -49,9 +49,14 @@ init_prompt() {
     # falling through to inline compute. `chevron daemon start` is
     # non-blocking and idempotent: returns immediately if a daemon is
     # already running (locked via chevrond.lock), otherwise spawns
-    # detached. ~5ms one-time cost on the first shell of the boot.
-    chevron daemon start 2>/dev/null
-    eval "$(chevron init zsh)"
+    # detached. Backgrounded (&!) so even its ~5ms fork is off the
+    # startup critical path.
+    chevron daemon start 2>/dev/null &!
+    # `chevron init zsh` output is deterministic per binary — cache it like
+    # the other tool inits instead of paying a fork+exec every shell.
+    local chevron_cache="$SHELL_CACHE_DIR/chevron-init.zsh"
+    _refresh_cache "$chevron_cache" 'chevron init zsh' "$commands[chevron]"
+    source "$chevron_cache"
 }
 
 init_prompt

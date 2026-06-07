@@ -6,7 +6,7 @@
 # which is what you usually want).
 if [[ -n "$PROFILE_STARTUP" ]]; then
   if [[ -n "$PROFILE_STARTUP_RESET" ]]; then
-    rm -f "$HOME/.zcompdump" "$HOME/.cache/zsh/.zcompdump" 2>/dev/null
+    rm -f "$HOME/.zcompdump" "$HOME/.cache/zsh/.zcompdump"{,.zwc,.fpath} 2>/dev/null
   fi
   zmodload zsh/zprof
 fi
@@ -34,20 +34,25 @@ fpath=(
     $fpath
 )
 
-mkdir -p "$SHELL_CACHE_DIR"
+[[ -d "$SHELL_CACHE_DIR" ]] || mkdir -p "$SHELL_CACHE_DIR"
 
 # Load completion system. compinit -C is fast but doesn't notice fpath
-# changes on its own; fingerprint fpath into the dump and rebuild only
-# when it shifts.
+# changes on its own; fingerprint fpath into a sidecar file and rebuild only
+# when it shifts. The sidecar (not a line appended to the dump) keeps the
+# dump pristine for zcompile and costs a fork-free $(<...) instead of a grep.
 ZSH_COMPDUMP="$SHELL_CACHE_DIR/.zcompdump"
 autoload -Uz compinit
-_fpath_fingerprint="#fpath: ${(j::)fpath}"
-if command grep -q -Fx "$_fpath_fingerprint" "$ZSH_COMPDUMP" 2>/dev/null; then
+_fpath_fingerprint="${(j::)fpath}"
+if [[ -f "$ZSH_COMPDUMP" && -r "$ZSH_COMPDUMP.fpath" ]] \
+    && [[ "$(<"$ZSH_COMPDUMP.fpath")" == "$_fpath_fingerprint" ]]; then
     compinit -C -d "$ZSH_COMPDUMP"
+    # One-time backfill after deploys: compile the dump if no wordcode yet.
+    [[ -f "$ZSH_COMPDUMP.zwc" ]] || zcompile "$ZSH_COMPDUMP" 2>/dev/null
 else
-    command rm -f "$ZSH_COMPDUMP"
+    command rm -f "$ZSH_COMPDUMP" "$ZSH_COMPDUMP.zwc"
     compinit -i -d "$ZSH_COMPDUMP"
-    print -- "$_fpath_fingerprint" >> "$ZSH_COMPDUMP"
+    zcompile "$ZSH_COMPDUMP" 2>/dev/null
+    print -r -- "$_fpath_fingerprint" >| "$ZSH_COMPDUMP.fpath"
 fi
 unset _fpath_fingerprint
 

@@ -1,13 +1,10 @@
 #!/bin/zsh
 
-# Source fzf's shell integration at module load so its widgets (fzf-file-widget,
-# fzf-cd-widget) are defined before setup_readline binds to them. fzf also
-# binds ^R to its own fzf-history-widget; setup_readline overwrites that with
-# atuin-fzf-history, which runs *after* this because init_shell is called from
-# .zshrc post-module-load.
-if command -v fzf &>/dev/null; then
-    source <(fzf --zsh)
-fi
+# fzf's shell integration (fzf-file-widget, fzf-cd-widget, history widget)
+# is sourced from a cache in 50-integrations.zsh — `source <(fzf --zsh)`
+# here cost a fork+exec every shell. bindkey happily binds widget names
+# before the widgets exist (resolution happens at keypress), so binding ^T
+# and alt-c below works even though fzf's script loads two modules later.
 
 # Prefix-aware history search (zsh built-in widgets). Typing a prefix then
 # up/down searches for history entries starting with it.

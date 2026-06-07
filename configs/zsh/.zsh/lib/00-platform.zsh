@@ -21,11 +21,11 @@ detect_platform() {
         *)        SYSTEM_OS_TYPE="UNKNOWN" ;;
     esac
 
-    # Architecture
-    case "$(uname -m)" in
+    # Architecture. $CPUTYPE is zsh's own uname(2) value — no fork.
+    case "${CPUTYPE:-$(uname -m)}" in
         x86_64)       SYSTEM_ARCH="x86_64" ;;
         arm64|aarch64) SYSTEM_ARCH="arm64" ;;
-        *)            SYSTEM_ARCH="$(uname -m)" ;;
+        *)            SYSTEM_ARCH="${CPUTYPE:-unknown}" ;;
     esac
 
     # Capabilities

@@ -9,6 +9,9 @@
 
 # Re-run `cmd` and write its output to $cache_path when any of
 # $invalidators... is newer than the cache. Otherwise leave it alone.
+# Sourceable caches (*.zsh only — data files like vivid-ls-colors are not
+# scripts) are zcompiled so later shells load wordcode; a missing .zwc next
+# to an existing cache is backfilled once (post-deploy).
 _refresh_cache() {
     local cache_path="$1"
     shift
@@ -17,18 +20,41 @@ _refresh_cache() {
     local inv
     if [[ ! -f $cache_path ]]; then
         eval "$cmd" > "$cache_path"
+        _zcompile_cache "$cache_path"
         return
     fi
     for inv in "$@"; do
         [[ -e $inv && $inv -nt $cache_path ]] || continue
         eval "$cmd" > "$cache_path"
+        _zcompile_cache "$cache_path"
         return
     done
+    [[ "$cache_path" == *.zsh && ! -f "$cache_path.zwc" ]] && _zcompile_cache "$cache_path"
+    return 0
+}
+
+_zcompile_cache() {
+    [[ "$1" == *.zsh ]] || return 0
+    zcompile "$1" 2>/dev/null
 }
 
 setup_integrations() {
     # Work profile (machine-specific env, not in dotfiles repo)
     [[ -f "$HOME/.bash_work_profile" ]] && source "$HOME/.bash_work_profile"
+
+    # Invalidator paths come from zsh's $commands hash — $(command -v x)
+    # forks a subshell per lookup even though command is a builtin.
+
+    # fzf keybindings/completion. Sourced here (cached) rather than in
+    # 45-keybindings: bindkey happily binds widget names before the widgets
+    # exist, so only the ^R override order at the bottom of this file
+    # matters. fzf's own script binds ^R in viins/vicmd; the override after
+    # setup_integrations() puts atuin-fzf-history and redo back on top.
+    if command -v fzf &>/dev/null; then
+        local fzf_cache="$SHELL_CACHE_DIR/fzf-init.zsh"
+        _refresh_cache "$fzf_cache" 'fzf --zsh' "$commands[fzf]"
+        source "$fzf_cache"
+    fi
 
     # Atuin shell history. Cached init output; re-sources cleanly. The ^R
     # binding is disabled here — see the atuin-fzf-history widget below.
@@ -36,7 +62,7 @@ setup_integrations() {
         local atuin_cache="$SHELL_CACHE_DIR/atuin-init.zsh"
         _refresh_cache "$atuin_cache" \
             'atuin init zsh --disable-up-arrow --disable-ctrl-r' \
-            "$(command -v atuin)" \
+            "$commands[atuin]" \
             "$HOME/.config/atuin/config.toml"
         source "$atuin_cache"
     fi
@@ -44,7 +70,7 @@ setup_integrations() {
     # Direnv per-directory environment
     if command -v direnv &>/dev/null; then
         local direnv_cache="$SHELL_CACHE_DIR/direnv-hook.zsh"
-        _refresh_cache "$direnv_cache" 'direnv hook zsh' "$(command -v direnv)"
+        _refresh_cache "$direnv_cache" 'direnv hook zsh' "$commands[direnv]"
         source "$direnv_cache"
     fi
 
@@ -53,7 +79,7 @@ setup_integrations() {
     if command -v vivid &>/dev/null; then
         local vivid_cache="$SHELL_CACHE_DIR/vivid-ls-colors"
         _refresh_cache "$vivid_cache" 'vivid generate tokyonight-night' \
-            "$(command -v vivid)"
+            "$commands[vivid]"
         export LS_COLORS="$(<$vivid_cache)"
     fi
 }
@@ -63,7 +89,7 @@ setup_integrations() {
 setup_zoxide() {
     command -v zoxide &>/dev/null || return
     local zoxide_cache="$SHELL_CACHE_DIR/zoxide-init.zsh"
-    _refresh_cache "$zoxide_cache" 'zoxide init zsh' "$(command -v zoxide)"
+    _refresh_cache "$zoxide_cache" 'zoxide init zsh' "$commands[zoxide]"
     source "$zoxide_cache"
     export _ZO_ECHO=1                                                  # Print matched dir before cd
     export _ZO_RESOLVE_SYMLINKS=1                                      # Resolve symlinks to true path
@@ -71,16 +97,17 @@ setup_zoxide() {
     alias cdi="zi"                                                     # Interactive directory selection
 }
 
+setup_integrations
+setup_zoxide
+
 # Register atuin-fzf-history as a ZLE widget. The function body is autoloaded
 # from $SHELL_FUNCTIONS_DIR on first ^R press. Binding the widget requires
 # `zle -N` to know the name — the function need not exist yet.
+# This block must run AFTER setup_integrations: the cached fzf init bound
+# viins/vicmd ^R to fzf-history-widget, and these overrides win by coming
+# last (atuin search on ^R; vi redo restored in vicmd).
 zle -N atuin-fzf-history
 if command -v fzf &>/dev/null; then
     bindkey -M viins '^R' atuin-fzf-history
-    # fzf's `source <(fzf --zsh)` in 45-keybindings.zsh also bound vicmd ^R
-    # to fzf-history-widget; restore vi's redo there.
     bindkey -M vicmd '^R' redo
 fi
-
-setup_integrations
-setup_zoxide
