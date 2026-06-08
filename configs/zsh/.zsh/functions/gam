@@ -3,18 +3,22 @@
 # the (public) dotfiles repo — 1Password is the source of truth; ~/.gam holds
 # only a local 0600 cache plus the mutable oauth2.txt/gam.cfg.
 #
-# Override the refs in ~/.zshrc.local if your vault/item names differ:
-#   OP_GAM_ACCOUNT, OP_GAM_CLIENT_SECRETS, OP_GAM_OAUTH2SERVICE
+# Creds are stored as 1Password *documents* (the create step reads the files
+# directly, so the secret never hits a command line or shell history).
+# Requires 1Password CLI integration enabled (app -> Settings -> Developer).
+# Override item titles / location in ~/.zshrc.local if yours differ:
+#   OP_GAM_ACCOUNT, OP_GAM_VAULT, OP_GAM_CLIENT_SECRETS, OP_GAM_OAUTH2SERVICE
 gam() {
     local account="${OP_GAM_ACCOUNT:-famfam.1password.com}"
-    local cs_ref="${OP_GAM_CLIENT_SECRETS:-op://Private/GAM/client_secrets.json}"
-    local svc_ref="${OP_GAM_OAUTH2SERVICE:-op://Private/GAM/oauth2service.json}"
+    local vault="${OP_GAM_VAULT:-Private}"
+    local cs_item="${OP_GAM_CLIENT_SECRETS:-GAM client_secrets}"
+    local svc_item="${OP_GAM_OAUTH2SERVICE:-GAM oauth2service}"
     local dir="$HOME/.gam"
 
-    # op read <ref> -> dest, 0600, only if missing. Returns nonzero (and
-    # leaves no partial file) so a failed unlock doesn't run gam credential-less.
+    # op document get <title> -> dest, 0600, only if missing. Atomic and
+    # fail-closed: a locked vault leaves no partial file and aborts gam.
     _gam_pull() {
-        local ref="$1" dest="$2" tmp
+        local item="$1" dest="$2" tmp
         [[ -s "$dest" ]] && return 0
         if ! command -v op &>/dev/null; then
             echo "gam: $dest missing and 1Password CLI (op) not installed" >&2
@@ -22,17 +26,17 @@ gam() {
         fi
         mkdir -p "$dir"
         tmp=$(mktemp "$dir/.pull.XXXXXX") || return 1
-        if op read --account "$account" "$ref" > "$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
+        if op document get "$item" --account "$account" --vault "$vault" >"$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
             chmod 600 "$tmp"; mv -f "$tmp" "$dest"
         else
             rm -f "$tmp"
-            echo "gam: could not fetch $ref from 1Password (account $account) — unlock 1Password and retry" >&2
+            echo "gam: could not fetch '$item' from 1Password ($account/$vault) — enable CLI integration + unlock, then retry" >&2
             return 1
         fi
     }
 
-    _gam_pull "$cs_ref"  "$dir/client_secrets.json"  || return 1
-    _gam_pull "$svc_ref" "$dir/oauth2service.json"   || return 1
+    _gam_pull "$cs_item"  "$dir/client_secrets.json"  || return 1
+    _gam_pull "$svc_item" "$dir/oauth2service.json"   || return 1
     unfunction _gam_pull
 
     command gam "$@"
