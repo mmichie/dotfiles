@@ -63,11 +63,13 @@ vm-switch:
         . vm:/nix-config
     ssh vm "sudo nixos-rebuild switch --flake /nix-config#vm-aarch64"
 
-# Backup SSH keys, GPG keyring, and GAM runtime state to backup.tar.gz.
-# GAM's client_secrets.json + oauth2service.json come from sops, so they're
-# excluded here (they'd be dangling symlinks anyway); oauth2.txt (mutable
-# token cache) and gam.cfg are the machine-local state worth carrying.
-# gamcache is regenerable.
+# Backup the sops age key, SSH keys, GPG keyring, and GAM runtime state to
+# backup.tar.gz. The age key is the ROOT OF TRUST — without it the sops
+# secrets (atuin, zshrc-local*) are undecryptable on a rebuild, so it leads.
+# GAM's client_secrets.json + oauth2service.json are excluded: they come from
+# 1Password (the gam wrapper re-pulls them). oauth2.txt (mutable token cache)
+# and gam.cfg are machine-local state worth carrying; gamcache is regenerable.
+# Store backup.tar.gz somewhere encrypted/offline — it holds private keys.
 secrets-backup:
     tar -czvf backup.tar.gz \
         -C "$HOME" \
@@ -79,16 +81,18 @@ secrets-backup:
         --exclude='.gam/client_secrets.json' \
         --exclude='.gam/oauth2service.json' \
         --exclude='.gam/*.lock' \
+        .config/sops/age/keys.txt \
         .ssh/ \
         .gnupg/ \
         .gam/
 
-# Restore SSH keys, GPG keyring, and GAM state from backup.tar.gz
+# Restore age key, SSH keys, GPG keyring, and GAM state from backup.tar.gz
 secrets-restore:
     @[ -f backup.tar.gz ] || (echo "Error: backup.tar.gz not found"; exit 1)
     tar -xzvf backup.tar.gz -C "$HOME"
     chmod 700 "$HOME/.ssh" "$HOME/.gnupg"
     chmod 600 "$HOME/.ssh/"* || true
+    [ -f "$HOME/.config/sops/age/keys.txt" ] && chmod 700 "$HOME/.config/sops/age" && chmod 600 "$HOME/.config/sops/age/keys.txt" || true
     [ -d "$HOME/.gam" ] && chmod 700 "$HOME/.gam" && chmod 600 "$HOME/.gam/oauth2.txt" 2>/dev/null || true
 
 # Open nix repl with all flake outputs pre-loaded (configs, formatter, etc.)
