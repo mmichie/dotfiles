@@ -41,11 +41,6 @@
 	command = /usr/bin/true
 
 [alias]
-        ai-commit = "!f() { \
-                git diff --staged | intu commit --provider claude > .git/COMMIT_EDITMSG && \
-                git commit -t .git/COMMIT_EDITMSG; \
-        }; f"
-
 	# Repo navigation
 	root = rev-parse --show-toplevel
 
