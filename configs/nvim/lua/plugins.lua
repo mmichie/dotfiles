@@ -42,6 +42,12 @@ return {
     -- Syntax highlighting
     {
         'nvim-treesitter/nvim-treesitter',
+        -- Pin the master branch. Upstream made `main` (the rewrite) the default
+        -- branch, and main removes nvim-treesitter.configs. Without this pin,
+        -- `:Lazy update` tracks the default branch and drifts onto main, which
+        -- breaks the configs.setup() call below. The exact commit is held in
+        -- lazy-lock.json; `:Lazy restore` pins it back.
+        branch = "master",
         build = ':TSUpdate',
         config = function()
             -- master branch: the entrypoint is nvim-treesitter.configs, and
