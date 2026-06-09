@@ -2,6 +2,11 @@
 {
   home.packages = [ pkgs.yarn ];
 
+  # This host's work infra repo runs HashiCorp Terraform in CI, so install
+  # terraform instead of the default OpenTofu — keeps local state operations
+  # compatible with what auto-applies on merge.
+  my.iacTool = "terraform";
+
   # pyenv + Python C-ext build flags. Sourced from ~/.zshrc.local — add:
   #   [[ -f ~/.config/zsh/moab-env.sh ]] && source ~/.config/zsh/moab-env.sh
   xdg.configFile."zsh/moab-env.sh".text = ''

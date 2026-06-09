@@ -24,5 +24,14 @@ in
     };
 
     isWork = mkBoolOpt false "Whether this host is a work machine (gates work-only secrets and tooling).";
+
+    iacTool =
+      mkOpt'
+        (lib.types.enum [
+          "opentofu"
+          "terraform"
+        ])
+        "opentofu"
+        "Infrastructure-as-Code CLI to install (packages-dev.nix). Default OpenTofu; set to \"terraform\" on hosts whose project CI/state uses HashiCorp Terraform (e.g. mim-moab).";
   };
 }

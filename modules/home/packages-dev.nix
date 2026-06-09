@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 {
   home.packages = with pkgs; [
     # ── Google Workspace admin ─────────────────────────────────────────
@@ -62,7 +62,9 @@
     kind
     minikube
     docker-compose
-    opentofu
+    # IaC CLI: OpenTofu by default; Terraform on hosts whose project CI/state is
+    # HashiCorp Terraform (selected per host via my.iacTool — e.g. mim-moab).
+    (if config.my.iacTool == "terraform" then terraform else opentofu)
     (python3.withPackages (ps: [
       ps.ansible-core
       ps.boto3
