@@ -56,6 +56,7 @@
     # ── Infrastructure & Cloud ─────────────────────────────────────────
     google-cloud-sdk
     awscli2
+    azure-cli
     kubectl
     kubernetes-helm
     stern
