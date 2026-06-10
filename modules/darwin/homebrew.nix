@@ -21,6 +21,7 @@ _:
 
     brews = [
       "dosbox-x" # nixpkgs build broken on aarch64-darwin (SCREEN_METAL undeclared in render.cpp)
+      "mas" # Mac App Store CLI — required for the masApps below
       "tensor9ine/tensor9/tensor9"
     ];
 
@@ -72,5 +73,13 @@ _:
       "steam"
       "nvidia-geforce-now"
     ];
+
+    # Mac App Store apps, installed via `mas`. Requires being signed into the
+    # App Store, and `mas` can only install apps already in this Apple ID's
+    # purchase history — current macOS won't let it acquire a never-obtained
+    # app, so "Get" it once in the App Store GUI before the first switch.
+    masApps = {
+      "Amphetamine" = 937984704; # keep-the-Mac-awake utility
+    };
   };
 }
