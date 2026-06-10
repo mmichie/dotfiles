@@ -19,11 +19,12 @@
   # silently run no hooks (no lefthook, no secret-scan). Sync lefthook's shims
   # into the configured hooksPath on every switch. --force is required because
   # lefthook refuses to touch a globally-set hooksPath; the install is
-  # idempotent. Guarded on the repo being present.
+  # idempotent. Guarded on the repo being present. The activation PATH is
+  # minimal and has no git, but lefthook shells out to it, so prepend it.
   home.activation.installGitHooks = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
     if [ -d "${config.my.dotfilesRoot}/.git" ]; then
       ( cd "${config.my.dotfilesRoot}" \
-          && "${pkgs.lefthook}/bin/lefthook" install --force ) \
+          && PATH="${pkgs.git}/bin:$PATH" "${pkgs.lefthook}/bin/lefthook" install --force ) \
         || echo "installGitHooks: lefthook install failed (git hooks may be inactive)"
     fi
   '';
