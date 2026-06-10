@@ -22,3 +22,14 @@ commit-msg:
   commands:
     conventional-commit:
       run: 'head -1 {1} | grep -qE "^(feat|fix|docs|style|refactor|test|chore|build|ci|perf|revert)(\(.+\))?(!)?: .+" || (echo "error: commit message must use conventional commits format" && exit 1)'
+
+pre-push:
+  commands:
+    # Behavioral nvim gate on every push. The pre-commit zsh-tests only fire on
+    # changes under configs/nvim, so a config broken by plugin drift (a :Lazy
+    # update walking a plugin off lazy-lock.json, e.g. nvim-treesitter onto the
+    # `main` rewrite) would slip through — no tracked file changed. Running the
+    # nvim boot/treesitter probes here catches it before it leaves the machine.
+    # </dev/null keeps headless nvim off any tty lefthook may allocate.
+    nvim-tests:
+      run: zsh --no-globalrcs tests/test_nvim.zsh </dev/null
