@@ -10,6 +10,13 @@ switch:
         home-manager switch --flake .#mim@linux; \
     fi
 
+# Install git hooks. The repo sets core.hooksPath globally (configs/git/
+# .gitconfig), so git ignores .git/hooks and nothing wires lefthook in per
+# clone. Run once per machine; also done automatically on `just switch` via a
+# home-manager activation. --force: lefthook won't touch a global hooksPath.
+hooks:
+    lefthook install --force
+
 # Update all flake inputs, show input + package diffs
 update: && dry-run
     @cp flake.lock /tmp/flake.lock.before
