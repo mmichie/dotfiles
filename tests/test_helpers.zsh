@@ -66,6 +66,17 @@ _refresh_cache "$cache" 'print -rn -- run3' "$inv"
 print -r -- "FRESH=$(<$cache)"
 _refresh_cache "$cache" 'print -rn -- run4' "/nonexistent/invalidator"
 print -r -- "NOINV=$(<$cache)"
+# Nix rebuilds change only the resolved target path: every store mtime
+# is clamped to the epoch, so the -nt check can never fire (regression:
+# tool inits froze at whatever version first populated the cache).
+mkdir -p "$2/store-a" "$2/store-b"
+: > "$2/store-a/bin"; : > "$2/store-b/bin"
+touch -t 197001010000 "$2/store-a/bin" "$2/store-b/bin"
+ln -s "$2/store-a/bin" "$2/tool"
+_refresh_cache "$2/nix.cache" 'print -rn -- gen1' "$2/tool"
+ln -sfn "$2/store-b/bin" "$2/tool"
+_refresh_cache "$2/nix.cache" 'print -rn -- gen2' "$2/tool"
+print -r -- "NIXSWAP=$(<$2/nix.cache)"
 # Failure handling (regression: truncate-then-write left empty caches that
 # every later shell sourced forever).
 _refresh_cache "$2/fail.cache" 'false' "/nonexistent" 2>/dev/null
@@ -85,6 +96,7 @@ assert_contains "$out" "CREATE=run1" "creates cache when missing"
 assert_contains "$out" "STALE=run1"  "keeps cache when invalidator is older"
 assert_contains "$out" "FRESH=run3"  "rebuilds cache when invalidator is newer"
 assert_contains "$out" "NOINV=run3"  "missing invalidator leaves cache alone"
+assert_contains "$out" "NIXSWAP=gen2" "nix rebuild (epoch mtimes, retargeted symlink) refreshes"
 assert_contains "$out" "FAILRC=1"    "failed generator returns nonzero"
 assert_contains "$out" "FAILFILES=0" "failed generator leaves no cache or temp file (regression)"
 assert_contains "$out" "KEEP=good"   "failed refresh preserves the old cache (regression)"

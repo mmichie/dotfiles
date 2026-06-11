@@ -8,10 +8,21 @@
 # cached file is closer to 1ms.
 
 # Re-run `cmd` and write its output to $cache_path when any of
-# $invalidators... is newer than the cache. Otherwise leave it alone.
-# Returns nonzero when the cache could not be (re)generated — callers
-# should `&& source` so a failed tool init degrades to "tool not set up
-# this shell" instead of sourcing garbage.
+# $invalidators... changed since the cache was written. Otherwise leave
+# it alone. Returns nonzero when the cache could not be (re)generated —
+# callers should `&& source` so a failed tool init degrades to "tool not
+# set up this shell" instead of sourcing garbage.
+#
+# Staleness is detected two ways, because mtime alone cannot see nix
+# rebuilds: everything under /nix/store has its mtime clamped to the
+# epoch, so a rebuilt binary is NEVER newer than its cache and the init
+# scripts silently freeze at whatever version first populated them
+# (this kept a fixed chevron from taking effect). What does change per
+# rebuild is the resolved store path, so:
+#   1. the symlink-resolved paths of all invalidators are recorded in a
+#      $cache_path.dep sidecar and any difference forces a refresh;
+#   2. the -nt mtime check stays, for mutable invalidators (config
+#      files, non-nix installs).
 # Sourceable caches (*.zsh only — data files like vivid-ls-colors are not
 # scripts) are zcompiled so later shells load wordcode; a missing .zwc next
 # to an existing cache is backfilled once (post-deploy).
@@ -21,17 +32,44 @@ _refresh_cache() {
     local cmd="$1"
     shift
     local inv
-    if [[ ! -f $cache_path ]]; then
-        _write_cache "$cache_path" "$cmd"
-        return
+    # ${inv:A}: absolute path with symlinks resolved, pure zsh (no
+    # fork). Only EXISTING invalidators are stamped — a missing one
+    # carries no evidence either way and must leave the cache alone
+    # (same contract as the -e guard on the mtime check below).
+    local -a resolved
+    for inv in "$@"; do
+        [[ -e $inv ]] && resolved+=("${inv:A}")
+    done
+    local stamp="${(F)resolved}" stamp_path="$cache_path.dep" recorded=""
+    [[ -f $stamp_path ]] && recorded="$(<"$stamp_path")"
+    if [[ ! -f $cache_path || ( -n "$stamp" && "$stamp" != "$recorded" ) ]]; then
+        _write_cache "$cache_path" "$cmd" || return 1
+        _stamp_cache "$stamp_path" "$@"
+        return 0
     fi
     for inv in "$@"; do
         [[ -e $inv && $inv -nt $cache_path ]] || continue
-        _write_cache "$cache_path" "$cmd"
-        return
+        _write_cache "$cache_path" "$cmd" || return 1
+        _stamp_cache "$stamp_path" "$@"
+        return 0
     done
     [[ "$cache_path" == *.zsh && ! -f "$cache_path.zwc" ]] && _zcompile_cache "$cache_path"
     return 0
+}
+
+# Stamp by re-resolving AFTER generation, not before: `tool init` may
+# create its own config on first run (atuin does), and a pre-generation
+# stamp would make the next shell see a "new" invalidator and rebuild
+# the cache once more per appearance.
+_stamp_cache() {
+    local stamp_path="$1"
+    shift
+    local inv
+    local -a resolved
+    for inv in "$@"; do
+        [[ -e $inv ]] && resolved+=("${inv:A}")
+    done
+    print -r -- "${(F)resolved}" > "$stamp_path"
 }
 
 # Atomic: generate into a temp file and mv into place only on success. The
