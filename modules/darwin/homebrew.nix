@@ -12,6 +12,13 @@ _:
       # Homebrew 5.1.15 made --cleanup interactive; this restores the old
       # non-prompting uninstall. Drop once nix-darwin#1787 is fixed upstream.
       extraFlags = [ "--force-cleanup" ];
+
+      # Keep "uninstall" cleanup for casks/brews/taps, but DON'T let it remove
+      # App Store apps missing from masApps. Adding masApps pulled mas into
+      # Homebrew's cleanup, which silently removed manually-installed MAS apps
+      # (nix-darwin assumes Homebrew never cleans mas; current Homebrew does).
+      # brew bundle reads this env var via onActivation.extraEnv.
+      extraEnv.HOMEBREW_BUNDLE_CLEANUP_NO_MAS = "1";
     };
 
     taps = [
