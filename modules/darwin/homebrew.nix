@@ -80,6 +80,10 @@ _:
     # app, so "Get" it once in the App Store GUI before the first switch.
     masApps = {
       "Amphetamine" = 937984704; # keep-the-Mac-awake utility
+      "Amazon Kindle" = 302584613;
+      "OmniGraffle 7" = 1142578753; # MAS license only — won't install if bought via Omni direct
+      "Monodraw" = 920404675; # paid — installs only if already owned on this Apple ID
+      "WireGuard" = 1451685025;
     };
   };
 }
