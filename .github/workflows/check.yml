@@ -13,7 +13,9 @@ jobs:
       matrix:
         include:
           - runner: ubuntu-latest
-            build: .#devShells.x86_64-linux.default
+            # Build the linux home closure too (native x86_64, cache-backed) so
+            # the standalone home-manager path is proven, not just evaluated.
+            build: .#devShells.x86_64-linux.default .#homeConfigurations.mim@linux.activationPackage
           - runner: macos-latest
             build: .#darwinConfigurations.mims-mbp.system
 
