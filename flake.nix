@@ -95,6 +95,21 @@
         system = "x86_64-linux";
       };
 
+      # ── Packages ──────────────────────────────────────────────────
+      # Surface the repo's custom package as a first-class flake output
+      # (`nix build .#recs`, `nix run .#recs`). recs is also injected into
+      # every host via the custom-packages overlay below; this is the same
+      # derivation, just reachable directly.
+      packages = forAllSystems (pkgs: {
+        recs = pkgs.callPackage ./pkgs/recs { };
+      });
+
+      # ── Overlays ──────────────────────────────────────────────────
+      # The custom-packages overlay (recs + rclone/pipx fixups) that every
+      # host applies, re-exported so other flakes can pull it in via
+      # `inputs.dotfiles.overlays.default`.
+      overlays.default = import ./overlays;
+
       # ── Formatter ─────────────────────────────────────────────────
       formatter = forAllSystems (pkgs: pkgs.nixfmt-tree);
 
