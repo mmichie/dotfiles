@@ -12,6 +12,9 @@ pre-commit:
     shfmt:
       files: sh -c 'git diff --cached --name-only --diff-filter=ACM | while IFS= read -r f; do [ -L "$f" ] && continue; head -1 "$f" 2>/dev/null | grep -qE "^#!/.*/(bash|sh|dash|ksh)" && echo "$f"; done; true'
       run: nix run nixpkgs#shfmt -- -i 4 -ci -w {files} && git add {files}
+    ruff:
+      files: sh -c 'git diff --cached --name-only --diff-filter=ACM | while IFS= read -r f; do [ -L "$f" ] && continue; case "$f" in *.py) echo "$f"; continue ;; esac; head -1 "$f" 2>/dev/null | grep -qE "^#!.*python" && echo "$f"; done; true'
+      run: nix run nixpkgs#ruff -- check {files}
     zsh-tests:
       glob: "{configs/zsh/**,configs/tmux/**,configs/nvim/**,secrets/**,.sops.yaml,tests/**}"
       run: zsh --no-globalrcs tests/run.zsh
