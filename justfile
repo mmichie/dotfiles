@@ -3,7 +3,9 @@
 # Apply system configuration (detects host via `hostname -s` on Darwin/NixOS)
 switch:
     @if [ "$(uname)" = "Darwin" ]; then \
-        sudo "$(command -v darwin-rebuild)" switch --flake ".#$(hostname -s)"; \
+        sudo "$(command -v darwin-rebuild)" switch --flake ".#$(hostname -s)" \
+            && sudo "$(command -v nix-collect-garbage)" --delete-older-than 3d \
+            && sudo "$(command -v nix-store)" --optimise; \
     elif [ -f /etc/NIXOS ] && [ -d "hosts/$(hostname -s)" ]; then \
         sudo "$(command -v nixos-rebuild)" switch --flake ".#$(hostname -s)"; \
     else \

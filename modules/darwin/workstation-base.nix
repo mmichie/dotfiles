@@ -12,11 +12,12 @@
   # Determinate Systems manages the Nix daemon — disable nix-darwin's management
   nix.enable = false;
 
-  # Garbage-collect old generations weekly (Sunday 2 AM)
-  # Uses launchd directly because nix.gc requires nix.enable,
-  # which is disabled (Determinate Systems manages the daemon).
+  # Backstop GC for idle stretches — `just switch` already GCs to 3d on every
+  # apply, so this only matters when the machine goes days without a switch.
+  # Runs weekly (Sunday 2 AM). Uses launchd directly because nix.gc requires
+  # nix.enable, which is disabled (Determinate Systems manages the daemon).
   launchd.daemons.nix-gc = {
-    command = "/nix/var/nix/profiles/default/bin/nix-collect-garbage --delete-older-than 30d";
+    command = "/nix/var/nix/profiles/default/bin/nix-collect-garbage --delete-older-than 3d";
     serviceConfig = {
       RunAtLoad = false;
       StartCalendarInterval = [
