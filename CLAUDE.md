@@ -8,7 +8,7 @@ Personal dotfiles managed by **Nix** — nix-darwin on macOS, full NixOS in a VM
 
 - **~80 CLI tools** declared in `modules/home/packages-core.nix`
 - **Dev toolchains** in `modules/home/packages-dev.nix`
-- **~30 macOS GUI apps** as Homebrew casks in `modules/darwin/homebrew.nix`
+- **~35 macOS GUI apps** as Homebrew casks in `modules/darwin/homebrew.nix`
 - **macOS defaults** in `modules/darwin/defaults.nix`
 - **Custom Rust binary** [`chevron`](https://github.com/shiprock/chevron) consumed as a flake input
 
