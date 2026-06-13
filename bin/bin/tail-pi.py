@@ -2,14 +2,12 @@
 
 import asyncio
 import argparse
-import requests
 import sqlite3
-import time
 import dns.resolver
 
 from datetime import datetime
 from typing import List, Tuple
-from colorama import Fore, Back, Style
+from colorama import Fore, Style
 
 
 async def get_ip_address(domain: str, resolver: str) -> str:
