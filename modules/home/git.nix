@@ -16,7 +16,7 @@
 
   # configs/git/.gitconfig sets core.hooksPath globally, so git ignores
   # .git/hooks and there is no per-clone hook install — a fresh machine would
-  # silently run no hooks (no lefthook, no secret-scan). Sync lefthook's shims
+  # silently run no hooks at all (lefthook never wired in). Sync lefthook's shims
   # into the configured hooksPath on every switch. --force is required because
   # lefthook refuses to touch a globally-set hooksPath; the install is
   # idempotent. Guarded on the repo being present. The activation PATH is

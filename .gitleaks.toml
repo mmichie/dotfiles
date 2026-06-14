@@ -1,0 +1,20 @@
+# gitleaks config — commodity secret detection (provider patterns + entropy)
+# for the pre-commit gate, delegated to gitleaks' ~170 maintained rules instead
+# of a hand-rolled pattern/entropy scanner. The one check no general scanner
+# performs — "every file under secrets/ MUST be a sops envelope" — stays in
+# tests/sops-check.zsh (scanners detect leaks; they don't assert encryption).
+#
+# Calibrated against the repo: a baseline `gitleaks dir` over all tracked files
+# produced ZERO findings (SSH pubkeys, age recipients, and nix SRI/store hashes
+# did NOT trip the default rules); only the test fixture below needs allowlisting.
+
+title = "mmichie/dotfiles"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Test fixture stages deliberately-crafted sample blobs"
+paths = [
+  '''tests/test_sops_check\.zsh''',
+]

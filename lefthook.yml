@@ -18,8 +18,10 @@ pre-commit:
     zsh-tests:
       glob: "{configs/zsh/**,configs/tmux/**,configs/nvim/**,secrets/**,.sops.yaml,tests/**}"
       run: zsh --no-globalrcs tests/run.zsh
-    secret-scan:
-      run: zsh --no-globalrcs tests/secret-scan.zsh {staged_files}
+    gitleaks:
+      run: nix run nixpkgs#gitleaks -- git --staged --no-banner --redact -c .gitleaks.toml
+    sops-check:
+      run: zsh --no-globalrcs tests/sops-check.zsh {staged_files}
 
 commit-msg:
   commands:

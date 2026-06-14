@@ -152,6 +152,7 @@
             pkgs.statix
             pkgs.shellcheck
             pkgs.shfmt
+            pkgs.gitleaks
             pkgs.lefthook
             pkgs.just
             pkgs.gh
