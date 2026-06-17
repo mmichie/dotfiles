@@ -75,6 +75,7 @@ return {
     -- LSP Support
     {
         'neovim/nvim-lspconfig',
+        event = { "BufReadPre", "BufNewFile" },
         dependencies = {
             'hrsh7th/nvim-cmp',
             'hrsh7th/cmp-nvim-lsp',
@@ -84,15 +85,17 @@ return {
             -- LSP keymaps on attach
             vim.api.nvim_create_autocmd('LspAttach', {
                 callback = function(args)
-                    local opts = { buffer = args.buf }
-                    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-                    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
-                    vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
-                    vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
-                    vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
-                    vim.keymap.set('n', '<leader>f', function()
+                    local function map(lhs, rhs, desc)
+                        vim.keymap.set('n', lhs, rhs, { buffer = args.buf, desc = 'LSP: ' .. desc })
+                    end
+                    map('gd', vim.lsp.buf.definition, 'Go to definition')
+                    map('K', vim.lsp.buf.hover, 'Hover documentation')
+                    map('<leader>rn', vim.lsp.buf.rename, 'Rename symbol')
+                    map('<leader>ca', vim.lsp.buf.code_action, 'Code action')
+                    map('gr', vim.lsp.buf.references, 'List references')
+                    map('<leader>f', function()
                         vim.lsp.buf.format({ async = true })
-                    end, opts)
+                    end, 'Format buffer')
                 end,
             })
 
@@ -176,23 +179,6 @@ return {
                         hide_dotfiles = false,
                         hide_gitignored = true,
                         hide_hidden = false,
-                        hide_by_name = {
-                            --"node_modules"
-                        },
-                        hide_by_pattern = {
-                            --"*.meta",
-                            --"*/src/*/tsconfig.json",
-                        },
-                        always_show = {
-                            --".gitignored",
-                        },
-                        never_show = {
-                            --".DS_Store",
-                            --"thumbs.db"
-                        },
-                        never_show_by_pattern = {
-                            --".null-ls_*",
-                        },
                     },
                     follow_current_file = {
                         enabled = true,
@@ -248,18 +234,18 @@ return {
         'nvim-telescope/telescope.nvim',
         tag = '0.1.8',
         dependencies = { 'nvim-lua/plenary.nvim' },
-        config = function()
-            local builtin = require('telescope.builtin')
-            vim.keymap.set('n', '<leader>ff', builtin.find_files)
-            vim.keymap.set('n', '<leader>fg', builtin.live_grep)
-            vim.keymap.set('n', '<leader>fb', builtin.buffers)
-            vim.keymap.set('n', '<leader>fh', builtin.help_tags)
-        end
+        keys = {
+            { "<leader>ff", "<cmd>Telescope find_files<CR>", desc = "Find files" },
+            { "<leader>fg", "<cmd>Telescope live_grep<CR>", desc = "Live grep" },
+            { "<leader>fb", "<cmd>Telescope buffers<CR>", desc = "Buffers" },
+            { "<leader>fh", "<cmd>Telescope help_tags<CR>", desc = "Help tags" },
+        },
     },
 
     -- Git integration
     {
         'lewis6991/gitsigns.nvim',
+        event = { "BufReadPre", "BufNewFile" },
         config = function()
             require('gitsigns').setup()
         end
@@ -344,7 +330,7 @@ return {
             end
 
             -- Map Tab to the smart function
-            vim.keymap.set("i", "<Tab>", smart_tab, { expr = false, silent = true })
+            vim.keymap.set("i", "<Tab>", smart_tab, { expr = false, silent = true, desc = "Accept Copilot suggestion or insert Tab" })
         end,
     },
 

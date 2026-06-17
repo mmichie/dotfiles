@@ -66,19 +66,19 @@ vim.opt.updatetime = 300
 
 -- Basic Key Mappings (non-plugin related) ----------------------------------------------------
 -- Window navigation
-vim.keymap.set('n', '<C-h>', '<C-w>h', { silent = true })
-vim.keymap.set('n', '<C-j>', '<C-w>j', { silent = true })
-vim.keymap.set('n', '<C-k>', '<C-w>k', { silent = true })
-vim.keymap.set('n', '<C-l>', '<C-w>l', { silent = true })
+vim.keymap.set('n', '<C-h>', '<C-w>h', { silent = true, desc = 'Go to left window' })
+vim.keymap.set('n', '<C-j>', '<C-w>j', { silent = true, desc = 'Go to lower window' })
+vim.keymap.set('n', '<C-k>', '<C-w>k', { silent = true, desc = 'Go to upper window' })
+vim.keymap.set('n', '<C-l>', '<C-w>l', { silent = true, desc = 'Go to right window' })
 
 -- Tab management
-vim.keymap.set('n', '<leader>tt', ':tabnew<CR>', { silent = true })
-vim.keymap.set('n', '<leader>tc', ':tabclose<CR>', { silent = true })
-vim.keymap.set('n', '<leader>tn', ':tabnext<CR>', { silent = true })
-vim.keymap.set('n', '<leader>tp', ':tabprevious<CR>', { silent = true })
+vim.keymap.set('n', '<leader>tt', ':tabnew<CR>', { silent = true, desc = 'New tab' })
+vim.keymap.set('n', '<leader>tc', ':tabclose<CR>', { silent = true, desc = 'Close tab' })
+vim.keymap.set('n', '<leader>tn', ':tabnext<CR>', { silent = true, desc = 'Next tab' })
+vim.keymap.set('n', '<leader>tp', ':tabprevious<CR>', { silent = true, desc = 'Previous tab' })
 
 -- Clear search highlighting
-vim.keymap.set('n', '<leader><Space>', ':nohlsearch<CR>', { silent = true })
+vim.keymap.set('n', '<leader><Space>', ':nohlsearch<CR>', { silent = true, desc = 'Clear search highlight' })
 
 -- Basic Autocommands ---------------------------------------------------
 local augroup = vim.api.nvim_create_augroup
@@ -124,14 +124,21 @@ autocmd('BufWritePre', {
     end
 })
 
--- Format Go files on save
-local format_sync_grp = vim.api.nvim_create_augroup("GoFormat", {})
-vim.api.nvim_create_autocmd("BufWritePre", {
-  pattern = "*.go",
-  callback = function()
-   require('go.format').goimports()
-  end,
-  group = format_sync_grp,
+-- Format Go files on save. Wrapped in pcall so a goimports failure
+-- (syntax error, missing binary) surfaces a warning instead of
+-- aborting the write.
+local go_format = augroup('go_format', { clear = true })
+autocmd('BufWritePre', {
+    group = go_format,
+    pattern = '*.go',
+    callback = function()
+        local ok, err = pcall(function()
+            require('go.format').goimports()
+        end)
+        if not ok then
+            vim.notify('goimports failed: ' .. tostring(err), vim.log.levels.WARN)
+        end
+    end
 })
 
 -- Diagnostic signs (set eagerly — this used to live inside neo-tree's
