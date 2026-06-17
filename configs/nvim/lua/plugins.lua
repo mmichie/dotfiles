@@ -2,7 +2,7 @@ return {
     -- Plugin Manager
     {
         "folke/lazy.nvim",
-        tag = "stable"
+        tag = "stable",
     },
 
     -- Color scheme
@@ -28,12 +28,12 @@ return {
                     section_separators = { left = "", right = "" },
                 },
                 sections = {
-                    lualine_a = {"mode"},
-                    lualine_b = {"branch", "diff", "diagnostics"},
-                    lualine_c = {"filename"},
-                    lualine_x = {"encoding", "fileformat", "filetype"},
-                    lualine_y = {"progress"},
-                    lualine_z = {"location"}
+                    lualine_a = { "mode" },
+                    lualine_b = { "branch", "diff", "diagnostics" },
+                    lualine_c = { "filename" },
+                    lualine_x = { "encoding", "fileformat", "filetype" },
+                    lualine_y = { "progress" },
+                    lualine_z = { "location" },
                 },
             })
         end,
@@ -57,14 +57,25 @@ return {
             -- nvim does not cover by default.
             require("nvim-treesitter.configs").setup({
                 ensure_installed = {
-                    "lua", "vim", "vimdoc", "query",
-                    "go", "gomod", "gosum", "gowork",
+                    "lua",
+                    "vim",
+                    "vimdoc",
+                    "query",
+                    "go",
+                    "gomod",
+                    "gosum",
+                    "gowork",
                     "python",
                     "bash",
-                    "json", "yaml", "toml",
-                    "markdown", "markdown_inline",
+                    "json",
+                    "yaml",
+                    "toml",
+                    "markdown",
+                    "markdown_inline",
                     "nix",
-                    "diff", "gitcommit", "gitignore",
+                    "diff",
+                    "gitcommit",
+                    "gitignore",
                 },
                 auto_install = true,
                 highlight = { enable = true },
@@ -151,7 +162,7 @@ return {
                     { name = "luasnip" },
                 }),
             })
-        end
+        end,
     },
 
     -- File explorer
@@ -223,10 +234,10 @@ return {
                         ["m"] = "move",
                         ["q"] = "close_window",
                         ["R"] = "refresh",
-                    }
+                    },
                 },
             })
-        end
+        end,
     },
 
     -- Fuzzy finder
@@ -248,7 +259,7 @@ return {
         event = { "BufReadPre", "BufNewFile" },
         config = function()
             require("gitsigns").setup()
-        end
+        end,
     },
 
     -- Go Development
@@ -274,10 +285,10 @@ return {
                 lsp_on_attach = false,
             })
         end,
-        event = {"CmdlineEnter"},
-        ft = {"go", "gomod"},
+        event = { "CmdlineEnter" },
+        ft = { "go", "gomod" },
         -- single-quoted to avoid escaping the inner "go.install"
-        build = ':lua require("go.install").update_all_sync()'
+        build = ':lua require("go.install").update_all_sync()',
     },
 
     -- Copilot
@@ -295,7 +306,7 @@ return {
                         jump_next = "]]",
                         accept = "<CR>",
                         refresh = "gr",
-                        open = "<M-CR>"
+                        open = "<M-CR>",
                     },
                 },
                 suggestion = {
@@ -331,8 +342,12 @@ return {
             end
 
             -- Map Tab to the smart function
-            vim.keymap.set("i", "<Tab>", smart_tab, { expr = false, silent = true, desc = "Accept Copilot suggestion or insert Tab" })
+            vim.keymap.set(
+                "i",
+                "<Tab>",
+                smart_tab,
+                { expr = false, silent = true, desc = "Accept Copilot suggestion or insert Tab" }
+            )
         end,
     },
-
 }

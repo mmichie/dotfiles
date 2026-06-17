@@ -1,14 +1,14 @@
 -- Bootstrap lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.uv.fs_stat(lazypath) then
-  vim.fn.system({
-    "git",
-    "clone",
-    "--filter=blob:none",
-    "https://github.com/folke/lazy.nvim.git",
-    "--branch=stable",
-    lazypath,
-  })
+    vim.fn.system({
+        "git",
+        "clone",
+        "--filter=blob:none",
+        "https://github.com/folke/lazy.nvim.git",
+        "--branch=stable",
+        lazypath,
+    })
 end
 vim.opt.rtp:prepend(lazypath)
 
@@ -59,7 +59,7 @@ local swap_dir = nvim_data .. "/swap"
 ensure_dir(undo_dir)
 ensure_dir(swap_dir)
 
-vim.opt.directory = swap_dir .. "//"  -- Double slash keeps full path
+vim.opt.directory = swap_dir .. "//" -- Double slash keeps full path
 vim.opt.undodir = undo_dir
 vim.opt.swapfile = true
 vim.opt.updatetime = 300
@@ -92,7 +92,7 @@ autocmd("FileType", {
     callback = function()
         vim.opt_local.textwidth = 100
         vim.cmd("normal! gg")
-    end
+    end,
 })
 
 -- Python settings
@@ -106,7 +106,7 @@ autocmd("FileType", {
         vim.opt_local.tabstop = 4
         vim.opt_local.softtabstop = 4
         vim.opt_local.define = [[^\s*\(def\|class\)]]
-    end
+    end,
 })
 
 -- Trim trailing whitespace on save. Skip filetypes where trailing spaces
@@ -121,7 +121,7 @@ autocmd("BufWritePre", {
         local save_cursor = vim.fn.getpos(".")
         vim.cmd([[%s/\s\+$//e]])
         vim.fn.setpos(".", save_cursor)
-    end
+    end,
 })
 
 -- Format Go files on save. Wrapped in pcall so a goimports failure
@@ -135,10 +135,8 @@ autocmd("BufWritePre", {
         local ok, err = pcall(function()
             require("go.format").goimports()
         end)
-        if not ok then
-            vim.notify("goimports failed: " .. tostring(err), vim.log.levels.WARN)
-        end
-    end
+        if not ok then vim.notify("goimports failed: " .. tostring(err), vim.log.levels.WARN) end
+    end,
 })
 
 -- Diagnostic signs (set eagerly — this used to live inside neo-tree's
@@ -159,13 +157,11 @@ autocmd("BufReadPost", {
     group = augroup("cursor_restore", { clear = true }),
     pattern = "*",
     callback = function()
-        if vim.bo.filetype ~= "gitcommit"
-            and vim.fn.line("'\"") > 0
-            and vim.fn.line("'\"") <= vim.fn.line("$") then
-                vim.fn.setpos(".", vim.fn.getpos("'\""))
-                vim.cmd("normal! zz")
+        if vim.bo.filetype ~= "gitcommit" and vim.fn.line("'\"") > 0 and vim.fn.line("'\"") <= vim.fn.line("$") then
+            vim.fn.setpos(".", vim.fn.getpos("'\""))
+            vim.cmd("normal! zz")
         end
-    end
+    end,
 })
 
 -- Load plugins

@@ -56,9 +56,10 @@ dry-run:
         home-manager build --flake .#mim@linux; \
     fi
 
-# Format all nix files
+# Format all nix and lua files
 fmt:
     nix fmt
+    nix run nixpkgs#stylua -- configs/nvim
 
 # Build NixOS VM configuration (from macOS host)
 vm-build:

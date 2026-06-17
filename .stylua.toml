@@ -1,0 +1,12 @@
+# stylua — Lua formatter config. Applied via the lefthook pre-commit hook
+# and `just fmt`; invoked through `nix run nixpkgs#stylua` (not installed in
+# the profile, matching shfmt/ruff/statix).
+#
+# AutoPreferDouble matches the double-quote style used across configs/nvim,
+# keeping single quotes only where they avoid escaping. ConditionalOnly keeps
+# guard clauses like `if cond then return end` on a single line.
+column_width = 120
+indent_type = "Spaces"
+indent_width = 4
+quote_style = "AutoPreferDouble"
+collapse_simple_statement = "ConditionalOnly"

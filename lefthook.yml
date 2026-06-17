@@ -15,6 +15,9 @@ pre-commit:
     ruff:
       files: sh -c 'git diff --cached --name-only --diff-filter=ACM | while IFS= read -r f; do [ -L "$f" ] && continue; case "$f" in *.py) echo "$f"; continue ;; esac; head -1 "$f" 2>/dev/null | grep -qE "^#!.*python" && echo "$f"; done; true'
       run: nix run nixpkgs#ruff -- check {files}
+    stylua:
+      glob: "*.lua"
+      run: nix run nixpkgs#stylua -- {staged_files} && git add {staged_files}
     zsh-tests:
       glob: "{configs/zsh/**,configs/tmux/**,configs/nvim/**,secrets/**,.sops.yaml,tests/**}"
       run: zsh --no-globalrcs tests/run.zsh
