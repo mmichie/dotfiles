@@ -18,22 +18,22 @@ return {
 
     -- Status line
     {
-        'nvim-lualine/lualine.nvim',
-        dependencies = { 'nvim-tree/nvim-web-devicons' },
+        "nvim-lualine/lualine.nvim",
+        dependencies = { "nvim-tree/nvim-web-devicons" },
         config = function()
-            require('lualine').setup({
+            require("lualine").setup({
                 options = {
-                    theme = 'nord',
-                    component_separators = '|',
-                    section_separators = { left = '', right = '' },
+                    theme = "nord",
+                    component_separators = "|",
+                    section_separators = { left = "", right = "" },
                 },
                 sections = {
-                    lualine_a = {'mode'},
-                    lualine_b = {'branch', 'diff', 'diagnostics'},
-                    lualine_c = {'filename'},
-                    lualine_x = {'encoding', 'fileformat', 'filetype'},
-                    lualine_y = {'progress'},
-                    lualine_z = {'location'}
+                    lualine_a = {"mode"},
+                    lualine_b = {"branch", "diff", "diagnostics"},
+                    lualine_c = {"filename"},
+                    lualine_x = {"encoding", "fileformat", "filetype"},
+                    lualine_y = {"progress"},
+                    lualine_z = {"location"}
                 },
             })
         end,
@@ -41,21 +41,21 @@ return {
 
     -- Syntax highlighting
     {
-        'nvim-treesitter/nvim-treesitter',
+        "nvim-treesitter/nvim-treesitter",
         -- Pin the master branch. Upstream made `main` (the rewrite) the default
         -- branch, and main removes nvim-treesitter.configs. Without this pin,
         -- `:Lazy update` tracks the default branch and drifts onto main, which
         -- breaks the configs.setup() call below. The exact commit is held in
         -- lazy-lock.json; `:Lazy restore` pins it back.
         branch = "master",
-        build = ':TSUpdate',
+        build = ":TSUpdate",
         config = function()
             -- master branch: the entrypoint is nvim-treesitter.configs, and
             -- highlighting must be enabled explicitly. The old
             -- require('nvim-treesitter').setup({...}) call was silently
             -- ignored — no treesitter highlighting at all for filetypes
             -- nvim does not cover by default.
-            require('nvim-treesitter.configs').setup({
+            require("nvim-treesitter.configs").setup({
                 ensure_installed = {
                     "lua", "vim", "vimdoc", "query",
                     "go", "gomod", "gosum", "gowork",
@@ -74,37 +74,37 @@ return {
 
     -- LSP Support
     {
-        'neovim/nvim-lspconfig',
+        "neovim/nvim-lspconfig",
         event = { "BufReadPre", "BufNewFile" },
         dependencies = {
-            'hrsh7th/nvim-cmp',
-            'hrsh7th/cmp-nvim-lsp',
-            'L3MON4D3/LuaSnip',
+            "hrsh7th/nvim-cmp",
+            "hrsh7th/cmp-nvim-lsp",
+            "L3MON4D3/LuaSnip",
         },
         config = function()
             -- LSP keymaps on attach
-            vim.api.nvim_create_autocmd('LspAttach', {
+            vim.api.nvim_create_autocmd("LspAttach", {
                 callback = function(args)
                     local function map(lhs, rhs, desc)
-                        vim.keymap.set('n', lhs, rhs, { buffer = args.buf, desc = 'LSP: ' .. desc })
+                        vim.keymap.set("n", lhs, rhs, { buffer = args.buf, desc = "LSP: " .. desc })
                     end
-                    map('gd', vim.lsp.buf.definition, 'Go to definition')
-                    map('K', vim.lsp.buf.hover, 'Hover documentation')
-                    map('<leader>rn', vim.lsp.buf.rename, 'Rename symbol')
-                    map('<leader>ca', vim.lsp.buf.code_action, 'Code action')
-                    map('gr', vim.lsp.buf.references, 'List references')
-                    map('<leader>f', function()
+                    map("gd", vim.lsp.buf.definition, "Go to definition")
+                    map("K", vim.lsp.buf.hover, "Hover documentation")
+                    map("<leader>rn", vim.lsp.buf.rename, "Rename symbol")
+                    map("<leader>ca", vim.lsp.buf.code_action, "Code action")
+                    map("gr", vim.lsp.buf.references, "List references")
+                    map("<leader>f", function()
                         vim.lsp.buf.format({ async = true })
-                    end, 'Format buffer')
+                    end, "Format buffer")
                 end,
             })
 
             -- Add cmp-nvim-lsp capabilities
-            local capabilities = require('cmp_nvim_lsp').default_capabilities()
+            local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
             -- Configure LSP servers
-            vim.lsp.config('pyright', { capabilities = capabilities })
-            vim.lsp.config('gopls', {
+            vim.lsp.config("pyright", { capabilities = capabilities })
+            vim.lsp.config("gopls", {
                 capabilities = capabilities,
                 settings = {
                     gopls = {
@@ -129,11 +129,11 @@ return {
                     },
                 },
             })
-            vim.lsp.enable({ 'pyright', 'gopls' })
+            vim.lsp.enable({ "pyright", "gopls" })
 
             -- Completion setup
-            local cmp = require('cmp')
-            local luasnip = require('luasnip')
+            local cmp = require("cmp")
+            local luasnip = require("luasnip")
             cmp.setup({
                 snippet = {
                     expand = function(args)
@@ -141,14 +141,14 @@ return {
                     end,
                 },
                 mapping = cmp.mapping.preset.insert({
-                    ['<C-Space>'] = cmp.mapping.complete(),
-                    ['<CR>'] = cmp.mapping.confirm({ select = true }),
-                    ['<C-n>'] = cmp.mapping.select_next_item(),
-                    ['<C-p>'] = cmp.mapping.select_prev_item(),
+                    ["<C-Space>"] = cmp.mapping.complete(),
+                    ["<CR>"] = cmp.mapping.confirm({ select = true }),
+                    ["<C-n>"] = cmp.mapping.select_next_item(),
+                    ["<C-p>"] = cmp.mapping.select_prev_item(),
                 }),
                 sources = cmp.config.sources({
-                    { name = 'nvim_lsp' },
-                    { name = 'luasnip' },
+                    { name = "nvim_lsp" },
+                    { name = "luasnip" },
                 }),
             })
         end
@@ -231,9 +231,9 @@ return {
 
     -- Fuzzy finder
     {
-        'nvim-telescope/telescope.nvim',
-        tag = '0.1.8',
-        dependencies = { 'nvim-lua/plenary.nvim' },
+        "nvim-telescope/telescope.nvim",
+        tag = "0.1.8",
+        dependencies = { "nvim-lua/plenary.nvim" },
         keys = {
             { "<leader>ff", "<cmd>Telescope find_files<CR>", desc = "Find files" },
             { "<leader>fg", "<cmd>Telescope live_grep<CR>", desc = "Live grep" },
@@ -244,10 +244,10 @@ return {
 
     -- Git integration
     {
-        'lewis6991/gitsigns.nvim',
+        "lewis6991/gitsigns.nvim",
         event = { "BufReadPre", "BufNewFile" },
         config = function()
-            require('gitsigns').setup()
+            require("gitsigns").setup()
         end
     },
 
@@ -261,13 +261,13 @@ return {
         },
         config = function()
             require("go").setup({
-                go = 'go',
-                gofmt = 'gofumpt',
+                go = "go",
+                gofmt = "gofumpt",
                 tag_transform = false,
-                test_template = '',
-                test_template_dir = '',
-                comment_placeholder = '',
-                icons = { breakpoint = '🧘', currentpos = '🏃' },
+                test_template = "",
+                test_template_dir = "",
+                comment_placeholder = "",
+                icons = { breakpoint = "🧘", currentpos = "🏃" },
                 verbose = false,
                 lsp_cfg = false, -- gopls managed by native vim.lsp.config
                 lsp_gofumpt = false,
@@ -275,7 +275,8 @@ return {
             })
         end,
         event = {"CmdlineEnter"},
-        ft = {"go", 'gomod'},
+        ft = {"go", "gomod"},
+        -- single-quoted to avoid escaping the inner "go.install"
         build = ':lua require("go.install").update_all_sync()'
     },
 

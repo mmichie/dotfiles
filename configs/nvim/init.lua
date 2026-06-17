@@ -35,7 +35,7 @@ vim.opt.softtabstop = 4
 vim.opt.expandtab = true
 vim.opt.wrap = true
 vim.opt.textwidth = 80
-vim.opt.formatoptions = 'qrn1'
+vim.opt.formatoptions = "qrn1"
 
 -- Search Settings
 vim.opt.ignorecase = true
@@ -52,54 +52,54 @@ local function ensure_dir(path)
     end
 end
 
-local nvim_data = vim.fn.stdpath('data')
-local undo_dir = nvim_data .. '/undo'
-local swap_dir = nvim_data .. '/swap'
+local nvim_data = vim.fn.stdpath("data")
+local undo_dir = nvim_data .. "/undo"
+local swap_dir = nvim_data .. "/swap"
 
 ensure_dir(undo_dir)
 ensure_dir(swap_dir)
 
-vim.opt.directory = swap_dir .. '//'  -- Double slash keeps full path
+vim.opt.directory = swap_dir .. "//"  -- Double slash keeps full path
 vim.opt.undodir = undo_dir
 vim.opt.swapfile = true
 vim.opt.updatetime = 300
 
 -- Basic Key Mappings (non-plugin related) ----------------------------------------------------
 -- Window navigation
-vim.keymap.set('n', '<C-h>', '<C-w>h', { silent = true, desc = 'Go to left window' })
-vim.keymap.set('n', '<C-j>', '<C-w>j', { silent = true, desc = 'Go to lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w>k', { silent = true, desc = 'Go to upper window' })
-vim.keymap.set('n', '<C-l>', '<C-w>l', { silent = true, desc = 'Go to right window' })
+vim.keymap.set("n", "<C-h>", "<C-w>h", { silent = true, desc = "Go to left window" })
+vim.keymap.set("n", "<C-j>", "<C-w>j", { silent = true, desc = "Go to lower window" })
+vim.keymap.set("n", "<C-k>", "<C-w>k", { silent = true, desc = "Go to upper window" })
+vim.keymap.set("n", "<C-l>", "<C-w>l", { silent = true, desc = "Go to right window" })
 
 -- Tab management
-vim.keymap.set('n', '<leader>tt', ':tabnew<CR>', { silent = true, desc = 'New tab' })
-vim.keymap.set('n', '<leader>tc', ':tabclose<CR>', { silent = true, desc = 'Close tab' })
-vim.keymap.set('n', '<leader>tn', ':tabnext<CR>', { silent = true, desc = 'Next tab' })
-vim.keymap.set('n', '<leader>tp', ':tabprevious<CR>', { silent = true, desc = 'Previous tab' })
+vim.keymap.set("n", "<leader>tt", ":tabnew<CR>", { silent = true, desc = "New tab" })
+vim.keymap.set("n", "<leader>tc", ":tabclose<CR>", { silent = true, desc = "Close tab" })
+vim.keymap.set("n", "<leader>tn", ":tabnext<CR>", { silent = true, desc = "Next tab" })
+vim.keymap.set("n", "<leader>tp", ":tabprevious<CR>", { silent = true, desc = "Previous tab" })
 
 -- Clear search highlighting
-vim.keymap.set('n', '<leader><Space>', ':nohlsearch<CR>', { silent = true, desc = 'Clear search highlight' })
+vim.keymap.set("n", "<leader><Space>", ":nohlsearch<CR>", { silent = true, desc = "Clear search highlight" })
 
 -- Basic Autocommands ---------------------------------------------------
 local augroup = vim.api.nvim_create_augroup
 local autocmd = vim.api.nvim_create_autocmd
 
 -- Git commit settings
-local gitcommit = augroup('gitcommit_settings', { clear = true })
-autocmd('FileType', {
+local gitcommit = augroup("gitcommit_settings", { clear = true })
+autocmd("FileType", {
     group = gitcommit,
-    pattern = 'gitcommit',
+    pattern = "gitcommit",
     callback = function()
         vim.opt_local.textwidth = 100
-        vim.cmd('normal! gg')
+        vim.cmd("normal! gg")
     end
 })
 
 -- Python settings
-local python = augroup('ft_python', { clear = true })
-autocmd('FileType', {
+local python = augroup("ft_python", { clear = true })
+autocmd("FileType", {
     group = python,
-    pattern = 'python',
+    pattern = "python",
     callback = function()
         vim.opt_local.expandtab = true
         vim.opt_local.shiftwidth = 4
@@ -112,10 +112,10 @@ autocmd('FileType', {
 -- Trim trailing whitespace on save. Skip filetypes where trailing spaces
 -- are meaningful: markdown two-space hard breaks, diff/patch context lines.
 local trim_exclude = { markdown = true, diff = true, gitsendemail = true }
-local trim_whitespace = augroup('trim_whitespace', { clear = true })
-autocmd('BufWritePre', {
+local trim_whitespace = augroup("trim_whitespace", { clear = true })
+autocmd("BufWritePre", {
     group = trim_whitespace,
-    pattern = '*',
+    pattern = "*",
     callback = function()
         if trim_exclude[vim.bo.filetype] then return end
         local save_cursor = vim.fn.getpos(".")
@@ -127,16 +127,16 @@ autocmd('BufWritePre', {
 -- Format Go files on save. Wrapped in pcall so a goimports failure
 -- (syntax error, missing binary) surfaces a warning instead of
 -- aborting the write.
-local go_format = augroup('go_format', { clear = true })
-autocmd('BufWritePre', {
+local go_format = augroup("go_format", { clear = true })
+autocmd("BufWritePre", {
     group = go_format,
-    pattern = '*.go',
+    pattern = "*.go",
     callback = function()
         local ok, err = pcall(function()
-            require('go.format').goimports()
+            require("go.format").goimports()
         end)
         if not ok then
-            vim.notify('goimports failed: ' .. tostring(err), vim.log.levels.WARN)
+            vim.notify("goimports failed: " .. tostring(err), vim.log.levels.WARN)
         end
     end
 })
@@ -155,15 +155,15 @@ vim.diagnostic.config({
 })
 
 -- Remember cursor position (but not for git commits)
-autocmd('BufReadPost', {
-    group = augroup('cursor_restore', { clear = true }),
-    pattern = '*',
+autocmd("BufReadPost", {
+    group = augroup("cursor_restore", { clear = true }),
+    pattern = "*",
     callback = function()
-        if vim.bo.filetype ~= 'gitcommit'
+        if vim.bo.filetype ~= "gitcommit"
             and vim.fn.line("'\"") > 0
             and vim.fn.line("'\"") <= vim.fn.line("$") then
                 vim.fn.setpos(".", vim.fn.getpos("'\""))
-                vim.cmd('normal! zz')
+                vim.cmd("normal! zz")
         end
     end
 })
