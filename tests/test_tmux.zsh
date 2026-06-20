@@ -62,6 +62,7 @@ assert_eq "$(tm show -gv set-titles)"        "on"   "terminal titles enabled"
 assert_eq "$(tm show -gv renumber-windows)"  "on"   "windows renumber on close"
 assert_eq "$(tm show -gsv escape-time)"      "10"   "escape-time 10ms"
 assert_eq "$(tm show -gwv mode-keys)"        "vi"   "vi copy mode"
+assert_eq "$(tm show -gsv set-clipboard)"    "on"   "OSC52 clipboard enabled (set-clipboard on)"
 
 # ── update-environment: idempotent across reloads (regression) ───────
 typeset -i env1 env2
@@ -138,6 +139,14 @@ assert_contains "$offkeys"  '"M-;"' "nested-toggle binding in off table"
 typeset prefixkeys
 prefixkeys=$(tm list-keys -T prefix 2>/dev/null)
 assert_contains "$prefixkeys" "confirm-before" "kill-window asks for confirmation"
+assert_contains "$prefixkeys" "display-popup" "prefix-f sessionizer opens in a popup (TTY for fzf)"
+# prefix-P/Y use pbpaste/pbcopy, guarded behind `if-shell uname = Darwin` in
+# tmux.conf — present on macOS, absent on Linux. CI runs this suite on both.
+if [[ "$(uname)" == Darwin ]]; then
+    assert_contains "$prefixkeys" "pbpaste" "prefix-P/Y clipboard binds present on macOS"
+else
+    assert_not_contains "$prefixkeys" "pbpaste" "prefix-P/Y clipboard binds guarded off on Linux"
+fi
 
 # ── Nested branch: %if TMUX_LEVEL styles with orange accent ──────────
 typeset boot2_err
