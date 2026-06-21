@@ -93,5 +93,6 @@
     vhs
     transcrypt
     recs
+    obliviate
   ];
 }

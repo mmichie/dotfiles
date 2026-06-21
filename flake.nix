@@ -96,12 +96,13 @@
       };
 
       # ── Packages ──────────────────────────────────────────────────
-      # Surface the repo's custom package as a first-class flake output
-      # (`nix build .#recs`, `nix run .#recs`). recs is also injected into
-      # every host via the custom-packages overlay below; this is the same
-      # derivation, just reachable directly.
+      # Surface the repo's custom packages as first-class flake outputs
+      # (`nix build .#recs`, `nix run .#obliviate`). They are also injected
+      # into every host via the custom-packages overlay below; these are the
+      # same derivations, just reachable directly.
       packages = forAllSystems (pkgs: {
         recs = pkgs.callPackage ./pkgs/recs { };
+        obliviate = pkgs.callPackage ./pkgs/obliviate { };
       });
 
       # ── Overlays ──────────────────────────────────────────────────

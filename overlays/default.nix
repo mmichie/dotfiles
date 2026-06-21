@@ -1,5 +1,6 @@
 final: prev: {
   recs = final.callPackage ../pkgs/recs { };
+  obliviate = final.callPackage ../pkgs/obliviate { };
 
   # nixpkgs rclone 1.74.2 always builds with the cmount tag on Darwin but
   # supplies no fuse headers, so cgofuse fails on <fuse.h>. Disable cmount
