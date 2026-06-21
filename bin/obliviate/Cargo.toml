@@ -1,6 +1,6 @@
 [package]
 name = "obliviate"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Delete all Chrome history, downloads, Journeys, and omnibox suggestions for a given domain"
 license = "MIT"

@@ -71,13 +71,22 @@ obliviate example.com --profile "Profile 1"
 
 # Point straight at a History file (e.g. Brave/Chromium/Edge, same schema):
 obliviate example.com --history ~/path/to/History
+
+# Let it quit and reopen Chrome for you (macOS) — no manual quit needed:
+obliviate example.com --restart-chrome --yes
 ```
 
 ### Important
 
-- **Quit Google Chrome completely first.** It holds the database open; while it
-  is running the delete fails fast with a "database is locked" message rather
-  than fighting the lock. The dry-run only reads and is safe regardless.
+- **Quit Google Chrome completely first**, or pass `--restart-chrome`. Chrome
+  holds the databases open; while it is running the delete fails fast with a
+  "database is locked" message rather than fighting the lock.
+- **`--restart-chrome` (macOS)** automates that: it gracefully quits Chrome
+  (only if it's running), waits for the database to actually unlock, runs, then
+  reopens Chrome — and is guaranteed to reopen it even if the prune errors. Your
+  tabs come back via Chrome's session restore. There is no safe way to edit the
+  database *without* Chrome releasing it: SQLite locks are held by the live
+  process, so "forcing" them means killing or corrupting.
 - A timestamped backup (`History.prune-backup-<unix>`, plus `-wal`/`-shm`
   sidecars) is written next to the original unless you pass `--no-backup`. The
   tool prints the exact `cp` command to restore it.
@@ -93,6 +102,7 @@ obliviate example.com --history ~/path/to/History
 | `--history <file>` | Use this History file directly. |
 | `--no-backup` | Do not copy the History file first (irreversible). |
 | `--no-vacuum` | Skip the post-delete `VACUUM`. |
+| `--restart-chrome` | Gracefully quit Chrome first, then reopen it when done (macOS only). |
 
 Default profile locations:
 

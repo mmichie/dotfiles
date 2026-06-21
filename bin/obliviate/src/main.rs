@@ -15,6 +15,11 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+#[cfg(target_os = "macos")]
+use std::process::Command;
+#[cfg(target_os = "macos")]
+use std::time::Instant;
+
 use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior};
@@ -54,6 +59,10 @@ struct Cli {
     /// Do not VACUUM the database after deleting
     #[arg(long)]
     no_vacuum: bool,
+
+    /// Gracefully quit Chrome first, then reopen it when done (macOS only)
+    #[arg(long)]
+    restart_chrome: bool,
 }
 
 fn main() {
@@ -78,12 +87,25 @@ fn run() -> Result<()> {
     println!("profile history : {}", history.display());
     println!("target domain   : {domain}  (+ subdomains)\n");
 
-    let mut conn = Connection::open_with_flags(&history, OpenFlags::SQLITE_OPEN_READ_WRITE)
+    // With --restart-chrome we close Chrome (only if it's actually running) so
+    // the databases unlock, then guarantee a relaunch afterward — even if the
+    // prune fails partway — so we never leave the browser unexpectedly shut.
+    if cli.restart_chrome && quit_chrome(&history)? {
+        let outcome = prune_all(&cli, &domain, &history);
+        relaunch_chrome();
+        return outcome;
+    }
+
+    prune_all(&cli, &domain, &history)
+}
+
+fn prune_all(cli: &Cli, domain: &str, history: &Path) -> Result<()> {
+    let mut conn = Connection::open_with_flags(history, OpenFlags::SQLITE_OPEN_READ_WRITE)
         .with_context(|| format!("opening {}", history.display()))?;
     conn.busy_timeout(Duration::from_secs(5))?;
 
     // Build connection-scoped scratch tables of the ids we intend to remove.
-    build_scratch_tables(&conn, &domain)?;
+    build_scratch_tables(&conn, domain)?;
 
     let ops = delete_ops();
     let history_counts = count_matches(&conn, &ops)?;
@@ -94,7 +116,7 @@ fn run() -> Result<()> {
     let mut satellites: Vec<(&'static Satellite, PathBuf, usize)> = Vec::new();
     for s in SATELLITES {
         let path = profile_dir.join(s.file);
-        match scan_satellite(&path, s, &domain) {
+        match scan_satellite(&path, s, domain) {
             Ok(Some(n)) => satellites.push((s, path, n)),
             Ok(None) => {}
             Err(e) => eprintln!("warning: could not read {} ({e}); skipping in preview", s.file),
@@ -114,7 +136,9 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
-    println!("\nQuit Google Chrome completely first, or the databases will be locked.");
+    if !cli.restart_chrome {
+        println!("\nQuit Google Chrome completely first, or the databases will be locked.");
+    }
     if !cli.yes && !confirm(&format!("Delete these rows for {domain}? [y/N] "))? {
         println!("aborted; no changes made.");
         return Ok(());
@@ -125,11 +149,11 @@ fn run() -> Result<()> {
     if history_total > 0 {
         println!("\nHistory:");
         if !cli.no_backup {
-            announce_backup(&history)?;
+            announce_backup(history)?;
         }
         // Fold any write-ahead log into the main file before mutating.
         let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
-        let deleted = execute_deletes(&mut conn, &ops, &history)?;
+        let deleted = execute_deletes(&mut conn, &ops, history)?;
         if !cli.no_vacuum {
             if let Err(e) = conn.execute_batch("VACUUM;") {
                 eprintln!("warning: VACUUM failed on History ({e}); freed space not reclaimed");
@@ -140,7 +164,7 @@ fn run() -> Result<()> {
     drop(conn);
 
     for (s, path, _) in &satellites {
-        match prune_satellite(path, s, &domain, cli.no_backup, cli.no_vacuum) {
+        match prune_satellite(path, s, domain, cli.no_backup, cli.no_vacuum) {
             Ok(n) => removed += n,
             Err(e) => eprintln!("warning: {} ({e:#})", s.file),
         }
@@ -477,13 +501,112 @@ fn busy_hint(e: rusqlite::Error, history: &Path) -> anyhow::Error {
     let msg = e.to_string().to_lowercase();
     if msg.contains("lock") || msg.contains("busy") {
         anyhow!(
-            "database is locked: {}\n  Quit Google Chrome completely and try again.",
+            "database is locked: {}\n  Quit Google Chrome completely and try again (or pass --restart-chrome).",
             history.display()
         )
     } else {
         anyhow::Error::new(e)
     }
 }
+
+// ── Chrome process control (--restart-chrome) ─────────────────────────────
+//
+// SQLite locks are held by the live process that has the file open; they can't
+// be "forced" off without killing or corrupting. The safe path is to ask Chrome
+// to quit, wait for it to genuinely let go of the database, then reopen it.
+
+/// Gracefully quit Chrome if it's running, then wait for the History database
+/// to unlock. Returns whether a running instance was actually told to quit — so
+/// the caller knows whether to reopen it afterward.
+#[cfg(target_os = "macos")]
+fn quit_chrome(history: &Path) -> Result<bool> {
+    if !chrome_is_running() {
+        return Ok(false);
+    }
+    print!("quitting Google Chrome and waiting for the database to unlock... ");
+    io::stdout().flush().ok();
+    let status = Command::new("osascript")
+        .args(["-e", "tell application \"Google Chrome\" to quit"])
+        .status()
+        .context("running osascript to quit Chrome")?;
+    if !status.success() {
+        bail!("osascript could not quit Chrome");
+    }
+    if wait_for_unlock(history) {
+        println!("ok");
+    } else {
+        println!("timed out");
+        eprintln!(
+            "warning: Chrome has not released {} after 20s; if \"Continue running\n  \
+             background apps\" is enabled, quit it from the menu-bar icon.",
+            history.display()
+        );
+    }
+    Ok(true)
+}
+
+/// True if Chrome is up. AppleScript's `is running` — unlike `tell application …
+/// to quit` — never launches Chrome as a side effect.
+#[cfg(target_os = "macos")]
+fn chrome_is_running() -> bool {
+    Command::new("osascript")
+        .args(["-e", "application \"Google Chrome\" is running"])
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "true")
+        .unwrap_or(false)
+}
+
+/// Reopen Chrome (best-effort; a failure here is non-fatal).
+#[cfg(target_os = "macos")]
+fn relaunch_chrome() {
+    println!("reopening Google Chrome...");
+    if let Err(e) = Command::new("open").args(["-a", "Google Chrome"]).status() {
+        eprintln!("warning: could not reopen Chrome ({e}); open it manually");
+    }
+}
+
+/// Poll until a write lock on `history` is available (Chrome has let go), or give
+/// up after 20s. Each probe opens the DB and tries to begin an exclusive write
+/// transaction, which rolls back on drop.
+#[cfg(target_os = "macos")]
+fn wait_for_unlock(history: &Path) -> bool {
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        if db_is_writable(history) {
+            return true;
+        }
+        if Instant::now() >= deadline {
+            return false;
+        }
+        std::thread::sleep(Duration::from_millis(250));
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn db_is_writable(history: &Path) -> bool {
+    let Ok(mut conn) = Connection::open_with_flags(history, OpenFlags::SQLITE_OPEN_READ_WRITE)
+    else {
+        return false;
+    };
+    if conn.busy_timeout(Duration::from_millis(100)).is_err() {
+        return false;
+    }
+    // Bind before returning so the probe transaction (which borrows conn) is
+    // dropped — and the lock released — before conn itself goes out of scope.
+    let writable = conn
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .is_ok();
+    writable
+}
+
+#[cfg(not(target_os = "macos"))]
+fn quit_chrome(_history: &Path) -> Result<bool> {
+    eprintln!("warning: --restart-chrome is only implemented on macOS; quit Chrome yourself");
+    Ok(false)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn relaunch_chrome() {}
 
 /// Normalize user input to a bare lowercase host. Accepts a bare domain, a full
 /// URL, or `host:port`.
