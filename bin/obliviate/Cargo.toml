@@ -1,0 +1,21 @@
+[package]
+name = "obliviate"
+version = "0.2.0"
+edition = "2021"
+description = "Delete all Chrome history, downloads, Journeys, and omnibox suggestions for a given domain"
+license = "MIT"
+
+[[bin]]
+name = "obliviate"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+dirs = "5"
+rusqlite = { version = "0.32", features = ["bundled"] }
+url = "2"
+
+[profile.release]
+strip = true
+lto = true
