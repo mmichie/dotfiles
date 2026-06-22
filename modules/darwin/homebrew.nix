@@ -29,7 +29,8 @@ _:
     brews = [
       "dosbox-x" # nixpkgs build broken on aarch64-darwin (SCREEN_METAL undeclared in render.cpp)
       "mas" # Mac App Store CLI — required for the masApps below
-      "tensor9ine/tensor9/tensor9"
+      # tensor9ine/tensor9/tensor9 is declared in extraConfig below — it needs
+      # `trusted: true`, which the brews list can't express.
     ];
 
     casks = [
@@ -54,7 +55,8 @@ _:
       "1password"
 
       # Window Management
-      "nikitabobko/tap/aerospace"
+      # nikitabobko/tap/aerospace is declared in extraConfig below — it needs
+      # `trusted: true`, which the casks list can't express.
       "karabiner-elements"
 
       # Media
@@ -92,5 +94,20 @@ _:
       "Monodraw" = 920404675; # paid — installs only if already owned on this Apple ID
       "WireGuard" = 1451685025;
     };
+
+    # Formulae/casks from non-official taps that Homebrew 6 requires to be
+    # trusted. `brew bundle --force-cleanup` (extraFlags above) AUTHORITATIVELY
+    # rewrites the trust store to match the Brewfile's `trusted:` declarations
+    # (Homebrew::Trust.replace!), so anything NOT marked trusted here gets
+    # untrusted on every switch and the bundle then fails. nix-darwin's
+    # brews/casks options can't emit `trusted:` (their brewfileLine is
+    # read-only), so these two live in extraConfig instead. Homebrew owns
+    # ~/.homebrew/trust.json as a real file — it must NOT be a home-manager
+    # symlink into the read-only Nix store, which Homebrew refuses to write.
+    # Keep in sync with the matching taps above.
+    extraConfig = ''
+      brew "tensor9ine/tensor9/tensor9", trusted: true
+      cask "nikitabobko/tap/aerospace", trusted: true
+    '';
   };
 }
