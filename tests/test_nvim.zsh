@@ -44,8 +44,15 @@ if [[ ! -d ~/.local/share/nvim/lazy/lazy.nvim ]]; then
     t_finish
 fi
 
-# Headless boot must be clean — config errors land on stderr.
-out=$(nvim --headless +q 2>&1)
+# Headless boot must be clean — genuine config errors (Lua tracebacks,
+# E### messages) surface on stderr. nvim-treesitter also writes async
+# parser-install progress ("[nvim-treesitter] [n/m] Downloading ...") to
+# stderr when an ensure_installed parser is not on disk yet: benign on a
+# fresh machine, and abandoned anyway when +q quits before it finishes.
+# Drop those notifier lines so the check still fails on real errors, which
+# never carry the plugin-name prefix. The TS_HL probe below guards
+# treesitter health functionally.
+out=$(nvim --headless +q 2>&1 | grep -vE '^\[nvim-treesitter\]')
 if [[ -z "$out" ]]; then
     t_pass "headless boot emits no errors"
 else
