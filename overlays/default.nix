@@ -17,4 +17,15 @@ final: prev: {
       "test_parse_specifier_for_metadata"
     ];
   });
+
+  # nixpkgs statix 0.5.8-unstable-2026-06-28 ships stale insta snapshots for
+  # two collapsible_let_in fixtures, so its own `cargo test` fails and the
+  # build aborts. Skip just those two cases until upstream regenerates the
+  # snapshots (`checkFlags` are forwarded to the libtest harness).
+  statix = prev.statix.overrideAttrs (old: {
+    checkFlags = (old.checkFlags or [ ]) ++ [
+      "--skip=collapsible_let_in_2e638014232f7dec2606c940ad2e97f6_lint"
+      "--skip=collapsible_let_in_950e48dec6590cd20937e48006bff3f7_fix"
+    ];
+  });
 }

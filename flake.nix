@@ -63,7 +63,20 @@
         "aarch64-linux"
         "x86_64-linux"
       ];
-      forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
+      # Apply the custom-packages overlay here too so every flake-output
+      # consumer (devShells, packages) sees the same fixups the hosts get —
+      # otherwise `nix develop` builds the un-overlaid, upstream-broken statix.
+      forAllSystems =
+        f:
+        nixpkgs.lib.genAttrs systems (
+          system:
+          f (
+            import nixpkgs {
+              inherit system;
+              overlays = [ (import ./overlays) ];
+            }
+          )
+        );
     in
     {
       # ── macOS (nix-darwin with embedded home-manager) ──────────────
@@ -103,6 +116,10 @@
       packages = forAllSystems (pkgs: {
         recs = pkgs.callPackage ./pkgs/recs { };
         obliviate = pkgs.callPackage ./pkgs/obliviate { };
+        # Overlay-fixed statix, surfaced so lefthook's pre-commit hook can run
+        # `nix run .#statix` — pinning the linter to the repo's nixpkgs instead
+        # of the floating registry that `nixpkgs#statix` would resolve.
+        inherit (pkgs) statix;
       });
 
       # ── Overlays ──────────────────────────────────────────────────
