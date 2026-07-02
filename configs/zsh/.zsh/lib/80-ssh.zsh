@@ -6,6 +6,12 @@ typeset -g AGENT_SOCKET="$HOME/.ssh/.ssh-agent-socket"
 typeset -g AGENT_INFO="$HOME/.ssh/.ssh-agent-info"
 typeset -g ONEPASSWORD_SOCKET_MACOS="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 typeset -g ONEPASSWORD_SOCKET_LINUX="$HOME/.1password/agent.sock"
+# Stable indirection for a forwarded agent. A forwarded SSH_AUTH_SOCK is
+# per-login and ephemeral, so a tmux pane that outlives the login that spawned
+# it is left pointing at a dead socket after re-attach. ~/.ssh/rc repoints this
+# symlink at each login's socket (see .ssh/rc); shells just consume it, so a
+# pane follows the newest agent without re-exporting SSH_AUTH_SOCK by hand.
+typeset -g AGENT_STABLE_LINK="$HOME/.ssh/ssh_auth_sock"
 
 # Export SSH_AUTH_SOCK pointing at a 1Password agent if one is running.
 # Returns 0 on hit, 1 on miss.
@@ -26,6 +32,14 @@ _use_1password_socket_if_present() {
 #   3. Traditional ssh-agent (Linux boxes without 1Password)
 handle_ssh_agent() {
     _use_1password_socket_if_present && return 0
+
+    # Forwarded agent (ssh -A). Prefer the stable link (repointed at login by
+    # ~/.ssh/rc) so a tmux pane that outlived its login follows the newest
+    # forwarded socket. Cheap -S only -- no agent round-trip at shell startup.
+    if [[ -S "$AGENT_STABLE_LINK" ]]; then
+        export SSH_AUTH_SOCK="$AGENT_STABLE_LINK"
+        return 0
+    fi
 
     if [[ -n "$SSH_AUTH_SOCK" ]] && [[ -S "$SSH_AUTH_SOCK" ]]; then
         return 0
