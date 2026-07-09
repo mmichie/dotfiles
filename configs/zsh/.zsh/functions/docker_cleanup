@@ -1,9 +1,12 @@
 docker_cleanup() {
     if [[ "$1" != "-y" && "$1" != "--yes" ]]; then
-        echo "Will prune: stopped containers, unused images, unused networks, and named volumes."
+        echo "Will prune: stopped containers, unused images, unused networks, and ALL unused volumes (including named)."
         echo "Named volumes are unrecoverable — back up first if needed."
         read -q "REPLY?Continue? [y/N] " || { echo; return 1; }
         echo
     fi
-    docker system prune -af && docker volume prune -f
+    # Docker >=23 prunes only anonymous volumes without --all; the fallback
+    # keeps older daemons working (there plain -f already includes named).
+    docker system prune -af \
+        && { docker volume prune --all -f 2>/dev/null || docker volume prune -f; }
 }
