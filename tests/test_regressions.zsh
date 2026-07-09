@@ -73,6 +73,26 @@ out=$(PATH="$opdir:$PATH" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains "$out" "GOT=from_op" "op-env round-trips env through op stub (mktemp regression)"
 assert_contains "$out" "OPENV_RC=0"  "op-env exits 0"
 
+# ── claude wrapper binary resolution (functions/claude) ──────────────
+# Bug: `command -v claude` inside the wrapper resolves to the wrapper
+# function itself — never empty, never a path — so the missing-binary
+# guard was dead code. whence -p does a pure path search.
+typeset claudebin="$T_SCRATCH/claudebin"
+make_stub "$claudebin" claude 'echo "stub-claude:$@"; exit 7'
+inner="$T_SCRATCH/claude_inner.zsh"
+cat > "$inner" <<'EOF'
+fpath=("$1/.zsh/functions" $fpath)
+autoload -Uz claude
+claude --probe
+print -r -- "CLAUDE_RC=$?"
+EOF
+out=$(TMUX= PATH="$claudebin:/usr/bin:/bin" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+assert_contains "$out" "stub-claude:--probe" "claude wrapper dispatches to the PATH binary"
+assert_contains "$out" "CLAUDE_RC=7"         "claude wrapper propagates the binary's exit code"
+out=$(TMUX= PATH="/usr/bin:/bin" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+assert_contains "$out" "claude command not found" "missing binary hits the guard (regression: command -v matched the function)"
+assert_contains "$out" "CLAUDE_RC=1"              "missing claude returns 1"
+
 # ── keypress alias read flags (lib/30-aliases.zsh) ───────────────────
 # Bug: `read -s -n1` is a bashism; zsh rejected it with "read: bad option".
 # Option parsing happens before any input handling, so "bad option" is the

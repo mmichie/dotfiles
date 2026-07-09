@@ -1,7 +1,10 @@
 # Claude wrapper: pins tmux window title, keeps shell from exiting on claude quirks.
 # Depends on _tmux_title_push/_tmux_title_pop from lib/70-tmux-title.zsh.
 claude() {
-    local claude_cmd=$(command -v claude 2>/dev/null)
+    # whence -p: path search only. `command -v claude` would return this
+    # wrapper function's own name — never empty, never the binary path —
+    # so the missing-binary guard below could not fire.
+    local claude_cmd=$(whence -p claude)
     if [[ -z "$claude_cmd" ]]; then
         echo "Error: claude command not found" >&2
         return 1
@@ -23,11 +26,8 @@ claude() {
     fi
     trap "$cleanup_cmd" INT TERM EXIT
 
-    # Subshell isolates env changes; without it the outer shell sees them.
     local exit_code
-    (
-        command "$claude_cmd" "$@"
-    )
+    "$claude_cmd" "$@"
     exit_code=$?
 
     trap - INT TERM EXIT
