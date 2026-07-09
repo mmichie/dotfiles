@@ -19,6 +19,9 @@ undo*
 .claude-cache/
 .claude-session/
 
+# Playwright MCP plugin session output (console logs, page snapshots)
+.playwright-mcp/
+
 # Personal shell configuration with secrets (lives in ~/, not in repo)
 .zshrc.local
 
