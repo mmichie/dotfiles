@@ -5,6 +5,8 @@ remember() {
         return 1
     fi
     local remember_file="$HOME/.important_commands"
-    echo "$(date +"%Y-%m-%d %H:%M:%S") $@" >> "$remember_file"
+    # print -r, not echo: zsh echo expands \n and friends, mangling any
+    # remembered command that contains backslash escapes.
+    print -r -- "$(date +"%Y-%m-%d %H:%M:%S") $*" >> "$remember_file"
     echo "Command saved to $remember_file"
 }

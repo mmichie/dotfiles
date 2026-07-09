@@ -1,5 +1,6 @@
 #!/usr/bin/env zsh
-# Regression tests pinning bugs fixed in the 2026-06 zsh correctness review.
+# Regression tests pinning bugs fixed in the 2026-06 and 2026-07 zsh
+# correctness reviews.
 # (The _parse_env_file and arrow-binding regressions live in their own files.)
 
 source "${0:A:h}/lib.zsh"
@@ -97,6 +98,24 @@ assert_contains "$out" "CLAUDE_RC=7"         "claude wrapper propagates the bina
 out=$(TMUX= PATH="/usr/bin:/bin" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains "$out" "claude command not found" "missing binary hits the guard (regression: command -v matched the function)"
 assert_contains "$out" "CLAUDE_RC=1"              "missing claude returns 1"
+
+# ── remember backslash fidelity (functions/remember) ─────────────────
+# Bug: zsh echo expands \n and friends, so a remembered command containing
+# backslash escapes was written as multiple mangled lines.
+inner="$T_SCRATCH/remember_inner.zsh"
+cat > "$inner" <<'EOF'
+fpath=("$1/.zsh/functions" $fpath)
+autoload -Uz remember
+remember grep '\n' file >/dev/null
+lines=(${(f)"$(<"$HOME/.important_commands")"})
+print -r -- "REM_LINES=${#lines}"
+[[ "${lines[1]}" == *"grep \n file" ]] && print -r -- "REM_LITERAL=yes"
+EOF
+typeset remhome="$T_SCRATCH/remhome"
+mkdir -p "$remhome"
+out=$(HOME="$remhome" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+assert_contains "$out" "REM_LINES=1"     "remember writes one line per save"
+assert_contains "$out" "REM_LITERAL=yes" "remember preserves backslashes verbatim (regression: echo expanded them)"
 
 # ── keypress alias read flags (lib/30-aliases.zsh) ───────────────────
 # Bug: `read -s -n1` is a bashism; zsh rejected it with "read: bad option".
