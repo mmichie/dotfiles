@@ -189,4 +189,46 @@ assert_contains "$out" "PWD_TAIL=/a/b/c" "mkcd creates nested dir and cds into i
 assert_contains "$out" "NOARG_RC=1"      "mkcd with no args fails"
 assert_contains "$out" "TWOARG_RC=1"     "mkcd with two args fails"
 
+# ── _ls_gnu_to_eza (lib/35-ls.zsh) ───────────────────────────────────
+# Pure translator: GNU short-flag clusters -> eza argv in $reply, rc 1 for
+# anything unmapped (dispatcher then runs real ls). Sort directions pinned
+# against observed GNU ls output: -t/-S list newest/largest FIRST while eza
+# sorts ascending, so the reverse bit is (GNU-descending XOR r).
+inner="$T_SCRATCH/lsflags_inner.zsh"
+cat > "$inner" <<'EOF'
+source "$1/.zsh/lib/00-platform.zsh" 2>/dev/null
+source "$1/.zsh/lib/35-ls.zsh" 2>/dev/null
+probe() {
+    local -a reply
+    if _ls_gnu_to_eza "$@"; then
+        print -r -- "OK ${(j: :)reply}"
+    else
+        print -r -- "FALLBACK"
+    fi
+}
+print -rn -- "L1=";  probe -altr
+print -rn -- "L2=";  probe -alrt
+print -rn -- "L3=";  probe -lt
+print -rn -- "L4=";  probe -ltr somedir
+print -rn -- "L5=";  probe -lS
+print -rn -- "L6=";  probe -lSr
+print -rn -- "L7=";  probe -lha
+print -rn -- "L8=";  probe -lG
+print -rn -- "L9=";  probe --git-ignore
+print -rn -- "L10="; probe -l -- -t
+print -rn -- "L11="; probe
+EOF
+out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+assert_contains "$out" "L1=OK --all --long --sort=modified"           "-altr translates (oldest first)"
+assert_contains "$out" "L2=OK --all --long --sort=modified"           "-alrt permutation translates identically"
+assert_contains "$out" "L3=OK --long --sort=modified --reverse"       "-lt means newest first (reverse for eza)"
+assert_contains "$out" "L4=OK --long --sort=modified -- somedir"      "paths survive behind a -- separator"
+assert_contains "$out" "L5=OK --long --sort=size --reverse"           "-lS means largest first"
+assert_contains "$out" "L6=OK --long --sort=size"                     "-lSr means smallest first"
+assert_contains "$out" "L7=OK --long --all"                           "-h dropped (eza -h means header, sizes already human)"
+assert_contains "$out" "L8=FALLBACK"                                  "unmapped letter falls back to real ls"
+assert_contains "$out" "L9=OK --git-ignore"                           "long options pass through to eza"
+assert_contains "$out" "L10=OK --long -- -t"                          "args after -- are paths, not flags"
+assert_contains "$out" "L11=OK"                                       "bare invocation translates to bare eza"
+
 t_finish

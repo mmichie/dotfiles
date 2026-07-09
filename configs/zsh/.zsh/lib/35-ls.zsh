@@ -56,12 +56,73 @@ setup_eza() {
     alias lsg='eza --long --header --icons --git --git-ignore --sort=size'
 }
 
-# Function to handle ls commands including the common -altr pattern
+# GNU-ls muscle memory: translate short-flag clusters (ls -altr, -lt, -lS,
+# any permutation) onto eza's argument language. The tools disagree on sort
+# direction — GNU -t/-S list newest/largest FIRST, eza sorts ascending, so
+# the reverse bit is (GNU-descending XOR r) — and on letters: -h is human
+# sizes in GNU (eza's default) but --header in eza, so it is dropped.
+# Returns 0 with the eza argv in $reply, or 1 for any flag outside the map;
+# the caller must then run real ls, so unmapped GNU flags keep GNU semantics
+# instead of hitting eza errors or silently wrong order. Long options pass
+# through untranslated: they are typed deliberately, not muscle memory, and
+# the common ones (--color, --time-style, --group-directories-first) agree.
+_ls_gnu_to_eza() {
+    reply=()
+    local -a out paths
+    local arg c sort='' gnu_desc=0 rev=0 ddash=0
+    local -i i
+    for arg in "$@"; do
+        if (( ddash )) || [[ "$arg" != -?* ]]; then
+            paths+=("$arg")
+            continue
+        fi
+        if [[ "$arg" == -- ]]; then
+            ddash=1
+            continue
+        fi
+        if [[ "$arg" == --* ]]; then
+            out+=("$arg")
+            continue
+        fi
+        for (( i = 2; i <= ${#arg}; i++ )); do
+            c="${arg[i]}"
+            case "$c" in
+                a) out+=(--all) ;;
+                A) out+=(--almost-all) ;;
+                l) out+=(--long) ;;
+                1) out+=(--oneline) ;;
+                d) out+=(--list-dirs) ;;
+                F) out+=(--classify) ;;
+                R) out+=(--recurse) ;;
+                i) out+=(--inode) ;;
+                h) ;;
+                t) sort=modified; gnu_desc=1 ;;
+                S) sort=size; gnu_desc=1 ;;
+                U) sort=none; gnu_desc=0 ;;
+                r) rev=1 ;;
+                *) return 1 ;;
+            esac
+        done
+    done
+    [[ -n "$sort" ]] && out+=(--sort="$sort")
+    (( gnu_desc ^ rev )) && out+=(--reverse)
+    reply=("${out[@]}")
+    (( ${#paths} )) && reply+=(-- "${paths[@]}")
+    return 0
+}
+
+# ls dispatcher: translated clusters go to eza (house style); anything the
+# translator refuses goes to real GNU ls so semantics never silently drift.
 _ls_command() {
-    if [[ "$*" == "-altr" || "$*" == "-latr" ]]; then
-        eza --long --all --sort=modified  --group-directories-first --icons
+    local -a reply
+    if _ls_gnu_to_eza "$@"; then
+        eza --group-directories-first --icons "${reply[@]}"
+    elif (( $+commands[gls] )); then
+        command gls --color=auto "$@"
+    elif [[ "$OSTYPE" == darwin* ]]; then
+        CLICOLOR=1 command ls "$@"
     else
-        eza --group-directories-first --icons "$@"
+        command ls --color=auto "$@"
     fi
 }
 
