@@ -134,6 +134,7 @@ _ssh_title_host host3 uptime -v;                                print -r -- "S3=
 _ssh_title_host -i key -L 8080:localhost:80 user@host4 echo hi; print -r -- "S4=$REPLY"
 _ssh_title_host ssh://user@host5:2200/;                         print -r -- "S5=$REPLY"
 _ssh_title_host -v;                                             print -r -- "S6=$REPLY"
+_ssh_title_host -B en0 user@host7;                              print -r -- "S7=$REPLY"
 ' 2>/dev/null)
 assert_contains "$out" "S1=host1" "bare destination"
 assert_contains "$out" "S2=host2" "flag with value before destination (regression: last-arg parse)"
@@ -141,6 +142,7 @@ assert_contains "$out" "S3=host3" "remote command after destination ignored"
 assert_contains "$out" "S4=host4" "multiple valued flags skipped"
 assert_contains "$out" "S5=host5" "ssh:// URL form stripped"
 assert_contains "$out" "S6=ssh"   "no destination falls back to plain ssh"
+assert_contains "$out" "S7=host7" "-B bind-interface value skipped (regression: titled the window en0)"
 
 # ── extract (autoloaded function) ────────────────────────────────────
 if have tar && have gzip; then

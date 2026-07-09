@@ -117,8 +117,8 @@ _ssh_title_host() {
         a="$argv[i]"
         case "$a" in
             --) host="${argv[i+1]:-}"; break ;;
-            -[bcDEeFIiJLlmOopQRSWw]) (( i += 2 )); continue ;;   # flag + value
-            -[bcDEeFIiJLlmOopQRSWw]*) (( i++ )); continue ;;     # joined -p2222
+            -[BbcDEeFIiJLlmOoPpQRSWw]) (( i += 2 )); continue ;;   # flag + value
+            -[BbcDEeFIiJLlmOoPpQRSWw]*) (( i++ )); continue ;;     # joined -p2222
             -*) (( i++ )); continue ;;                           # boolean flag
             *) host="$a"; break ;;
         esac
