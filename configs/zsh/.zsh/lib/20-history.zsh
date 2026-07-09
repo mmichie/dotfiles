@@ -4,9 +4,13 @@
 # recalls) live as autoloaded functions in $SHELL_FUNCTIONS_DIR.
 
 setup_history() {
-    export HISTFILE="$HOME/.zsh_history"
-    export HISTSIZE=600000        # 20% larger than SAVEHIST for HIST_EXPIRE_DUPS_FIRST cushion
-    export SAVEHIST=500000        # History entries saved to disk
+    # typeset -g +x, not export: HISTFILE in the environment makes an
+    # interactive bash child read — and on exit write bash-format entries
+    # into — .zsh_history. +x also strips the export flag when it was
+    # inherited from a pre-fix parent (tmux server, old login shells).
+    typeset -g +x HISTFILE="$HOME/.zsh_history"
+    typeset -g +x HISTSIZE=600000 # 20% larger than SAVEHIST for HIST_EXPIRE_DUPS_FIRST cushion
+    typeset -g +x SAVEHIST=500000 # History entries saved to disk
 
     setopt SHARE_HISTORY          # Share history between all sessions
     setopt EXTENDED_HISTORY       # Save timestamp and duration of command
