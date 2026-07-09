@@ -121,6 +121,7 @@
       "Bash(wget:*)"
     ]
   },
+  "model": "claude-fable-5[1m]",
   "statusLine": {
     "type": "command",
     "command": "bash ~/.claude/statusline-command.sh"
@@ -136,9 +137,9 @@
     "rust-analyzer-lsp@claude-plugins-official": true
   },
   "alwaysThinkingEnabled": true,
+  "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "theme": "dark-daltonized",
-  "editorMode": "vim",
-  "tui": "fullscreen"
+  "editorMode": "vim"
 }
