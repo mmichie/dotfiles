@@ -47,7 +47,7 @@ setup_environment() {
     # ── Locale ───────────────────────────────────────────────────
     export LC_ALL="en_US.UTF-8"
     export LANG="en_US.UTF-8"
-    export TZ="US/Pacific"
+    export TZ="America/Los_Angeles"
 
     # ── Editors ──────────────────────────────────────────────────
     if command -v nvim &>/dev/null; then
