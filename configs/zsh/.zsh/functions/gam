@@ -35,9 +35,14 @@ gam() {
         fi
     }
 
-    _gam_pull "$cs_item"  "$dir/client_secrets.json"  || return 1
-    _gam_pull "$svc_item" "$dir/oauth2service.json"   || return 1
-    unfunction _gam_pull
+    # always-block: a failed pull returns early and must still unfunction
+    # the helper instead of leaking it into the shell.
+    {
+        _gam_pull "$cs_item"  "$dir/client_secrets.json"  || return 1
+        _gam_pull "$svc_item" "$dir/oauth2service.json"   || return 1
+    } always {
+        unfunction _gam_pull
+    }
 
     command gam "$@"
 }

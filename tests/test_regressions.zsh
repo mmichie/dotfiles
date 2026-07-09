@@ -117,6 +117,25 @@ out=$(HOME="$remhome" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains "$out" "REM_LINES=1"     "remember writes one line per save"
 assert_contains "$out" "REM_LITERAL=yes" "remember preserves backslashes verbatim (regression: echo expanded them)"
 
+# ── gam credential-helper cleanup (functions/gam) ────────────────────
+# Bug: a failed credential pull returned early and skipped the
+# unfunction, leaking _gam_pull into the shell.
+inner="$T_SCRATCH/gam_inner.zsh"
+cat > "$inner" <<'EOF'
+fpath=("$1/.zsh/functions" $fpath)
+autoload -Uz gam
+gam info >/dev/null 2>&1
+print -r -- "GAM_RC=$?"
+(( $+functions[_gam_pull] )) && print -r -- "GAM_HELPER_LEAKED=yes"
+print -r -- "GAM_END"
+EOF
+typeset gamhome="$T_SCRATCH/gamhome"
+mkdir -p "$gamhome"
+out=$(HOME="$gamhome" PATH="/usr/bin:/bin" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+assert_contains     "$out" "GAM_RC=1"          "gam fails closed without op"
+assert_contains     "$out" "GAM_END"           "gam probe completes"
+assert_not_contains "$out" "GAM_HELPER_LEAKED" "gam unfunctions _gam_pull on failure (regression)"
+
 # ── keypress alias read flags (lib/30-aliases.zsh) ───────────────────
 # Bug: `read -s -n1` is a bashism; zsh rejected it with "read: bad option".
 # Option parsing happens before any input handling, so "bad option" is the
