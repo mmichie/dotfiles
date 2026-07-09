@@ -74,10 +74,18 @@ restart_ssh_agent() {
 }
 
 add_ssh_keys() {
-    local key_count=0
+    local key_count=0 key fingerprint
     for key in "$HOME/.ssh"/id_*(N); do
         [[ -f "$key" && "$key" != *.pub ]] || continue
-        if ! ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')"; then
+        # An empty fingerprint (unreadable key, encrypted key with no .pub
+        # sidecar) would make the grep below match everything and silently
+        # skip the key forever.
+        fingerprint=$(ssh-keygen -lf "$key" 2>/dev/null | awk '{print $2}')
+        if [[ -z "$fingerprint" ]]; then
+            echo "Skipping $key: cannot compute fingerprint" >&2
+            continue
+        fi
+        if ! ssh-add -l | grep -qF "$fingerprint"; then
             ssh-add "$key" && ((key_count++))
         fi
     done
