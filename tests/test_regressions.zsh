@@ -68,10 +68,15 @@ fpath=("$1/.zsh/functions" $fpath)
 autoload -Uz op-env
 op-env some-item -- /bin/sh -c 'printf "GOT=%s\n" "$FOO"'
 print -r -- "OPENV_RC=$?"
+leftover=("$TMPDIR"/op-env.*(N))
+print -r -- "OPENV_LEFTOVER=${#leftover}"
 EOF
-out=$(PATH="$opdir:$PATH" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+typeset openvtmp="$T_SCRATCH/openvtmp"
+mkdir -p "$openvtmp"
+out=$(TMPDIR="$openvtmp" PATH="$opdir:$PATH" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains "$out" "GOT=from_op" "op-env round-trips env through op stub (mktemp regression)"
 assert_contains "$out" "OPENV_RC=0"  "op-env exits 0"
+assert_contains "$out" "OPENV_LEFTOVER=0" "op-env removes its env tempfile (always-block cleanup)"
 
 # ── claude wrapper binary resolution (functions/claude) ──────────────
 # Bug: `command -v claude` inside the wrapper resolves to the wrapper

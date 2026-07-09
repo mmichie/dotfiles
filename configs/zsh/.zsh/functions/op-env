@@ -58,10 +58,16 @@ USAGE
     # Explicit template: GNU mktemp (nix coreutils) rejects `-t op-env`
     # ("too few X's"); BSD accepts both forms.
     tmpfile=$(mktemp "${TMPDIR:-/tmp}/op-env.XXXXXXXX") || return 1
-    chmod 600 "$tmpfile"
-    print -r -- "$env_content" >"$tmpfile"
-    op run --account "$account" --env-file="$tmpfile" -- "$@"
-    local rc=$?
-    rm -f "$tmpfile"
+    # always-block: the rm must run even when ^C aborts `op run` mid-
+    # command, or the materialized env outlives the call in $TMPDIR.
+    local rc
+    {
+        chmod 600 "$tmpfile"
+        print -r -- "$env_content" >"$tmpfile"
+        op run --account "$account" --env-file="$tmpfile" -- "$@"
+        rc=$?
+    } always {
+        rm -f "$tmpfile"
+    }
     return $rc
 }
