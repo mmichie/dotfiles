@@ -20,6 +20,7 @@ print -r -- "M_LL_ALIAS=${+aliases[ll]}"
 print -r -- "M_EXTRACT=$(whence -w extract)"
 print -r -- "M_CORRECT_IGNORE=$CORRECT_IGNORE"
 print -r -- "M_TZ=$TZ"
+print -r -- "M_CD_COMPLETER=${_comps[cd]}"
 [[ -s "$HOME/.cache/zsh/.zcompdump" ]] && print -r -- "M_COMPDUMP=yes"
 print -r -- "M_END"
 '
@@ -38,6 +39,7 @@ assert_contains "$out" "M_LL_ALIAS=1"               "aliases defined"
 assert_contains "$out" "M_EXTRACT=extract: function" "functions dir autoloaded"
 assert_contains "$out" "M_CORRECT_IGNORE=(.*|claude)" "CORRECT_IGNORE set"
 assert_contains "$out" "M_TZ=America/Los_Angeles"   "TZ uses the canonical zone name"
+assert_contains "$out" "M_CD_COMPLETER=_cd"         "cd keeps stock _cd completer (stack/CDPATH/named dirs)"
 assert_contains "$out" "M_COMPDUMP=yes"             "compinit dump written to cache dir"
 
 # stderr must be empty apart from the known no-tty ZLE lines that cached

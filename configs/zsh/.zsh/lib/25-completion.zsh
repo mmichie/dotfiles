@@ -22,9 +22,9 @@ setup_completions() {
     compdef _signal kill
     compdef _user finger pinky
 
-    # Directory handling completions
-    compdef _directories cd
-    compdef _directories pushd
+    # Directory handling completions. cd/pushd deliberately NOT overridden:
+    # stock _cd also completes directory-stack entries (cd -<TAB>), CDPATH,
+    # and named directories, which _directories cannot.
     compdef _directories mkdir
     compdef _directories rmdir
 
