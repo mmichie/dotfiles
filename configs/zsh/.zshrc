@@ -45,7 +45,9 @@ fpath=(
 # dump pristine for zcompile and costs a fork-free $(<...) instead of a grep.
 ZSH_COMPDUMP="$SHELL_CACHE_DIR/.zcompdump"
 autoload -Uz compinit
-_fpath_fingerprint="${(j::)fpath}"
+# (F) newline-join: a separator-free join could alias two different
+# fpaths whose element boundaries merely shifted.
+_fpath_fingerprint="${(F)fpath}"
 if [[ -f "$ZSH_COMPDUMP" && -r "$ZSH_COMPDUMP.fpath" ]] \
     && [[ "$(<"$ZSH_COMPDUMP.fpath")" == "$_fpath_fingerprint" ]]; then
     compinit -C -d "$ZSH_COMPDUMP"
