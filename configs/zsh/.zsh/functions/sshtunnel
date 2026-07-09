@@ -3,6 +3,8 @@ sshtunnel() {
     if [[ $# -ne 3 ]]; then
         echo "usage: sshtunnel host remote-port local_port"
     else
-        /usr/bin/ssh "$1" -L "$3":localhost:"$2"
+        # command ssh, not /usr/bin/ssh (absent on NixOS). Also bypasses the
+        # ssh() title wrapper, same as the hardcoded path did.
+        command ssh "$1" -L "$3":localhost:"$2"
     fi
 }

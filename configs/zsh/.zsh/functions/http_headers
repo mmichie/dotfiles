@@ -1,4 +1,5 @@
 # Check HTTP headers
 http_headers() {
-    /usr/bin/curl -I -L "$@"
+    # command curl, not /usr/bin/curl: NixOS has no /usr/bin beyond env.
+    command curl -I -L "$@"
 }
