@@ -62,7 +62,9 @@ restart_ssh_agent() {
     mkdir -p "$(dirname "$AGENT_SOCKET")" "$(dirname "$AGENT_INFO")"
     chmod 700 "$(dirname "$AGENT_SOCKET")" "$(dirname "$AGENT_INFO")"
 
-    [[ -S "$AGENT_SOCKET" ]] && rm "$AGENT_SOCKET"
+    # -e/-L, not -S: any stale file at the socket path (plain file, dead
+    # symlink) makes ssh-agent's bind fail after AGENT_INFO was truncated.
+    [[ -e "$AGENT_SOCKET" || -L "$AGENT_SOCKET" ]] && rm -f "$AGENT_SOCKET"
 
     echo "Starting new SSH agent..."
     ssh-agent -a "$AGENT_SOCKET" > "$AGENT_INFO"
