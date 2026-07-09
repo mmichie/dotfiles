@@ -49,23 +49,40 @@ assert_contains "$out" "C5=ls"      "bare command unchanged"
 
 # ── _refresh_cache (lib/50-integrations.zsh) ─────────────────────────
 # Deterministic mtime ordering via touch -t (no sleeps, no same-second races).
+# Rebuild detection: the generator command reads $gen, whose content changes
+# between calls — but $gen is never an invalidator, so cache content moves
+# ONLY when _refresh_cache actually re-ran the command. The command string
+# stays constant across the no-rebuild probes because it is itself part of
+# the staleness fingerprint (pinned by CMDCHANGE below).
 inner="$T_SCRATCH/refresh_inner.zsh"
 cat > "$inner" <<'EOF'
 export SHELL_CACHE_DIR="$2"
 source "$1/.zsh/lib/50-integrations.zsh" 2>/dev/null
-cache="$2/probe.cache" inv="$2/probe.inv"
+cache="$2/probe.cache" inv="$2/probe.inv" gen="$2/probe.gen"
+cmd="cat $gen"
 : > "$inv"
-_refresh_cache "$cache" 'print -rn -- run1' "$inv"
+print -rn -- run1 > "$gen"
+_refresh_cache "$cache" "$cmd" "$inv"
 print -r -- "CREATE=$(<$cache)"
+print -rn -- run2 > "$gen"
 touch -t 200001010000 "$inv"                 # invalidator older than cache
-_refresh_cache "$cache" 'print -rn -- run2' "$inv"
+_refresh_cache "$cache" "$cmd" "$inv"
 print -r -- "STALE=$(<$cache)"
 touch -t 200001010000 "$cache"               # cache older ...
 touch -t 200101010000 "$inv"                 # ... than invalidator
-_refresh_cache "$cache" 'print -rn -- run3' "$inv"
+_refresh_cache "$cache" "$cmd" "$inv"
 print -r -- "FRESH=$(<$cache)"
-_refresh_cache "$cache" 'print -rn -- run4' "/nonexistent/invalidator"
+print -rn -- run3 > "$gen"
+_refresh_cache "$cache" "$cmd" "/nonexistent/invalidator"
 print -r -- "NOINV=$(<$cache)"
+# The command string is fingerprinted (line 1 of the .dep sidecar): an
+# edited init line (vivid theme, atuin flags) must rebuild even though
+# no invalidator path or mtime moved.
+_refresh_cache "$cache" "$cmd # edited" "$inv"
+print -r -- "CMDCHANGE=$(<$cache)"
+print -rn -- run4 > "$gen"
+_refresh_cache "$cache" "$cmd # edited" "$inv"
+print -r -- "CMDSTABLE=$(<$cache)"
 # Nix rebuilds change only the resolved target path: every store mtime
 # is clamped to the epoch, so the -nt check can never fire (regression:
 # tool inits froze at whatever version first populated the cache).
@@ -73,9 +90,11 @@ mkdir -p "$2/store-a" "$2/store-b"
 : > "$2/store-a/bin"; : > "$2/store-b/bin"
 touch -t 197001010000 "$2/store-a/bin" "$2/store-b/bin"
 ln -s "$2/store-a/bin" "$2/tool"
-_refresh_cache "$2/nix.cache" 'print -rn -- gen1' "$2/tool"
+print -rn -- gen1 > "$gen"
+_refresh_cache "$2/nix.cache" "$cmd" "$2/tool"
+print -rn -- gen2 > "$gen"
 ln -sfn "$2/store-b/bin" "$2/tool"
-_refresh_cache "$2/nix.cache" 'print -rn -- gen2' "$2/tool"
+_refresh_cache "$2/nix.cache" "$cmd" "$2/tool"
 print -r -- "NIXSWAP=$(<$2/nix.cache)"
 # Failure handling (regression: truncate-then-write left empty caches that
 # every later shell sourced forever).
@@ -92,14 +111,16 @@ typeset cachedir="$T_SCRATCH/cachework"
 mkdir -p "$cachedir"
 sb="$(make_sandbox_home)"
 out=$(HOME="$sb" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$cachedir" 2>&1)
-assert_contains "$out" "CREATE=run1" "creates cache when missing"
-assert_contains "$out" "STALE=run1"  "keeps cache when invalidator is older"
-assert_contains "$out" "FRESH=run3"  "rebuilds cache when invalidator is newer"
-assert_contains "$out" "NOINV=run3"  "missing invalidator leaves cache alone"
-assert_contains "$out" "NIXSWAP=gen2" "nix rebuild (epoch mtimes, retargeted symlink) refreshes"
-assert_contains "$out" "FAILRC=1"    "failed generator returns nonzero"
-assert_contains "$out" "FAILFILES=0" "failed generator leaves no cache or temp file (regression)"
-assert_contains "$out" "KEEP=good"   "failed refresh preserves the old cache (regression)"
+assert_contains "$out" "CREATE=run1"    "creates cache when missing"
+assert_contains "$out" "STALE=run1"     "keeps cache when invalidator is older"
+assert_contains "$out" "FRESH=run2"     "rebuilds cache when invalidator is newer"
+assert_contains "$out" "NOINV=run2"     "missing invalidator leaves cache alone"
+assert_contains "$out" "CMDCHANGE=run3" "edited generating command forces a rebuild"
+assert_contains "$out" "CMDSTABLE=run3" "unchanged command after a rebuild stays cached"
+assert_contains "$out" "NIXSWAP=gen2"   "nix rebuild (epoch mtimes, retargeted symlink) refreshes"
+assert_contains "$out" "FAILRC=1"       "failed generator returns nonzero"
+assert_contains "$out" "FAILFILES=0"    "failed generator leaves no cache or temp file (regression)"
+assert_contains "$out" "KEEP=good"      "failed refresh preserves the old cache (regression)"
 
 # ── _ssh_title_host (lib/80-ssh.zsh) ─────────────────────────────────
 # Destination parsing for the tmux window title. Probed via a sandbox

@@ -7,21 +7,26 @@
 # cache. `eval $(tool init zsh)` ran ~50-100ms per shell; sourcing a
 # cached file is closer to 1ms.
 
-# Re-run `cmd` and write its output to $cache_path when any of
-# $invalidators... changed since the cache was written. Otherwise leave
-# it alone. Returns nonzero when the cache could not be (re)generated —
-# callers should `&& source` so a failed tool init degrades to "tool not
-# set up this shell" instead of sourcing garbage.
+# Re-run `cmd` and write its output to $cache_path when the command
+# string or any of $invalidators... changed since the cache was written.
+# Otherwise leave it alone. Returns nonzero when the cache could not be
+# (re)generated — callers should `&& source` so a failed tool init
+# degrades to "tool not set up this shell" instead of sourcing garbage.
 #
-# Staleness is detected two ways, because mtime alone cannot see nix
+# Staleness is detected three ways, because mtime alone cannot see nix
 # rebuilds: everything under /nix/store has its mtime clamped to the
 # epoch, so a rebuilt binary is NEVER newer than its cache and the init
 # scripts silently freeze at whatever version first populated them
 # (this kept a fixed chevron from taking effect). What does change per
 # rebuild is the resolved store path, so:
-#   1. the symlink-resolved paths of all invalidators are recorded in a
-#      $cache_path.dep sidecar and any difference forces a refresh;
-#   2. the -nt mtime check stays, for mutable invalidators (config
+#   1. the generating command (must stay single-line) is recorded as the
+#      first line of a $cache_path.dep sidecar — an edited init line
+#      (vivid theme, atuin flags) is invisible to the other two checks
+#      and would otherwise serve stale output until the binary's store
+#      path happened to change;
+#   2. the symlink-resolved paths of all invalidators fill the rest of
+#      the sidecar and any difference forces a refresh;
+#   3. the -nt mtime check stays, for mutable invalidators (config
 #      files, non-nix installs).
 # Sourceable caches (*.zsh only — data files like vivid-ls-colors are not
 # scripts) are zcompiled so later shells load wordcode; a missing .zwc next
@@ -40,17 +45,22 @@ _refresh_cache() {
     for inv in "$@"; do
         [[ -e $inv ]] && resolved+=("${inv:A}")
     done
-    local stamp="${(F)resolved}" stamp_path="$cache_path.dep" recorded=""
-    [[ -f $stamp_path ]] && recorded="$(<"$stamp_path")"
-    if [[ ! -f $cache_path || ( -n "$stamp" && "$stamp" != "$recorded" ) ]]; then
+    local stamp_path="$cache_path.dep"
+    local -a recorded
+    [[ -f $stamp_path ]] && recorded=(${(f)"$(<"$stamp_path")"})
+    # Line 1 of the sidecar is the command, the rest are resolved paths.
+    # The command always participates in the comparison; the paths only
+    # when at least one invalidator resolved (empty = no evidence).
+    if [[ ! -f $cache_path || "$cmd" != "${recorded[1]:-}" \
+        || ( ${#resolved} -gt 0 && "${(F)resolved}" != "${(F)recorded[2,-1]}" ) ]]; then
         _write_cache "$cache_path" "$cmd" || return 1
-        _stamp_cache "$stamp_path" "$@"
+        _stamp_cache "$stamp_path" "$cmd" "$@"
         return 0
     fi
     for inv in "$@"; do
         [[ -e $inv && $inv -nt $cache_path ]] || continue
         _write_cache "$cache_path" "$cmd" || return 1
-        _stamp_cache "$stamp_path" "$@"
+        _stamp_cache "$stamp_path" "$cmd" "$@"
         return 0
     done
     [[ "$cache_path" == *.zsh && ! -f "$cache_path.zwc" ]] && _zcompile_cache "$cache_path"
@@ -62,14 +72,15 @@ _refresh_cache() {
 # stamp would make the next shell see a "new" invalidator and rebuild
 # the cache once more per appearance.
 _stamp_cache() {
-    local stamp_path="$1"
-    shift
+    local stamp_path="$1" cmd="$2"
+    shift 2
     local inv
     local -a resolved
     for inv in "$@"; do
         [[ -e $inv ]] && resolved+=("${inv:A}")
     done
-    print -r -- "${(F)resolved}" > "$stamp_path"
+    local -a stamp_lines=("$cmd" "${resolved[@]}")
+    print -r -- "${(F)stamp_lines}" > "$stamp_path"
 }
 
 # Atomic: generate into a temp file and mv into place only on success. The
@@ -134,8 +145,8 @@ setup_integrations() {
             && source "$direnv_cache"
     fi
 
-    # Vivid ls colors. The theme name is baked into vivid's binary, so
-    # binary mtime is the only invalidator.
+    # Vivid ls colors. Themes are compiled into vivid's binary — no theme
+    # file to watch; the theme *name* is caught by the command fingerprint.
     if command -v vivid &>/dev/null; then
         local vivid_cache="$SHELL_CACHE_DIR/vivid-ls-colors"
         _refresh_cache "$vivid_cache" 'vivid generate tokyonight-night' \
