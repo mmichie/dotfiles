@@ -1,3 +1,5 @@
+config-version = 2
+
 # Auto-start settings
 after-login-command = []
 after-startup-command = []
@@ -11,6 +13,10 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 default-root-container-layout = 'tiles'
 default-root-container-orientation = 'horizontal'
 accordion-padding = 0
+
+# Keep tag workspaces alive when empty; must list every workspace the
+# cmd-1..6 bindings below reference (config-version 2 no longer infers this)
+persistent-workspaces = ['1', '2', '3', '4', '5', '6']
 
 # Mouse behavior (DWM-like)
 on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
