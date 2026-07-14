@@ -47,6 +47,9 @@
     # ── Development — Other ────────────────────────────────────────────
     shellcheck
     shfmt
+    # CLI needed by nvim-treesitter (main branch) to build grammars on
+    # :TSInstall / :TSUpdate
+    tree-sitter
     pre-commit
     lefthook
     tokei

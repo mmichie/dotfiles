@@ -42,43 +42,61 @@ return {
     -- Syntax highlighting
     {
         "nvim-treesitter/nvim-treesitter",
-        -- Pin the master branch. Upstream made `main` (the rewrite) the default
-        -- branch, and main removes nvim-treesitter.configs. Without this pin,
-        -- `:Lazy update` tracks the default branch and drifts onto main, which
-        -- breaks the configs.setup() call below. The exact commit is held in
-        -- lazy-lock.json; `:Lazy restore` pins it back.
-        branch = "master",
+        -- main branch (the rewrite). The frozen master branch does not
+        -- support Neovim 0.12: its query predicates register with the
+        -- removed `all = false` compat flag and crash the highlighter
+        -- (treesitter.lua:197: attempt to call method 'range').
+        -- Needs the tree-sitter CLI (modules/home/packages-dev.nix) to
+        -- build grammars.
+        branch = "main",
         build = ":TSUpdate",
         config = function()
-            -- master branch: the entrypoint is nvim-treesitter.configs, and
-            -- highlighting must be enabled explicitly. The old
-            -- require('nvim-treesitter').setup({...}) call was silently
-            -- ignored — no treesitter highlighting at all for filetypes
-            -- nvim does not cover by default.
-            require("nvim-treesitter.configs").setup({
-                ensure_installed = {
-                    "lua",
-                    "vim",
-                    "vimdoc",
-                    "query",
-                    "go",
-                    "gomod",
-                    "gosum",
-                    "gowork",
-                    "python",
-                    "bash",
-                    "json",
-                    "yaml",
-                    "toml",
-                    "markdown",
-                    "markdown_inline",
-                    "nix",
-                    "diff",
-                    "gitcommit",
-                    "gitignore",
-                },
-                auto_install = true,
-                highlight = { enable = true },
+            local ts = require("nvim-treesitter")
+
+            -- Parsers and queries install to stdpath('data')/site, which
+            -- main prepends to runtimepath so they take priority over the
+            -- versions bundled with nvim.
+            ts.setup({})
+
+            local ensure = {
+                "lua",
+                "vim",
+                "vimdoc",
+                "query",
+                "go",
+                "gomod",
+                "gosum",
+                "gowork",
+                "python",
+                "bash",
+                "json",
+                "yaml",
+                "toml",
+                "markdown",
+                "markdown_inline",
+                "nix",
+                "diff",
+                "gitcommit",
+                "gitignore",
+            }
+            ts.install(ensure) -- async; no-op for already-installed parsers
+
+            -- main has no highlight.enable or auto_install: highlighting is
+            -- attached per buffer. Start it on FileType, installing missing
+            -- parsers on first use (the auto_install replacement).
+            vim.api.nvim_create_autocmd("FileType", {
+                group = vim.api.nvim_create_augroup("TreesitterStart", {}),
+                callback = function(args)
+                    local lang = vim.treesitter.language.get_lang(args.match)
+                    if not lang then return end
+                    if vim.tbl_contains(ts.get_installed(), lang) then
+                        vim.treesitter.start(args.buf, lang)
+                    elseif vim.tbl_contains(ts.get_available(), lang) then
+                        ts.install(lang):await(function()
+                            if vim.api.nvim_buf_is_valid(args.buf) then pcall(vim.treesitter.start, args.buf, lang) end
+                        end)
+                    end
+                end,
             })
         end,
     },
