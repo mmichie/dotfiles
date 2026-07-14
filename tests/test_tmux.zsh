@@ -132,7 +132,10 @@ assert_not_contains "$sleft" '#( ' "status-left has no broken #() command (regre
 # ── Keybindings: dwm + nested toggle ─────────────────────────────────
 typeset rootkeys offkeys
 rootkeys=$(tm list-keys -T root 2>/dev/null)
-offkeys=$(tm list-keys -T off 2>/dev/null)
+# tmux 3.7 `list-keys -T <table>` returns nothing for user-defined tables
+# (builtin root/prefix still enumerate), so pull the off table out of the
+# full dump instead.
+offkeys=$(tm list-keys 2>/dev/null | grep -- '-T off')
 assert_contains "$rootkeys" "M-n" "dwm newpane binding present"
 assert_contains "$rootkeys" '"M-;"' "nested-toggle binding in root table"
 assert_contains "$offkeys"  '"M-;"' "nested-toggle binding in off table"
