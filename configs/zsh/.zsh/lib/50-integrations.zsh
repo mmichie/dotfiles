@@ -104,6 +104,51 @@ _zcompile_cache() {
     zcompile "$1" 2>/dev/null
 }
 
+# Fork-free stand-in for `atuin uuid`, which atuin's init runs once per
+# shell to mint ATUIN_SESSION — a fork+exec of the whole Rust binary,
+# ~15ms and the largest single startup cost left after the tool inits
+# were cached. Emits the same dashless lowercase UUIDv7: 48-bit unix-ms
+# timestamp, version nibble, 74 random bits. Entropy comes from
+# /dev/urandom via sysread (zsh/system builtin — no subprocess); the
+# result lands in $REPLY because a $(...) capture would fork the very
+# subshell this exists to avoid. Falls back to the real `atuin uuid`
+# when the module or RNG read is unavailable: slower, never wrong.
+_atuin_session_uuid() {
+    emulate -L zsh
+    local raw='' hex='' c ts
+    local LC_ALL=C # byte-wise ${#raw} and ${(s::)...}: raw is binary
+    if ! zmodload zsh/system zsh/datetime 2>/dev/null \
+        || ! sysread -s 10 raw < /dev/urandom 2>/dev/null \
+        || (( ${#raw} != 10 )); then
+        REPLY="$(atuin uuid 2>/dev/null)"
+        [[ -n "$REPLY" ]]
+        return
+    fi
+    for c in "${(@s::)raw}"; do
+        hex+="${(l:2::0:)$(( [##16] #c ))}"
+    done
+    ts="${(l:12::0:)$(( [##16] ${EPOCHREALTIME%.*} * 1000 + 10#${${EPOCHREALTIME#*.}[1,3]} ))}"
+    # ts(12) + version nibble 7 + 12 random bits + variant nibble
+    # (10xx -> 8-b, two of rand_b's 62 bits) + 60 more random bits.
+    REPLY="${ts}7${hex[1,3]}$(( [##16] 0x${hex[4]} & 0x3 | 0x8 ))${hex[5,19]}"
+    REPLY="${REPLY:l}"
+}
+
+# Rewrite the one session-mint line of `atuin init zsh` output to call
+# the generator above. Anchored on the literal upstream text and
+# fail-open: if a future atuin changes that line, nothing matches, the
+# emitted fork survives, and startup gets slower — never incorrect.
+_atuin_filter_init() {
+    local l
+    while IFS= read -r l; do
+        if [[ "$l" == *'export ATUIN_SESSION=$(atuin uuid)'* ]]; then
+            print -r -- "${l%%export ATUIN_SESSION=*}_atuin_session_uuid && export ATUIN_SESSION=\"\$REPLY\""
+        else
+            print -r -- "$l"
+        fi
+    done
+}
+
 setup_integrations() {
     # Work profile (machine-specific env, not in dotfiles repo)
     [[ -f "$HOME/.bash_work_profile" ]] && source "$HOME/.bash_work_profile"
@@ -129,10 +174,15 @@ setup_integrations() {
 
     # Atuin shell history. Cached init output; re-sources cleanly. The ^R
     # binding is disabled here — see the atuin-fzf-history widget below.
+    # The init is piped through _atuin_filter_init to swap the per-shell
+    # `$(atuin uuid)` session fork for the fork-free generator above.
+    # pipefail (subshell-scoped, generation-time only) keeps a failed
+    # `atuin init` from being cached as a truncated script the pipeline's
+    # successful filter would otherwise mask.
     if command -v atuin &>/dev/null; then
         local atuin_cache="$SHELL_CACHE_DIR/atuin-init.zsh"
         _refresh_cache "$atuin_cache" \
-            'atuin init zsh --disable-up-arrow --disable-ctrl-r' \
+            '( setopt pipefail; atuin init zsh --disable-up-arrow --disable-ctrl-r | _atuin_filter_init )' \
             "$commands[atuin]" \
             "$HOME/.config/atuin/config.toml" \
             && source "$atuin_cache"
