@@ -115,9 +115,10 @@ gc:
 
 # Measure interactive zsh startup time. Runs N timed shells after a warmup,
 # reports min/median/max, fails if median exceeds the budget (default 100ms;
-# warm startup measures ~65ms, ~30ms once the global-compinit removal is
-# switched in). Use `just profile 300` to override the budget, or
-# `just profile-deep` for a zprof breakdown of where the time is spent.
+# warm startup measures ~50ms, ~40ms once the /etc/zshrc promptinit +
+# bashcompinit removal is switched in). Use `just profile 300` to override
+# the budget, or `just profile-deep` for a zprof breakdown of where the
+# time is spent.
 profile budget_ms="100" runs="10":
     #!/usr/bin/env bash
     set -euo pipefail

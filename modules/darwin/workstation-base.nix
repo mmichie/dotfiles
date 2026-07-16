@@ -44,13 +44,22 @@
     reattach = true;
   };
 
-  programs.zsh.enable = true;
-  # No compinit in the generated /etc/zshrc: it runs a FULL bare compinit
-  # (security audit + dump check on ~/.zcompdump) before ~/.zshrc's
-  # fingerprinted `compinit -C` fast path even gets a chance — measured at
-  # ~36ms per shell. bashcompinit goes with it; nothing in configs/zsh
-  # uses bash-style completions.
-  programs.zsh.enableGlobalCompInit = false;
+  programs.zsh = {
+    enable = true;
+    # No compinit in the generated /etc/zshrc: it runs a FULL bare compinit
+    # (security audit + dump check on ~/.zcompdump) before ~/.zshrc's
+    # fingerprinted `compinit -C` fast path even gets a chance — measured at
+    # ~36ms per shell.
+    enableGlobalCompInit = false;
+    # Separate option, NOT covered by enableGlobalCompInit (the generated
+    # /etc/zshrc kept bashcompinit after compinit was removed): nothing in
+    # configs/zsh uses bash-style completions.
+    enableBashCompletion = false;
+    # The default scans every fpath dir for prompt_*_setup via promptinit
+    # and renders the suse theme (~8ms per shell) — thrown away one module
+    # later when lib/60-prompt.zsh installs the chevron prompt.
+    promptInit = "";
+  };
 
   fonts.packages = with pkgs; [
     nerd-fonts.iosevka
