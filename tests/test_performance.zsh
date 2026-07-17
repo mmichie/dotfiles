@@ -48,13 +48,33 @@ _traced_boot() {
 typeset sb
 sb="$(make_sandbox_home)"
 
-# ── Cold boot: build all caches ──────────────────────────────────────
-run_sandbox_zsh "$sb" 'exit' >/dev/null 2>&1
+# ── Cold boot: build all caches (traced, to keep the gate honest) ────
+typeset coldtrace="$T_SCRATCH/cold.trace"
+_traced_boot "$sb" "$coldtrace"
 typeset dump="$sb/.cache/zsh/.zcompdump"
 if [[ -s "$dump" ]]; then
     t_pass "cold boot writes the compinit dump (gate precondition)"
 else
     t_fail "cold boot writes the compinit dump (gate precondition)" "missing: $dump"
+fi
+
+# Gate sanity: the warm-boot assertion below greps for _write_cache eval
+# lines, so the same pattern must be visible on a cold boot — otherwise a
+# rename in 50-integrations.zsh would turn the gate vacuous (which is
+# exactly how the original `_refresh_cache> eval` pattern died: the eval
+# moved into _write_cache and the gate silently matched nothing).
+typeset any_tool
+any_tool=$(run_sandbox_zsh "$sb" \
+    'print -rn -- $(( $+commands[fzf] || $+commands[atuin] || $+commands[direnv] || $+commands[vivid] || $+commands[zoxide] ))' 2>/dev/null)
+if [[ "$any_tool" == 1 ]]; then
+    if grep -qE '_write_cache:[0-9]+> eval' "$coldtrace"; then
+        t_pass "cold boot regenerates caches through _write_cache (gate is non-vacuous)"
+    else
+        t_fail "cold boot regenerates caches through _write_cache (gate is non-vacuous)" \
+            "no _write_cache eval in cold trace — warm-boot gate would match nothing"
+    fi
+else
+    t_skip "cold-boot gate sanity" "no cached tools visible in sandbox"
 fi
 
 typeset baseline
@@ -83,8 +103,9 @@ for n in 1 2; do
             "$(grep -E '> compinit( |$)' "$trace" | head -2)"
     fi
 
-    # _refresh_cache must not regenerate anything on a warm boot.
-    refresh_evals=$(grep -c '_refresh_cache:[0-9]*> eval' "$trace")
+    # The cache layer must not regenerate anything on a warm boot. The
+    # eval lives in _write_cache (cold-trace-verified above).
+    refresh_evals=$(grep -cE '_write_cache:[0-9]+> eval' "$trace")
     assert_eq "$refresh_evals" "0" "warm boot $n regenerates no tool-init caches"
 done
 
