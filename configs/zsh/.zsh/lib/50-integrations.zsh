@@ -10,8 +10,9 @@
 # Re-run `cmd` and write its output to $cache_path when the command
 # string or any of $invalidators... changed since the cache was written.
 # Otherwise leave it alone. Returns nonzero when the cache could not be
-# (re)generated — callers should `&& source` so a failed tool init
-# degrades to "tool not set up this shell" instead of sourcing garbage.
+# (re)generated — so a failed tool init degrades to "tool not set up this
+# shell" instead of sourcing garbage. Sourceable caches go through
+# _init_from_cache below, which layers corruption self-healing on top.
 #
 # Staleness is detected three ways, because mtime alone cannot see nix
 # rebuilds: everything under /nix/store has its mtime clamped to the
@@ -91,6 +92,18 @@ _write_cache() {
     local cache_path="$1" cmd="$2"
     local tmp="$cache_path.$$"
     if eval "$cmd" > "$tmp"; then
+        # Sourceable caches must parse before they are installed: a
+        # generator can exit 0 yet emit junk (update banner on stdout, a
+        # partially-written pipe), and once installed the .dep fingerprint
+        # would keep serving it. zcompile doubles as an in-process parse
+        # check — no zsh -n fork — and this is the cold path anyway.
+        if [[ "$cache_path" == *.zsh ]]; then
+            if ! zcompile "$tmp" 2>/dev/null; then
+                command rm -f "$tmp" "$tmp.zwc"
+                return 1
+            fi
+            command rm -f "$tmp.zwc"
+        fi
         command mv -f "$tmp" "$cache_path"
         _zcompile_cache "$cache_path"
     else
@@ -102,6 +115,36 @@ _write_cache() {
 _zcompile_cache() {
     [[ "$1" == *.zsh ]] || return 0
     zcompile "$1" 2>/dev/null
+}
+
+# Source a cache, quarantining it when it no longer parses. `source`
+# returning nonzero is ambiguous — the file's last command may just have
+# returned that status (benign) — so a failure is arbitrated by zcompile,
+# an in-process re-parse: parses = keep the cache and treat it as loaded;
+# does not parse = corrupt (crashed writer, disk damage, external edit) —
+# remove cache, wordcode, and .dep sidecar so it gets regenerated instead
+# of erroring in every future shell. A corrupt .zwc alone never lands
+# here: zsh validates wordcode and silently falls back to the source file.
+_source_cache() {
+    local cache_path="$1"
+    source "$cache_path" && return 0
+    zcompile "$cache_path" 2>/dev/null && return 0
+    print -ru2 -- "zsh: quarantined corrupt init cache: $cache_path"
+    command rm -f "$cache_path" "$cache_path.zwc" "$cache_path.dep"
+    return 1
+}
+
+# _init_from_cache <cache_path> <cmd> [invalidator ...]
+# The full cached-init lifecycle: refresh, source, and — when the cache
+# turned out to be corrupt and was quarantined — one regenerate-and-source
+# retry, so the CURRENT shell comes up working rather than degraded until
+# the next one. Bounded: _write_cache validates what it installs, so the
+# retry cannot loop.
+_init_from_cache() {
+    local cache_path="$1"
+    _refresh_cache "$@" || return 1
+    _source_cache "$cache_path" && return 0
+    _refresh_cache "$@" && _source_cache "$cache_path"
 }
 
 # Fork-free stand-in for `atuin uuid`, which atuin's init runs once per
@@ -167,9 +210,8 @@ setup_integrations() {
     # matters. fzf's own script binds ^R in viins/vicmd; the override after
     # setup_integrations() puts atuin-fzf-history and redo back on top.
     if command -v fzf &>/dev/null; then
-        local fzf_cache="$SHELL_CACHE_DIR/fzf-init.zsh"
-        _refresh_cache "$fzf_cache" 'fzf --zsh' "$commands[fzf]" \
-            && source "$fzf_cache"
+        _init_from_cache "$SHELL_CACHE_DIR/fzf-init.zsh" \
+            'fzf --zsh' "$commands[fzf]"
     fi
 
     # Atuin shell history. Cached init output; re-sources cleanly. The ^R
@@ -180,19 +222,16 @@ setup_integrations() {
     # `atuin init` from being cached as a truncated script the pipeline's
     # successful filter would otherwise mask.
     if command -v atuin &>/dev/null; then
-        local atuin_cache="$SHELL_CACHE_DIR/atuin-init.zsh"
-        _refresh_cache "$atuin_cache" \
+        _init_from_cache "$SHELL_CACHE_DIR/atuin-init.zsh" \
             '( setopt pipefail; atuin init zsh --disable-up-arrow --disable-ctrl-r | _atuin_filter_init )' \
             "$commands[atuin]" \
-            "$HOME/.config/atuin/config.toml" \
-            && source "$atuin_cache"
+            "$HOME/.config/atuin/config.toml"
     fi
 
     # Direnv per-directory environment
     if command -v direnv &>/dev/null; then
-        local direnv_cache="$SHELL_CACHE_DIR/direnv-hook.zsh"
-        _refresh_cache "$direnv_cache" 'direnv hook zsh' "$commands[direnv]" \
-            && source "$direnv_cache"
+        _init_from_cache "$SHELL_CACHE_DIR/direnv-hook.zsh" \
+            'direnv hook zsh' "$commands[direnv]"
     fi
 
     # Vivid ls colors. Themes are compiled into vivid's binary — no theme
@@ -209,9 +248,8 @@ setup_integrations() {
 # function in $SHELL_FUNCTIONS_DIR.
 setup_zoxide() {
     command -v zoxide &>/dev/null || return
-    local zoxide_cache="$SHELL_CACHE_DIR/zoxide-init.zsh"
-    _refresh_cache "$zoxide_cache" 'zoxide init zsh' "$commands[zoxide]" \
-        && source "$zoxide_cache"
+    _init_from_cache "$SHELL_CACHE_DIR/zoxide-init.zsh" \
+        'zoxide init zsh' "$commands[zoxide]"
     export _ZO_ECHO=1                                                  # Print matched dir before cd
     export _ZO_RESOLVE_SYMLINKS=1                                      # Resolve symlinks to true path
     export _ZO_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zoxide"

@@ -48,18 +48,28 @@ autoload -Uz compinit
 # (F) newline-join: a separator-free join could alias two different
 # fpaths whose element boundaries merely shifted.
 _fpath_fingerprint="${(F)fpath}"
+_compinit_rebuild=1
 if [[ -f "$ZSH_COMPDUMP" && -r "$ZSH_COMPDUMP.fpath" ]] \
     && [[ "$(<"$ZSH_COMPDUMP.fpath")" == "$_fpath_fingerprint" ]]; then
     compinit -C -d "$ZSH_COMPDUMP"
-    # One-time backfill after deploys: compile the dump if no wordcode yet.
-    [[ -f "$ZSH_COMPDUMP.zwc" ]] || zcompile "$ZSH_COMPDUMP" 2>/dev/null
-else
+    # Self-heal: -C trusts the dump blindly, and the fingerprint cannot see
+    # corruption — a truncated/garbled dump (crashed shell, disk damage)
+    # would otherwise break completion in EVERY future shell. An intact
+    # dump always populates _comps; empty means the load failed, so fall
+    # through to the full rebuild below.
+    if (( ${#_comps} > 0 )); then
+        _compinit_rebuild=0
+        # One-time backfill after deploys: compile the dump if no wordcode yet.
+        [[ -f "$ZSH_COMPDUMP.zwc" ]] || zcompile "$ZSH_COMPDUMP" 2>/dev/null
+    fi
+fi
+if (( _compinit_rebuild )); then
     command rm -f "$ZSH_COMPDUMP" "$ZSH_COMPDUMP.zwc"
     compinit -i -d "$ZSH_COMPDUMP"
     zcompile "$ZSH_COMPDUMP" 2>/dev/null
     print -r -- "$_fpath_fingerprint" >| "$ZSH_COMPDUMP.fpath"
 fi
-unset _fpath_fingerprint
+unset _fpath_fingerprint _compinit_rebuild
 
 # No re-source guard: `source ~/.zshrc` is the documented reload path, so
 # everything below is written to be idempotent — unique fpath/path, deduped

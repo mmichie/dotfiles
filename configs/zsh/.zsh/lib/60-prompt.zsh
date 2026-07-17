@@ -58,9 +58,8 @@ init_prompt() {
     chevron daemon start 2>/dev/null &!
     # `chevron init zsh` output is deterministic per binary — cache it like
     # the other tool inits instead of paying a fork+exec every shell.
-    local chevron_cache="$SHELL_CACHE_DIR/chevron-init.zsh"
-    _refresh_cache "$chevron_cache" 'chevron init zsh' "$commands[chevron]" \
-        && source "$chevron_cache"
+    _init_from_cache "$SHELL_CACHE_DIR/chevron-init.zsh" \
+        'chevron init zsh' "$commands[chevron]"
 }
 
 init_prompt
