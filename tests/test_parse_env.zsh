@@ -19,6 +19,10 @@ SQ='single'
 EMPTY=
 TRAIL=keep=this
 EOF
+# CRLF lines appended as raw bytes (a heredoc cannot carry a literal \r):
+# a .env written on Windows must load with the \r stripped, not exported
+# into values.
+printf 'CRLF=windows\r\nCRLFQ="quoted value"\r\n' >> "$fixture"
 
 # Inner script: source platform -> options -> environment (same order as
 # .zshrc, so EXTENDED_GLOB is on), parse the fixture, dump results.
@@ -37,6 +41,8 @@ print -r -- "DQ=${DQ-unset}"
 print -r -- "SQ=${SQ-unset}"
 print -r -- "EMPTY=${EMPTY-unset}"
 print -r -- "TRAIL=${TRAIL-unset}"
+print -r -- "CRLF_LEN=${#CRLF}"
+print -r -- "CRLFQ_LEN=${#CRLFQ}"
 print -r -- "MISSING_RC=$(_parse_env_file /nonexistent/file; print -rn -- $?)"
 EOF
 
@@ -54,6 +60,8 @@ assert_contains "$out" $'\nEMPTY='      "empty value allowed"
 assert_contains "$out" "TRAIL=keep=this" "value may contain ="
 assert_contains "$out" "RC=0"           "parse returns 0"
 assert_contains "$out" "MISSING_RC=1"   "missing file returns 1"
+assert_contains "$out" "CRLF_LEN=7"     "CRLF line loads without the trailing \\r (len of 'windows')"
+assert_contains "$out" "CRLFQ_LEN=12"   "CRLF + quotes: \\r stripped before quote stripping"
 
 assert_not_contains "$out" "Loaded: FOO-BAR"   "invalid key name skipped (regression)"
 assert_not_contains "$out" "not valid"         "no export errors from invalid keys"

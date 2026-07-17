@@ -13,6 +13,9 @@ _parse_env_file() {
 
     local line key value
     while IFS= read -r line || [[ -n "$line" ]]; do
+        # CRLF tolerance: a .env written on Windows (or by a CRLF-happy
+        # editor) would otherwise export values with a trailing \r.
+        line="${line%$'\r'}"
         [[ -z "$line" || "$line" = \#* ]] && continue
         # Valid identifier then `=`. `#` (zero or more, EXTENDED_GLOB) — the
         # ksh-style `*(...)` this replaced means something else in zsh and
