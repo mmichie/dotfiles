@@ -189,6 +189,127 @@ assert_contains "$out" "PWD_TAIL=/a/b/c" "mkcd creates nested dir and cds into i
 assert_contains "$out" "NOARG_RC=1"      "mkcd with no args fails"
 assert_contains "$out" "TWOARG_RC=1"     "mkcd with two args fails"
 
+# ── Hostile-input corpus: preexec/prompt hot-path helpers ─────────────
+# These run on every keystroke-adjacent event; the property under test is
+# not a specific mapping but "never errors, never writes to stderr, always
+# terminates" for inputs a user can realistically produce (pasted
+# multi-line commands, unicode, flag soup).
+inner="$T_SCRATCH/fuzz_emoji_inner.zsh"
+cat > "$inner" <<'EOF'
+source "$1/.zsh/lib/75-tmux-emoji.zsh"
+typeset -a corpus
+corpus=(
+    ''
+    '     '
+    $'\t\t'
+    $'multi\nline\ncommand'
+    'a;b|c&&d'
+    '"quoted arg" '"'"'single'"'"''
+    'sudo'
+    '/path with spaces/tool --flag'
+    'привет мир'
+    '🚀 launch'
+)
+corpus+=("${(l:4096::x:):-}")   # 4KB single token
+typeset -i failures=0
+typeset input
+for input in "${corpus[@]}"; do
+    local REPLY
+    if ! _tmux_emoji_get_command "$input" 2>>"$2"; then
+        (( failures++ ))
+    fi
+    (( ${+REPLY} )) || (( failures++ ))
+done
+print -r -- "EMOJI_FUZZ_FAILURES=$failures"
+print -r -- "EMOJI_FUZZ_N=${#corpus}"
+EOF
+typeset fuzzerr="$T_SCRATCH/fuzz_emoji.err"
+: > "$fuzzerr"
+out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$fuzzerr" 2>&1)
+assert_contains "$out" "EMOJI_FUZZ_FAILURES=0" "emoji command parser survives hostile corpus"
+assert_contains "$out" "EMOJI_FUZZ_N=11"       "emoji fuzz corpus fully executed"
+assert_eq "$(<$fuzzerr)" "" "emoji command parser silent on stderr across corpus"
+
+# ── _urlencode_path: charset + roundtrip properties ───────────────────
+# Whatever the input, the output must contain only unreserved chars, /,
+# and %XX escapes — and decoding must reproduce the input byte-for-byte
+# (OSC 7 consumers hard-require this).
+inner="$T_SCRATCH/fuzz_url_inner.zsh"
+cat > "$inner" <<'EOF'
+source "$1/.zsh/lib/60-prompt.zsh" 2>/dev/null
+_t_urldecode() {
+    local s="$1" out='' c
+    local -i i code
+    local LC_ALL=C
+    setopt localoptions no_multibyte
+    for (( i=1; i<=${#s}; i++ )); do
+        c="${s[i]}"
+        if [[ "$c" == '%' ]]; then
+            code=$(( 16#${s[i+1,i+2]} ))
+            c="${(#)code}"
+            (( i += 2 ))
+        fi
+        out+="$c"
+    done
+    print -rn -- "$out"
+}
+typeset -a corpus
+corpus=(
+    '/tmp/a b'
+    '/tmp/café/日本語'
+    '/p%q'
+    $'/new\nline'
+    '/already%20encoded'
+    '/~user/.hidden dir/x-y_z'
+    '/quotes "double" and '"'"'single'"'"''
+    '/emoji 🚀/dir'
+    ''
+)
+typeset -i bad_charset=0 bad_roundtrip=0
+typeset p enc dec
+for p in "${corpus[@]}"; do
+    enc="$(_urlencode_path "$p")"
+    [[ "$enc" != *[^A-Za-z0-9._~/%-]* ]] || (( bad_charset++ ))
+    dec="$(_t_urldecode "$enc")"
+    [[ "$dec" == "$p" ]] || { (( bad_roundtrip++ )); print -r -- "RT_FAIL: ${(qq)p} -> ${(qq)enc} -> ${(qq)dec}" }
+done
+print -r -- "URL_BAD_CHARSET=$bad_charset"
+print -r -- "URL_BAD_ROUNDTRIP=$bad_roundtrip"
+EOF
+out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+assert_contains "$out" "URL_BAD_CHARSET=0"   "urlencode emits only unreserved chars and %XX escapes"
+assert_contains "$out" "URL_BAD_ROUNDTRIP=0" "urlencode/decode roundtrips byte-for-byte"
+
+# ── _ssh_title_host: flag-soup corpus ─────────────────────────────────
+# Property: always returns 0 with a non-empty REPLY (the title is used
+# unconditionally), plus exact answers where the parse is unambiguous.
+typeset sb_soup
+sb_soup="$(make_sandbox_home)"
+out=$(run_sandbox_zsh "$sb_soup" '
+typeset -i soup_failures=0
+probe() {
+    local REPLY
+    _ssh_title_host "$@" || (( soup_failures++ ))
+    [[ -n "$REPLY" ]] || (( soup_failures++ ))
+    print -r -- "$REPLY"
+}
+print -r -- "P1=$(probe -o StrictHostKeyChecking=no user@target)"
+print -r -- "P2=$(probe -- host-after-separator)"
+print -r -- "P3=$(probe -v -A -4)"
+print -r -- "P4=$(probe -p2222 joined-flag-host)"
+print -r -- "P5=$(probe -i ~/.ssh/id -J jump1,jump2 -L 80:x:80 real-host tail cmd)"
+print -r -- "P6=$(probe --)"
+print -r -- "P7=$(probe "" )"
+print -r -- "SOUP_FAILURES=$soup_failures"
+' 2>/dev/null)
+assert_contains "$out" "P1=target"               "-o valued flag skipped to destination"
+assert_contains "$out" "P2=host-after-separator" "-- separator honored"
+assert_contains "$out" "P3=ssh"                  "flags-only argv falls back to ssh"
+assert_contains "$out" "P4=joined-flag-host"     "joined -p2222 skipped"
+assert_contains "$out" "P5=real-host"            "multi-flag soup lands on the destination"
+assert_contains "$out" "P6=ssh"                  "bare -- falls back to ssh"
+assert_contains "$out" "SOUP_FAILURES=0"         "ssh title parser never errors, never returns empty"
+
 # ── _ls_gnu_to_eza (lib/35-ls.zsh) ───────────────────────────────────
 # Pure translator: GNU short-flag clusters -> eza argv in $reply, rc 1 for
 # anything unmapped (dispatcher then runs real ls). Sort directions pinned
