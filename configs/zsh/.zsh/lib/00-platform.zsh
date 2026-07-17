@@ -5,6 +5,7 @@
 # Helper function to check capabilities
 has_capability() {
     local capability="$1"
+    local cap
     for cap in "${SYSTEM_CAPABILITIES[@]}"; do
         [[ "$cap" == "$capability" ]] && return 0
     done
@@ -13,6 +14,11 @@ has_capability() {
 
 # Detect platform and set variables
 detect_platform() {
+    # Explicitly global: these are the module's exports, not accidental
+    # leaks — keeps the function clean under WARN_CREATE_GLOBAL.
+    typeset -g SYSTEM_OS_TYPE SYSTEM_ARCH
+    typeset -ga SYSTEM_CAPABILITIES
+
     # OS type
     case "$OSTYPE" in
         darwin*)  SYSTEM_OS_TYPE="OSX" ;;
