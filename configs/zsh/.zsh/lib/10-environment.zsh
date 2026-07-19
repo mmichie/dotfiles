@@ -112,6 +112,7 @@ setup_environment() {
     export FZF_DEFAULT_OPTS="--height 40% --border"
     export GCC_COLORS="error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01"
     is_linux && export NO_AT_BRIDGE=1
+    is_osx && has_capability "homebrew" && export HOMEBREW_NO_ANALYTICS=1
 
     # ── Tmux nesting ──────────────────────────────────────────────
     # Shells inside tmux export TMUX_LEVEL so a nested tmux server

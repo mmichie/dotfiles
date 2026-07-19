@@ -30,6 +30,8 @@ setup_aliases() {
     command -v gping     &>/dev/null && alias pg="gping"
     command -v bandwhich &>/dev/null && alias bw="sudo bandwhich"
 
+    command -v dosbox-x  &>/dev/null && alias dosbox-x='dosbox-x -conf ~/.config/dosbox-x/dosbox-x.conf'
+
     alias screen="tmux"
     # Note: ssh hardening lives in ~/.ssh/config; the ssh() wrapper in
     # 80-ssh.zsh would shadow an alias here anyway.

@@ -124,9 +124,9 @@ bin/                          # Personal scripts
 - `configs/zsh/.zprofile` re-runs `setup_path` on macOS login shells after path_helper reordering
 
 #### Shell Configuration
-`configs/zsh/.zshrc` sources numbered modules from `.zsh/lib/` (`00-platform.zsh` ... `80-ssh.zsh`); the filename prefix encodes load order, no orchestrator needed:
+`configs/zsh/.zshrc` sources numbered modules from `.zsh/lib/` (`00-platform.zsh` ... `90-banner.zsh`); the filename prefix encodes load order, no orchestrator needed:
 - Tool integrations (fzf, atuin, direnv, vivid, zoxide, chevron) initialize from mtime-invalidated caches (`_refresh_cache`, zcompiled) instead of `eval $(tool init)` per shell
-- compinit runs against a fingerprinted dump in `~/.cache/zsh` (`-C` fast path unless fpath changed)
+- compinit runs in `25-completion.zsh` against a fingerprinted dump in `~/.cache/zsh` (`-C` fast path unless fpath changed)
 - `source ~/.zshrc` reloads cleanly — modules are written to be idempotent
 - Test suite: `tests/run.zsh` (`just test`); startup timing: `just profile` (real env) and `just profile-cold` (hermetic sandbox)
 
