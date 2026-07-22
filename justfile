@@ -1,11 +1,15 @@
 # Dotfiles management via Nix
 
-# Apply system configuration (detects host via `hostname -s` on Darwin/NixOS)
+# Apply system configuration (detects host via `hostname -s` on Darwin/NixOS).
+# -H on the GC/optimise steps sets HOME=/var/root so Nix (running as root under
+# sudo) stops warning that $HOME (/Users/you) is not root-owned; both only touch
+# /nix/store, so HOME is irrelevant there. Deliberately NOT on darwin-rebuild:
+# activation runs home-manager, where HOME must stay the invoking user's.
 switch:
     @if [ "$(uname)" = "Darwin" ]; then \
         sudo "$(command -v darwin-rebuild)" switch --flake ".#$(hostname -s)" \
-            && sudo "$(command -v nix-collect-garbage)" --delete-older-than 3d \
-            && sudo "$(command -v nix-store)" --optimise; \
+            && sudo -H "$(command -v nix-collect-garbage)" --delete-older-than 3d \
+            && sudo -H "$(command -v nix-store)" --optimise; \
     elif [ -f /etc/NIXOS ] && [ -d "hosts/$(hostname -s)" ]; then \
         sudo "$(command -v nixos-rebuild)" switch --flake ".#$(hostname -s)"; \
     else \
