@@ -5,7 +5,7 @@
 
 rustPlatform.buildRustPackage {
   pname = "obliviate";
-  version = "0.3.0";
+  version = "0.4.0";
 
   # Only the crate sources — never the local ./target build dir, which would
   # otherwise be copied into the store.
@@ -21,7 +21,7 @@ rustPlatform.buildRustPackage {
   cargoLock.lockFile = ../../bin/obliviate/Cargo.lock;
 
   meta = {
-    description = "Make Chrome forget a domain: erase its history, downloads, Journeys, and omnibox suggestions";
+    description = "Make Chrome forget a domain: erase its history, downloads, Journeys, omnibox suggestions, and disk cache entries";
     mainProgram = "obliviate";
   };
 }

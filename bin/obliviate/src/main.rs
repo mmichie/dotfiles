@@ -8,10 +8,17 @@
 //! Domain matching parses each stored URL with a real URL parser and compares
 //! the host — `example.com` matches `example.com` and any subdomain, but never
 //! `notexample.com` or `example.com.evil.com`.
+//!
+//! Beyond SQLite, the domain's fetched bytes persist in Chrome's Simple Cache
+//! directories (the HTTP cache and the compiled-code caches). Every entry file
+//! embeds its own key — the request URL, plus the partition site for
+//! split-cache entries — so entries are matched by parsing the URLs out of
+//! that key and deleted by removing their files; Chrome's cache index treats
+//! the missing files as evictions and heals itself on the next start.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -25,7 +32,7 @@ use clap::Parser;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 use url::Url;
 
-/// Delete all Chrome history (and downloads) for a given domain.
+/// Delete all Chrome history, downloads, and cached content for a given domain.
 #[derive(Parser, Debug)]
 #[command(name = "obliviate", version, about)]
 struct Cli {
@@ -123,11 +130,33 @@ fn prune_all(cli: &Cli, domain: &str, history: &Path) -> Result<()> {
         }
     }
 
-    print_preview(&history_counts, &ops, &satellites);
+    // The disk caches (HTTP responses, compiled JS/wasm) key every entry by
+    // URL, so the domain's fetched bytes outlive a history-only prune. Scan
+    // them for the preview the same way. Cache entries are refetchable, so
+    // unlike the databases they are deleted without a backup.
+    let default_layout = cli.user_data_dir.is_none() && cli.history.is_none();
+    let mut caches: Vec<(CacheDir, usize, u64)> = Vec::new();
+    for dir in cache_dirs(history, default_layout) {
+        match scan_cache_dir(&dir, domain) {
+            // Keep zero-count dirs so the preview shows they were scanned,
+            // like the suggestion databases above.
+            Ok(hits) => {
+                let bytes = hits.iter().map(|h| h.bytes).sum();
+                caches.push((dir, hits.len(), bytes));
+            }
+            Err(e) => eprintln!(
+                "warning: could not scan {} ({e}); skipping in preview",
+                dir.path.display()
+            ),
+        }
+    }
+
+    print_preview(&history_counts, &ops, &satellites, &caches);
 
     let history_total: usize = history_counts.values().sum();
     let sat_total: usize = satellites.iter().map(|(_, _, n)| *n).sum();
-    if history_total == 0 && sat_total == 0 {
+    let cache_total: usize = caches.iter().map(|(_, n, _)| *n).sum();
+    if history_total == 0 && sat_total == 0 && cache_total == 0 {
         println!("\nnothing matches {domain}; no changes made.");
         return Ok(());
     }
@@ -139,7 +168,7 @@ fn prune_all(cli: &Cli, domain: &str, history: &Path) -> Result<()> {
     if !cli.restart_chrome {
         println!("\nQuit Google Chrome completely first, or the databases will be locked.");
     }
-    if !cli.yes && !confirm(&format!("Delete these rows for {domain}? [y/N] "))? {
+    if !cli.yes && !confirm(&format!("Delete everything listed above for {domain}? [y/N] "))? {
         println!("aborted; no changes made.");
         return Ok(());
     }
@@ -170,7 +199,31 @@ fn prune_all(cli: &Cli, domain: &str, history: &Path) -> Result<()> {
         }
     }
 
-    println!("\ndone: removed {removed} rows for {domain}.");
+    let mut cache_removed = 0usize;
+    let mut cache_bytes = 0u64;
+    for (dir, matched, _) in &caches {
+        if *matched == 0 {
+            continue;
+        }
+        match prune_cache_dir(dir, domain) {
+            Ok((n, bytes)) => {
+                println!("\n{}:", dir.label);
+                println!("removed {n} entries ({})", human_bytes(bytes));
+                cache_removed += n;
+                cache_bytes += bytes;
+            }
+            Err(e) => eprintln!("warning: {} ({e:#})", dir.label),
+        }
+    }
+
+    if cache_removed > 0 {
+        println!(
+            "\ndone: removed {removed} rows and {cache_removed} cache entries ({}) for {domain}.",
+            human_bytes(cache_bytes)
+        );
+    } else {
+        println!("\ndone: removed {removed} rows for {domain}.");
+    }
     Ok(())
 }
 
@@ -318,6 +371,7 @@ fn print_preview(
     history: &BTreeMap<String, usize>,
     ops: &[Op],
     satellites: &[(&'static Satellite, PathBuf, usize)],
+    caches: &[(CacheDir, usize, u64)],
 ) {
     println!("rows matched in History:");
     for op in ops {
@@ -329,6 +383,12 @@ fn print_preview(
         println!("rows matched in suggestion databases:");
         for (s, _, n) in satellites {
             println!("  {:<26} {:>8}", s.file, n);
+        }
+    }
+    if !caches.is_empty() {
+        println!("entries matched in disk caches:");
+        for (dir, n, bytes) in caches {
+            println!("  {:<26} {:>8}  ({})", dir.label, n, human_bytes(*bytes));
         }
     }
 }
@@ -434,6 +494,253 @@ fn scan_url_column(
         }
     }
     Ok((count, urls.into_iter().collect()))
+}
+
+// ── Disk caches (Simple Cache backend) ─────────────────────────────────────
+//
+// The HTTP cache and the compiled-code caches store one entry per file
+// (`<64-bit hash as hex>_0`, with optional `_1`/`_s` siblings), each starting
+// with a fixed header followed by the entry's key. The key contains the
+// request URL — and, for partitioned entries (`1/0/_dk_ <top-frame site>
+// <frame site> <url>`), the sites it was fetched under — so reading it is
+// enough to host-match an entry without Chrome's cache index. Deleting the
+// entry's files is safe with Chrome closed: the index is a hint, and missing
+// files are treated as evictions on the next start.
+
+const SIMPLE_CACHE_MAGIC: u64 = 0xfcfb_6d1b_a772_5c30;
+
+/// One cache directory to sweep, with a human label for the preview.
+struct CacheDir {
+    label: &'static str,
+    path: PathBuf,
+}
+
+/// A matching entry: the hash stem its files share, and their total size.
+struct CacheHit {
+    stem: String,
+    bytes: u64,
+}
+
+/// Locate the profile's cache directories. They sit inside the profile dir on
+/// Linux/Windows (and under any custom --user-data-dir), but the default macOS
+/// layout splits them out under ~/Library/Caches. The platform location is
+/// keyed by profile-directory name and only probed for the default layout, so
+/// pointing --history at a copied file can never sweep the live profile's
+/// caches. Only directories that exist are returned.
+fn cache_dirs(history: &Path, default_layout: bool) -> Vec<CacheDir> {
+    let Some(profile_dir) = history.parent() else {
+        return Vec::new();
+    };
+    let mut roots: Vec<PathBuf> = vec![profile_dir.to_path_buf()];
+    if default_layout {
+        if let (Some(base), Some(name)) = (platform_cache_base(), profile_dir.file_name()) {
+            roots.push(base.join(name));
+        }
+    }
+
+    let mut seen: BTreeSet<PathBuf> = BTreeSet::new();
+    let mut out = Vec::new();
+    for root in roots {
+        for (label, rel) in [
+            ("HTTP cache", "Cache/Cache_Data"),
+            ("Code Cache/js", "Code Cache/js"),
+            ("Code Cache/wasm", "Code Cache/wasm"),
+        ] {
+            let path = root.join(rel);
+            if !path.is_dir() {
+                continue;
+            }
+            // Dedupe via the canonical path in case both roots are the same.
+            let canon = fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
+            if seen.insert(canon) {
+                out.push(CacheDir { label, path });
+            }
+        }
+    }
+    out
+}
+
+/// Where the default Chrome install keeps per-profile caches when they live
+/// outside the user-data dir. Windows keeps them inside it, so: nothing extra.
+fn platform_cache_base() -> Option<PathBuf> {
+    #[cfg(target_os = "macos")]
+    {
+        dirs::home_dir().map(|h| h.join("Library/Caches/Google/Chrome"))
+    }
+    #[cfg(target_os = "linux")]
+    {
+        dirs::cache_dir().map(|c| c.join("google-chrome"))
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    {
+        None
+    }
+}
+
+/// In-place progress line for a long scan. Prints only to a terminal and
+/// erases itself when done, so piped output and the preview table stay clean.
+struct ScanProgress {
+    label: &'static str,
+    total: usize,
+    shown: bool,
+}
+
+impl ScanProgress {
+    fn new(label: &'static str, total: usize) -> Self {
+        Self { label, total, shown: false }
+    }
+
+    fn tick(&mut self, done: usize) {
+        if !io::stdout().is_terminal() {
+            return;
+        }
+        print!("\r  {:<26} {:>8}/{} scanned", self.label, done, self.total);
+        let _ = io::stdout().flush();
+        self.shown = true;
+    }
+
+    fn finish(&mut self) {
+        if self.shown {
+            print!("\r{:70}\r", "");
+            let _ = io::stdout().flush();
+            self.shown = false;
+        }
+    }
+}
+
+/// Scan one cache directory for entries whose key URLs match the domain. The
+/// HTTP cache normally holds tens of thousands of entry files and every key
+/// gets read, so a progress line shows while this runs. Individual unreadable
+/// or foreign files are skipped: caches legitimately contain index files, and
+/// Chrome may race us on entries if it is running.
+fn scan_cache_dir(dir: &CacheDir, domain: &str) -> Result<Vec<CacheHit>> {
+    let mut stems: Vec<String> = Vec::new();
+    for entry in
+        fs::read_dir(&dir.path).with_context(|| format!("reading {}", dir.path.display()))?
+    {
+        let Ok(entry) = entry else { continue };
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        let Some(stem) = name.strip_suffix("_0") else {
+            continue;
+        };
+        if stem.len() == 16 && stem.bytes().all(|b| b.is_ascii_hexdigit()) {
+            stems.push(stem.to_string());
+        }
+    }
+
+    let mut progress = ScanProgress::new(dir.label, stems.len());
+    let mut hits = Vec::new();
+    for (i, stem) in stems.iter().enumerate() {
+        if i % 1024 == 0 {
+            progress.tick(i);
+        }
+        let Ok(Some(key)) = simple_cache_key(&dir.path.join(format!("{stem}_0"))) else {
+            continue;
+        };
+        if key_hosts(&key).iter().any(|h| host_matches(h, domain)) {
+            hits.push(CacheHit { stem: stem.clone(), bytes: entry_bytes(&dir.path, stem) });
+        }
+    }
+    progress.finish();
+    Ok(hits)
+}
+
+/// Read the key out of one `<hash>_0` entry file. Returns None when the file
+/// is not a Simple Cache entry we understand (wrong magic, unknown version, or
+/// truncated) — never guesses.
+fn simple_cache_key(path: &Path) -> io::Result<Option<String>> {
+    let mut f = fs::File::open(path)?;
+    // SimpleFileHeader: u64 magic, u32 version, u32 key_length, u32 key_hash,
+    // padded to 24 bytes; the key follows immediately.
+    let mut header = [0u8; 24];
+    if f.read_exact(&mut header).is_err() {
+        return Ok(None);
+    }
+    let magic = u64::from_le_bytes(header[0..8].try_into().unwrap());
+    let version = u32::from_le_bytes(header[8..12].try_into().unwrap());
+    let key_len = u32::from_le_bytes(header[12..16].try_into().unwrap());
+    if magic != SIMPLE_CACHE_MAGIC || !(5..=9).contains(&version) || key_len > 64 * 1024 {
+        return Ok(None);
+    }
+    let mut key = vec![0u8; key_len as usize];
+    if f.read_exact(&mut key).is_err() {
+        return Ok(None);
+    }
+    Ok(Some(String::from_utf8_lossy(&key).into_owned()))
+}
+
+/// Extract the hosts of the http(s) URLs in a cache key. Keys come in several
+/// shapes — a bare URL, `1/0/<url>`, the partitioned `1/0/_dk_ <site> <site>
+/// <url>`, or the code cache's `_key<url>\n<origin>` — so split on the
+/// separators (whitespace) and parse from the first scheme occurrence in each
+/// piece. A URL embedded in another URL's query stays inside that parse and
+/// never matches on its own, preserving the tool's host-only guarantee.
+fn key_hosts(key: &str) -> Vec<String> {
+    let mut hosts = Vec::new();
+    for token in key.split_whitespace() {
+        let start = match (token.find("https://"), token.find("http://")) {
+            (Some(a), Some(b)) => a.min(b),
+            (Some(a), None) | (None, Some(a)) => a,
+            (None, None) => continue,
+        };
+        if let Ok(u) = Url::parse(&token[start..]) {
+            if let Some(h) = u.host_str() {
+                hosts.push(h.to_string());
+            }
+        }
+    }
+    hosts
+}
+
+/// Total size of all files belonging to an entry stem.
+fn entry_bytes(dir: &Path, stem: &str) -> u64 {
+    ["_0", "_1", "_s"]
+        .iter()
+        .filter_map(|s| fs::metadata(dir.join(format!("{stem}{s}"))).ok())
+        .map(|m| m.len())
+        .sum()
+}
+
+/// Delete every file of every matching entry in one cache directory. Re-scans
+/// first (like the satellites) so the deletion reflects current state, and
+/// counts an entry as removed only if at least one of its files existed.
+fn prune_cache_dir(dir: &CacheDir, domain: &str) -> Result<(usize, u64)> {
+    let mut removed = 0usize;
+    let mut bytes = 0u64;
+    for hit in scan_cache_dir(dir, domain)? {
+        let mut any = false;
+        for suffix in ["_0", "_1", "_s"] {
+            let path = dir.path.join(format!("{}{suffix}", hit.stem));
+            match fs::remove_file(&path) {
+                Ok(()) => any = true,
+                Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+                Err(e) => {
+                    return Err(e).with_context(|| format!("deleting {}", path.display()))
+                }
+            }
+        }
+        if any {
+            removed += 1;
+            bytes += hit.bytes;
+        }
+    }
+    Ok((removed, bytes))
+}
+
+fn human_bytes(n: u64) -> String {
+    const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
+    let mut value = n as f64;
+    let mut unit = 0;
+    while value >= 1024.0 && unit < UNITS.len() - 1 {
+        value /= 1024.0;
+        unit += 1;
+    }
+    if unit == 0 {
+        format!("{n} B")
+    } else {
+        format!("{value:.1} {}", UNITS[unit])
+    }
 }
 
 /// Copy a database file (plus any `-wal`/`-shm` sidecars) and print the backup
@@ -691,5 +998,87 @@ mod tests {
         assert_eq!(normalize_domain("https://www.example.com/x?y").unwrap(), "www.example.com");
         assert_eq!(normalize_domain("Example.COM:8080").unwrap(), "example.com");
         assert_eq!(normalize_domain("  example.com.  ").unwrap(), "example.com");
+    }
+
+    #[test]
+    fn extracts_hosts_from_every_cache_key_shape() {
+        assert_eq!(key_hosts("https://example.com/a.js"), ["example.com"]);
+        assert_eq!(key_hosts("1/0/https://example.com/a"), ["example.com"]);
+        assert_eq!(
+            key_hosts("1/0/_dk_ https://top.com https://frame.com https://cdn.com/x"),
+            ["top.com", "frame.com", "cdn.com"]
+        );
+        // Code cache: `_key` glued to the URL, origin lock after a newline.
+        assert_eq!(
+            key_hosts("_keyhttps://example.com/app.js\nhttps://example.com"),
+            ["example.com", "example.com"]
+        );
+    }
+
+    #[test]
+    fn cache_key_urls_inside_queries_never_match() {
+        assert_eq!(
+            key_hosts("1/0/https://tracker.com/r?u=https://example.com/x"),
+            ["tracker.com"]
+        );
+        assert!(key_hosts("no urls in this key").is_empty());
+    }
+
+    /// Fresh scratch dir under the system temp dir, unique per test.
+    fn temp_cache_dir(tag: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("obliviate-test-{}-{tag}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// Write a minimal Simple Cache entry (`_0` header+key, `_1` body).
+    fn write_simple_entry(dir: &Path, stem: &str, key: &str) {
+        let mut buf = Vec::new();
+        buf.extend_from_slice(&SIMPLE_CACHE_MAGIC.to_le_bytes());
+        buf.extend_from_slice(&5u32.to_le_bytes()); // version
+        buf.extend_from_slice(&(key.len() as u32).to_le_bytes());
+        buf.extend_from_slice(&[0u8; 8]); // key hash + struct padding
+        buf.extend_from_slice(key.as_bytes());
+        fs::write(dir.join(format!("{stem}_0")), &buf).unwrap();
+        fs::write(dir.join(format!("{stem}_1")), b"body bytes").unwrap();
+    }
+
+    #[test]
+    fn scans_and_prunes_simple_cache_entries() {
+        let dir = temp_cache_dir("prune");
+        write_simple_entry(
+            &dir,
+            "00000000000000aa",
+            "1/0/_dk_ https://example.com https://example.com https://cdn.example.com/x.css",
+        );
+        write_simple_entry(&dir, "00000000000000bb", "1/0/https://other.org/page");
+        fs::write(dir.join("not-an-entry"), b"junk").unwrap();
+
+        let cache = CacheDir { label: "test cache", path: dir.clone() };
+        let hits = scan_cache_dir(&cache, "example.com").unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].stem, "00000000000000aa");
+        assert!(hits[0].bytes > 0);
+
+        let (removed, bytes) = prune_cache_dir(&cache, "example.com").unwrap();
+        assert_eq!(removed, 1);
+        assert!(bytes > 0);
+        assert!(!dir.join("00000000000000aa_0").exists());
+        assert!(!dir.join("00000000000000aa_1").exists());
+        assert!(dir.join("00000000000000bb_0").exists());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn skips_cache_files_with_bad_magic_or_short_headers() {
+        let dir = temp_cache_dir("junk");
+        fs::write(dir.join("00000000000000cc_0"), b"short").unwrap();
+        let mut bad = vec![0u8; 64];
+        bad[..8].copy_from_slice(&0x1122_3344_5566_7788u64.to_le_bytes());
+        fs::write(dir.join("00000000000000dd_0"), &bad).unwrap();
+        let cache = CacheDir { label: "test cache", path: dir.clone() };
+        assert!(scan_cache_dir(&cache, "example.com").unwrap().is_empty());
+        let _ = fs::remove_dir_all(&dir);
     }
 }

@@ -1,12 +1,15 @@
 # obliviate
 
 Delete every Chrome history entry for a domain — and its subdomains — by
-operating directly on Chrome's SQLite `History` database.
+operating directly on Chrome's SQLite `History` database, and sweep the
+domain's leftovers out of the on-disk caches.
 
 Chrome stores history as SQLite. Removing a domain means finding the matching
 `urls` rows and cascading by hand through every table that references them, then
 optionally reclaiming the freed pages. This tool does that in one transaction,
-with a dry-run preview, an automatic backup, and proper host matching.
+with a dry-run preview, an automatic backup, and proper host matching — then
+deletes the domain's entries from the HTTP and compiled-code caches, which
+otherwise keep the actual fetched bytes (URLs included) on disk.
 
 ## What it removes
 
@@ -26,6 +29,18 @@ For the given domain (and any subdomain):
   (`network_action_predictor`), `Top Sites` (`top_sites`). Deleting history
   alone leaves these, so the address bar keeps autocompleting the domain; this
   is what clears that.
+- **Disk caches:** the HTTP cache (`Cache/Cache_Data`) and the compiled-code
+  caches (`Code Cache/js`, `Code Cache/wasm`), which hold the domain's actual
+  response bytes. These use Chrome's Simple Cache backend — one file per entry,
+  each embedding its own key: the request URL plus, for partitioned entries,
+  the top-frame site it was fetched under. An entry is deleted when **any** URL
+  in its key matches the host, so third-party resources cached *while visiting*
+  the domain go too. URLs inside another URL's query string never match, same
+  as everywhere else. On macOS these directories live under
+  `~/Library/Caches/Google/Chrome/<profile>/`, not next to `History`; both
+  locations are probed. Cache entries are refetchable, so they are deleted
+  without a backup, and Chrome's cache index self-heals — missing files are
+  treated as evictions on the next start.
 
 Tables absent in your Chrome version are skipped. History deletions run
 child-before-parent so nothing is left dangling, and `VACUUM` afterward reclaims
@@ -36,6 +51,9 @@ child-before-parent so nothing is left dangling, and `VACUUM` afterward reclaims
 - `Favicons` — a shared cache keyed by page URL; not history.
 - `Visited Links` — a binary hash file (not SQLite), so it cannot be edited in
   place; Chrome rebuilds it from the cleaned history over time.
+- **Service Worker storage** (`CacheStorage`, registrations) — origin-keyed
+  storage entangled with registration databases; removing pieces of it
+  independently would leave the rest inconsistent.
 - **Chrome Sync.** If history sync is on, your history also lives server-side,
   and an offline SQLite delete creates no sync tombstone — so synced entries can
   reappear after a restart. To remove synced data, delete via `chrome://history`
