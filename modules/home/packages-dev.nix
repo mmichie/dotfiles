@@ -1,4 +1,9 @@
-{ pkgs, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 {
   home.packages = with pkgs; [
     # ── Google Workspace admin ─────────────────────────────────────────
@@ -64,7 +69,11 @@
     kubernetes-helm
     stern
     kind
-    minikube
+    # minikube 1.38.1 bundles its own bin/kubectl, which collides with the
+    # standalone kubectl above in the home-manager profile buildEnv. Lower its
+    # priority so the standalone kubectl wins that path; bin/minikube is
+    # unaffected (it has no conflicting counterpart).
+    (lib.lowPrio minikube)
     docker-compose
     # IaC CLI: OpenTofu by default; Terraform on hosts whose project CI/state is
     # HashiCorp Terraform (selected per host via my.iacTool — e.g. mim-moab).

@@ -18,6 +18,14 @@ final: prev: {
     ];
   });
 
+  # GAM 7.43.04's wheel pins `chardet==5.2.0`, but nixpkgs now ships chardet
+  # 6.0.0, so pythonRuntimeDepsCheckHook aborts the build. chardet is only used
+  # for charset autodetection (`chardet.detect`, stable across 5.x -> 6.x);
+  # relax the exact pin so the runtime-deps check accepts the resolved 6.x.
+  gam = prev.gam.overridePythonAttrs (old: {
+    pythonRelaxDeps = (old.pythonRelaxDeps or [ ]) ++ [ "chardet" ];
+  });
+
   # nixpkgs statix 0.5.8-unstable-2026-06-28 ships stale insta snapshots for
   # two collapsible_let_in fixtures, so its own `cargo test` fails and the
   # build aborts. Skip just those two cases until upstream regenerates the
