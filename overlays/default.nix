@@ -2,6 +2,21 @@ final: prev: {
   recs = final.callPackage ../pkgs/recs { };
   obliviate = final.callPackage ../pkgs/obliviate { };
 
+  # nixpkgs only packages beads 1.0.3 (embedded-Dolt era); bump to v1.1.0 for
+  # the matured `dolt sql-server` + remote model (`bd dolt remote/push/pull`).
+  # Source + vendor hashes updated together. Drop this override once nixpkgs
+  # ships beads >= 1.1.0.
+  beads = prev.beads.overrideAttrs (_: {
+    version = "1.1.0";
+    src = final.fetchFromGitHub {
+      owner = "gastownhall";
+      repo = "beads";
+      tag = "v1.1.0";
+      hash = "sha256-+dFV//0N8ZDw9BHOJOoWZ+BvLmJKlnGtONHIYPRhfBE=";
+    };
+    vendorHash = "sha256-WWEwGpCwMPD7jaz02zN745RQQqYTQttehbcT3J9hayM=";
+  });
+
   # nixpkgs rclone 1.74.2 always builds with the cmount tag on Darwin but
   # supplies no fuse headers, so cgofuse fails on <fuse.h>. Disable cmount
   # on macOS until upstream fixes the derivation.
