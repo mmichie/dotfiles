@@ -1,4 +1,7 @@
 {
+  "attribution": {
+    "sessionUrl": false
+  },
   "includeCoAuthoredBy": false,
   "permissions": {
     "allow": [
@@ -121,7 +124,6 @@
       "Bash(wget:*)"
     ]
   },
-  "model": "claude-fable-5[1m]",
   "statusLine": {
     "type": "command",
     "command": "bash ~/.claude/statusline-command.sh"
@@ -142,5 +144,6 @@
   "skipWorkflowUsageWarning": true,
   "theme": "dark-daltonized",
   "editorMode": "vim",
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "model": "claude-fable-5[1m]"
 }
