@@ -10,7 +10,10 @@ alpha-blending = linear-corrected
 window-padding-x = 0
 window-padding-y = 1
 # Alternative padding: window-padding-x = 10, window-padding-y = 10
-window-decoration = false
+# Borderless look comes from macos-titlebar-style = hidden below, NOT
+# window-decoration = none: borderless (untitled) NSWindows are invisible
+# to AeroSpace, so windows opened after app launch never get tiled.
+window-decoration = auto
 window-theme = auto
 window-inherit-working-directory = true
 title = " "
@@ -86,7 +89,7 @@ cursor-click-to-move = true
 # macOS specific settings
 macos-option-as-alt = true
 macos-non-native-fullscreen = false
-macos-titlebar-style = native
+macos-titlebar-style = hidden
 
 # Tab bar settings
 window-new-tab-position = end
