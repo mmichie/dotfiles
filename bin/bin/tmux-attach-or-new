@@ -19,9 +19,15 @@ fi
 detached=$($TMUX list-sessions -F "#{?session_attached,,#{session_name}}" 2>/dev/null | grep -v '^$')
 
 if [ -z "$detached" ]; then
-    # Either no sessions exist, or every existing session is attached elsewhere.
-    # Either way, start a fresh session. Fall back to $HOME when Ghostty was
-    # launched by launchd (which spawns it with cwd=/).
+    if $TMUX list-sessions >/dev/null 2>&1; then
+        # Sessions exist but all are attached — we're already in tmux in
+        # another window. Escape hatch: plain shell instead of a second
+        # tmux session (run `tmux` in it if you do want another session).
+        [ "$PWD" = "/" ] && cd "$HOME"
+        exec zsh -l
+    fi
+    # No sessions at all — start a fresh one. Fall back to $HOME when
+    # Ghostty was launched by launchd (which spawns it with cwd=/).
     startdir="$PWD"
     [ "$startdir" = "/" ] && startdir="$HOME"
     exec $TMUX new-session -c "$startdir"
