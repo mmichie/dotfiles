@@ -95,10 +95,15 @@ autoload -Uz claude
 claude --probe
 print -r -- "CLAUDE_RC=$?"
 EOF
-out=$(TMUX= PATH="$claudebin:/usr/bin:/bin" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+# The pinned PATH is the CHILD's search path (so only the stub dir can
+# satisfy `claude`), but zsh itself must be spawned by absolute path: a
+# temporary PATH assignment also governs the lookup of the command being
+# run, and /usr/bin:/bin has no zsh inside a Linux nix sandbox or on
+# current ubuntu runner images.
+out=$(TMUX= PATH="$claudebin:/usr/bin:/bin" "${commands[zsh]}" --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains "$out" "stub-claude:--probe" "claude wrapper dispatches to the PATH binary"
 assert_contains "$out" "CLAUDE_RC=7"         "claude wrapper propagates the binary's exit code"
-out=$(TMUX= PATH="/usr/bin:/bin" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+out=$(TMUX= PATH="/usr/bin:/bin" "${commands[zsh]}" --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains "$out" "claude command not found" "missing binary hits the guard (regression: command -v matched the function)"
 assert_contains "$out" "CLAUDE_RC=1"              "missing claude returns 1"
 
@@ -134,7 +139,7 @@ print -r -- "GAM_END"
 EOF
 typeset gamhome="$T_SCRATCH/gamhome"
 mkdir -p "$gamhome"
-out=$(HOME="$gamhome" PATH="/usr/bin:/bin" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+out=$(HOME="$gamhome" PATH="/usr/bin:/bin" "${commands[zsh]}" --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains     "$out" "GAM_RC=1"          "gam fails closed without op"
 assert_contains     "$out" "GAM_END"           "gam probe completes"
 assert_not_contains "$out" "GAM_HELPER_LEAKED" "gam unfunctions _gam_pull on failure (regression)"
