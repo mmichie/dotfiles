@@ -84,8 +84,44 @@ vm-switch:
 # 1Password (the gam wrapper re-pulls them). oauth2.txt (mutable token cache)
 # and gam.cfg are machine-local state worth carrying; gamcache is regenerable.
 # Store backup.tar.gz somewhere encrypted/offline — it holds private keys.
+#
+# The archive is never written in place. tar creates its output file before it
+# discovers a member is missing, so on a fresh or half-bootstrapped machine a
+# single absent member left a truncated archive where the only good backup had
+# been. Members are preflighted, the new archive is built as backup.tar.gz.tmp
+# and verified, and only then does the old copy rotate to backup.tar.gz.prev.
 secrets-backup:
-    tar -czvf backup.tar.gz \
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{justfile_directory()}}
+    out=backup.tar.gz
+    tmp="$out.tmp"
+    trap 'rm -f "$tmp"' EXIT
+
+    # The age key leads: it is the ROOT OF TRUST. .gam is the one optional
+    # member — the directory only exists once gam has run on this machine.
+    required=(.config/sops/age/keys.txt .ssh .gnupg)
+    members=()
+    missing=()
+    for m in "${required[@]}"; do
+        if [ -e "$HOME/$m" ]; then members+=("$m"); else missing+=("$m"); fi
+    done
+    if [ ${#missing[@]} -gt 0 ]; then
+        echo "secrets-backup: required member(s) missing under $HOME:"
+        for m in "${missing[@]}"; do echo "    $m"; done
+        echo "secrets-backup: nothing written; any existing $out is untouched"
+        exit 1
+    fi
+    if [ -e "$HOME/.gam" ]; then
+        members+=(.gam)
+    else
+        echo "secrets-backup: no ~/.gam on this machine, skipping that member"
+    fi
+
+    # 2>&1: the -v listing goes to stdout under GNU tar but to stderr under
+    # bsdtar (/usr/bin/tar), along with its warnings, and this terminal does
+    # not surface stderr.
+    if ! tar -czvf "$tmp" \
         -C "$HOME" \
         --exclude='.gnupg/.#*' \
         --exclude='.gnupg/S.*' \
@@ -95,19 +131,80 @@ secrets-backup:
         --exclude='.gam/client_secrets.json' \
         --exclude='.gam/oauth2service.json' \
         --exclude='.gam/*.lock' \
-        .config/sops/age/keys.txt \
-        .ssh/ \
-        .gnupg/ \
-        .gam/
+        "${members[@]}" 2>&1; then
+        echo "secrets-backup: tar failed, discarding $tmp; $out is untouched"
+        exit 1
+    fi
 
-# Restore age key, SSH keys, GPG keyring, and GAM state from backup.tar.gz
+    # A tar killed partway still leaves a readable archive, so the temp only
+    # becomes THE backup once it lists every member it was asked for.
+    if ! listing=$(tar -tzf "$tmp" 2>&1); then
+        echo "secrets-backup: $tmp does not read back as an archive:"
+        echo "$listing"
+        echo "secrets-backup: discarding it; $out is untouched"
+        exit 1
+    fi
+    for m in "${members[@]}"; do
+        if [[ "$listing" != *"$m"* ]]; then
+            echo "secrets-backup: $m absent from the new archive, discarding it; $out is untouched"
+            exit 1
+        fi
+    done
+
+    if [ -f "$out" ]; then mv -f "$out" "$out.prev"; fi
+    mv -f "$tmp" "$out"
+    echo "secrets-backup: wrote $out ($(du -h "$out" | awk '{print $1}'), ${#members[@]} members)"
+
+# Restore age key, SSH keys, GPG keyring, and GAM state from backup.tar.gz.
+# Extraction is destructive and unversioned — a stale archive silently replaces
+# newer keys — so it confirms first and refuses to run unattended.
 secrets-restore:
-    @[ -f backup.tar.gz ] || (echo "Error: backup.tar.gz not found"; exit 1)
-    tar -xzvf backup.tar.gz -C "$HOME"
-    chmod 700 "$HOME/.ssh" "$HOME/.gnupg"
-    chmod 600 "$HOME/.ssh/"* || true
-    [ -f "$HOME/.config/sops/age/keys.txt" ] && chmod 700 "$HOME/.config/sops/age" && chmod 600 "$HOME/.config/sops/age/keys.txt" || true
-    [ -d "$HOME/.gam" ] && chmod 700 "$HOME/.gam" && chmod 600 "$HOME/.gam/oauth2.txt" 2>/dev/null || true
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{justfile_directory()}}
+    if [ ! -f backup.tar.gz ]; then
+        echo "secrets-restore: backup.tar.gz not found"
+        exit 1
+    fi
+
+    echo "secrets-restore: backup.tar.gz — $(date -r backup.tar.gz '+%Y-%m-%d %H:%M'), $(du -h backup.tar.gz | awk '{print $1}')"
+    echo "secrets-restore: extracting into $HOME will overwrite:"
+    tar -tzf backup.tar.gz | sed -e 's#/.*##' | sort -u | sed -e 's#^#    #'
+    if [ ! -t 0 ]; then
+        echo "secrets-restore: stdin is not a terminal, refusing to overwrite keys unattended"
+        exit 1
+    fi
+    read -rp "Overwrite the paths above from this archive? [y/N] " yn
+    if [[ ! "$yn" =~ ^[Yy]$ ]]; then
+        echo "secrets-restore: aborted, nothing extracted"
+        exit 1
+    fi
+
+    tar -xzvf backup.tar.gz -C "$HOME" 2>&1
+
+    # tar restores the archived modes; these re-assert them for members that
+    # came from a umask-mangled archive. Directories need their x bit, so the
+    # file and directory passes are separate — a blanket chmod 600 over
+    # ~/.ssh/* used to strip x from subdirectories, with || true hiding it.
+    for d in "$HOME/.ssh" "$HOME/.gnupg"; do
+        if [ -d "$d" ]; then
+            find "$d" -type d -exec chmod 700 {} +
+        else
+            echo "secrets-restore: $d absent after extract"
+        fi
+    done
+    if [ -d "$HOME/.ssh" ]; then find "$HOME/.ssh" -type f -exec chmod 600 {} +; fi
+    if [ -f "$HOME/.config/sops/age/keys.txt" ]; then
+        chmod 700 "$HOME/.config/sops/age"
+        chmod 600 "$HOME/.config/sops/age/keys.txt"
+    else
+        echo "secrets-restore: no age key restored, sops secrets will not decrypt"
+    fi
+    if [ -d "$HOME/.gam" ]; then
+        chmod 700 "$HOME/.gam"
+        if [ -f "$HOME/.gam/oauth2.txt" ]; then chmod 600 "$HOME/.gam/oauth2.txt"; fi
+    fi
+    echo "secrets-restore: done"
 
 # Open nix repl with all flake outputs pre-loaded (configs, formatter, etc.)
 repl:

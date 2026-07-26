@@ -38,8 +38,9 @@ result-*
 # nix-direnv cache for the repo's devShell
 .direnv/
 
-# Secrets backup from `just secrets-backup` — must never be committed
-backup.tar.gz
+# Secrets backup from `just secrets-backup` — must never be committed.
+# The glob also covers the .tmp it builds into and the .prev it rotates to.
+backup.tar.gz*
 
 # Build artifacts
 bin/wifi-location-go/build/
