@@ -9,7 +9,6 @@
   xdg.configFile = {
     "ghostty".source = mkLink "ghostty";
     "tmux".source = mkLink "tmux";
-    "dosbox-x".source = mkLink "dosbox-x";
   };
 
   home = {
