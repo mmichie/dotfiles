@@ -6,6 +6,7 @@
 #
 #   - corrupt tool-init cache      -> quarantined + regenerated SAME boot
 #   - corrupt .zcompdump           -> completions rebuilt SAME boot
+#   - new completion file in fpath -> full compinit, then back to -C
 #   - corrupt-but-newer .zwc       -> silent fallback, no false quarantine
 #   - generator emitting garbage   -> refused at write time, never cached
 #   - unwritable cache dir         -> boot completes, degraded
@@ -29,7 +30,7 @@ _boot_noise() {
 sb="$(make_sandbox_home)"
 run_sandbox_zsh "$sb" 'exit' >/dev/null 2>&1
 typeset victim=''
-typeset c
+typeset c=''
 for c in atuin-init fzf-init direnv-hook zoxide-init; do
     [[ -f "$sb/.cache/zsh/$c.zsh" ]] && { victim="$sb/.cache/zsh/$c.zsh"; break }
 done
@@ -125,6 +126,82 @@ if [[ -s "$dump" ]]; then
 else
     t_fail "corrupt compinit dump heals" "precondition: cold boot wrote no dump"
 fi
+
+# ── New completion file in an already-listed fpath dir ───────────────
+# compinit -C never rescans directory CONTENTS, so the fpath fingerprint
+# has to carry each entry's mtime: dropping a completion into a dir that is
+# already on fpath (nix's generation-stable site-functions,
+# $SHELL_FUNCTIONS_DIR) must cost exactly one full compinit and then settle
+# back onto the fast path. Without the mtime signal the stale dump is served
+# until fpath itself moves — completion for a freshly installed tool never
+# appears.
+#
+# The extra fpath dir is injected with a ZDOTDIR wrapper, the same trick
+# test_invariants uses for warn_create_global: FPATH in the environment
+# REPLACES the default fpath and would strand compinit itself.
+sb="$(make_sandbox_home)"
+typeset fpdir="$sb/extra-functions"
+mkdir -p "$fpdir"
+# Backdate the dir: mtime has one-second granularity, so a dir stamped in
+# the same second the new file lands would hide the change.
+touch -t 200001010000 "$fpdir"
+typeset zdot="$T_SCRATCH/compfp-zdot"
+mkdir -p "$zdot"
+print -r -- 'source "$HOME/.zshenv"' > "$zdot/.zshenv"
+{
+    print -r -- 'fpath=("$HOME/extra-functions" $fpath)'
+    print -r -- 'source "$HOME/.zshrc"'
+} > "$zdot/.zshrc"
+
+# _compfp_boot <home> <zdot> <trace> — traced boot through the wrapper,
+# stdout to <trace>.out. Which compinit ran is read out of the xtrace, the
+# way test_performance does it: the choice leaves no other observable trace.
+_compfp_boot() {
+    local home="$1" zdot="$2" trace="$3"
+    local -a maybe_timeout
+    have timeout && maybe_timeout=(timeout 30)
+    _sandbox_env_args "$home"
+    "${maybe_timeout[@]}" env -i "${reply[@]}" ZDOTDIR="$zdot" \
+        zsh --no-globalrcs -x -i -c 'print -r -- "M_SOMECMD=[${_comps[somecmd]}] M_END"' \
+        </dev/null >"$trace.out" 2>"$trace"
+}
+
+typeset warmtrace="$T_SCRATCH/compfp-warm.trace"
+typeset addtrace="$T_SCRATCH/compfp-add.trace"
+typeset settletrace="$T_SCRATCH/compfp-settle.trace"
+
+run_sandbox_zsh "$sb" 'exit' ZDOTDIR="$zdot" >/dev/null 2>&1   # cold: build the dump
+_compfp_boot "$sb" "$zdot" "$warmtrace"
+if grep -qE '> compinit -C ' "$warmtrace"; then
+    t_pass "warm boot with the extra fpath dir is on the -C fast path (precondition)"
+else
+    t_fail "warm boot with the extra fpath dir is on the -C fast path (precondition)" \
+        "$(grep -E '> compinit' "$warmtrace" | head -2)"
+fi
+
+{
+    print -r -- '#compdef somecmd'
+    print -r -- '_message "somecmd"'
+} > "$fpdir/_somecmd"
+_compfp_boot "$sb" "$zdot" "$addtrace"
+if grep -qE '> compinit -i ' "$addtrace"; then
+    t_pass "a completion file added to an fpath dir forces the full compinit"
+else
+    t_fail "a completion file added to an fpath dir forces the full compinit" \
+        "$(grep -E '> compinit' "$addtrace" | head -2)"
+fi
+assert_contains "$(<$addtrace.out)" "M_SOMECMD=[_somecmd]" \
+    "the new completion is registered in the SAME boot"
+
+_compfp_boot "$sb" "$zdot" "$settletrace"
+if grep -qE '> compinit -C ' "$settletrace" && ! grep -qE '> compinit -i ' "$settletrace"; then
+    t_pass "the boot after the rebuild is back on the -C fast path"
+else
+    t_fail "the boot after the rebuild is back on the -C fast path" \
+        "$(grep -E '> compinit' "$settletrace" | head -2)"
+fi
+assert_contains "$(<$settletrace.out)" "M_SOMECMD=[_somecmd]" \
+    "the fast path still serves the added completion"
 
 # ── Generator emitting garbage: refused at write time ────────────────
 # A tool that exits 0 while printing junk to stdout (update banners,
