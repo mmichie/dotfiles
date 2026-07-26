@@ -4,7 +4,10 @@
 
 source "${0:A:h}/lib.zsh"
 
-typeset sb errf out
+# Assignments, not bare declarations: zsh prints an already-set parameter
+# when typeset names it with no value, and $out is set for every command in
+# a nix build (the flake check runs the suite inside one).
+typeset sb='' errf='' out=''
 sb="$(make_sandbox_home)"
 errf="$T_SCRATCH/startup.err"
 
@@ -98,15 +101,26 @@ fi
 # serves the FIRST of duplicate bindings, so appending INFLUX_SHOWN= would
 # silently lose.
 if have gum; then
-    typeset sb2 out2
+    typeset sb2='' out2='' nest=''
     sb2="$(make_sandbox_home)"
+    # The banner boot starts in a nested directory: 30-aliases.zsh's
+    # `alias :="cd .."` is live when 90-banner.zsh is PARSED, so writing the
+    # stamp with a bare `:` compiled to `cd ..` and moved the first shell of
+    # every hour to the parent of wherever it started. PWD is compared
+    # through :A on both sides — macOS resolves the sandbox's /var prefix to
+    # /private/var when the shell fills in $PWD from getcwd().
+    nest="$sb2/nest/deep"
+    mkdir -p "$nest"
     _sandbox_env_args "$sb2"
     reply=(${reply:#INFLUX_SHOWN=*})
-    out2=$(env -i "${reply[@]}" zsh --no-globalrcs -i -c \
-        'print -r -- "STAMP_AT_EXIT=$([[ -f $HOME/.cache/zsh/banner-stamp ]] && print -rn yes || print -rn no)"' \
+    out2=$(cd "$nest" && env -i "${reply[@]}" T_NEST="$nest" zsh --no-globalrcs -i -c \
+        'print -r -- "BANNER_PWD=$([[ ${PWD:A} == ${T_NEST:A} ]] && print -rn kept || print -rn "moved to $PWD")"
+         print -r -- "STAMP_AT_EXIT=$([[ -f $HOME/.cache/zsh/banner-stamp ]] && print -rn yes || print -rn no)"' \
         2>"$T_SCRATCH/banner.err" </dev/null)
     assert_contains "$out2" "Daily Tip" "banner+tip shown on first shell"
     assert_contains "$out2" "STAMP_AT_EXIT=yes" "stamp exists inside the boot that wrote it"
+    assert_contains "$out2" "BANNER_PWD=kept" \
+        "the banner boot leaves \$PWD alone (regression: the stamp write cd'd up)"
     if [[ -f "$sb2/.cache/zsh/banner-stamp" ]]; then
         t_pass "banner stamp written"
     else

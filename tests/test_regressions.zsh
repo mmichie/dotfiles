@@ -19,7 +19,10 @@ source "${0:A:h}/lib.zsh"
 typeset fakejdk="$T_SCRATCH/fakejdk"
 make_stub "$fakejdk/bin" javac "exit 0"
 
-typeset sb out
+# Assignments, not bare declarations: zsh prints an already-set parameter
+# when typeset names it with no value, and $out is set for every command in
+# a nix build (the flake check runs the suite inside one).
+typeset sb='' out=''
 sb="$(make_sandbox_home)"
 out=$(run_sandbox_zsh "$sb" '
     path=("$FAKEJDK/bin" $path)
@@ -146,8 +149,43 @@ sb="$(make_sandbox_home)"
 out=$(run_sandbox_zsh "$sb" 'print -r -- "KP=${aliases[keypress]}"' 2>/dev/null)
 assert_contains "$out" "read -sk1" "keypress alias uses zsh read -k"
 
-typeset err
+typeset err=''
 err=$(run_sandbox_zsh "$sb" 'eval "${aliases[keypress]/read /read -t0 -u0 }"' 2>&1 >/dev/null </dev/null)
 assert_not_contains "$err" "bad option" "keypress read flags accepted by zsh (regression)"
+
+# ── clipboard bodies vs the cat alias (lib/40-clipboard.zsh) ─────────
+# Bug: 30-aliases.zsh aliases cat to bat, and zsh expands aliases while
+# PARSING the later-sourced 40-clipboard.zsh — so the stored clipcopy body
+# was `bat --style=plain --paging=never --wrap=never ... | pbcopy`, making
+# clipboard bytes depend on bat's off-tty "behave like cat" fallback and
+# forking bat per copy. Both modules are re-sourced in load order so the
+# parse is pinned here regardless of how the module chain is renumbered.
+#
+# The backend is pinned too, so the assertion means the same thing on every
+# platform: macOS takes the pbcopy branch, elsewhere an xsel stub plus
+# DISPLAY takes the xsel branch. Both pipe through cat; the tmux and
+# no-backend branches read no file at all and would go vacuous.
+typeset xseldir="$T_SCRATCH/xselbin"
+make_stub "$xseldir" xsel
+sb="$(make_sandbox_home)"
+out=$(run_sandbox_zsh "$sb" '
+source "$SHELL_LIB_DIR/30-aliases.zsh"
+source "$SHELL_LIB_DIR/40-clipboard.zsh"
+path=("$XSELDIR" $path)
+export DISPLAY=":0"
+detect-clipboard
+print -r -- "CAT_ALIAS=${+aliases[cat]}"
+print -r -- "COPY=${functions[clipcopy]//[[:space:]]/ }"
+print -r -- "PASTE=${functions[clippaste]//[[:space:]]/ }"
+' XSELDIR="$xseldir" 2>/dev/null)
+assert_contains "$out" 'COPY= command cat "${1:-/dev/stdin}"' \
+    "clipcopy reads its input through an alias-immune command cat"
+if [[ "$out" == *"CAT_ALIAS=1"* ]]; then
+    assert_not_contains "$out" "bat" \
+        "no clipboard body carries an expanded cat alias (regression)"
+else
+    t_skip "no clipboard body carries an expanded cat alias" \
+        "bat not in PATH, so 30-aliases.zsh defines no cat alias"
+fi
 
 t_finish
