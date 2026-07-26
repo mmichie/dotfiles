@@ -93,7 +93,7 @@ fi
 # ── PATH/fpath hygiene, history sizing, namespace collisions ─────────
 out=$(run_sandbox_zsh "$sb" '
 typeset -a bad
-typeset p
+typeset p=''
 for p in "$path[@]"; do
     [[ -z "$p" ]] && bad+=("EMPTY")
     [[ "$p" == /* ]] || bad+=("REL:$p")
@@ -166,7 +166,7 @@ fi
 # filtered by their $SHELL_CACHE_DIR path prefix; everything remaining is
 # ours and must be silent. This is the guard against the `for cap in ...`
 # class of leak: an undeclared loop variable escaping into every shell.
-typeset wcg_sb wrap
+typeset wcg_sb='' wrap=''
 wcg_sb="$(make_sandbox_home)"
 wrap="$T_SCRATCH/wcg-zdot"
 mkdir -p "$wrap"

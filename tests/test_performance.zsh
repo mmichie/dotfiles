@@ -45,7 +45,7 @@ _traced_boot() {
         zsh --no-globalrcs -x -i -c 'print -r -- M_BOOT_DONE' >"$trace.out" 2>"$trace"
 }
 
-typeset sb
+typeset sb=''
 sb="$(make_sandbox_home)"
 
 # ── Cold boot: build all caches (traced, to keep the gate honest) ────
@@ -63,7 +63,7 @@ fi
 # rename in 50-integrations.zsh would turn the gate vacuous (which is
 # exactly how the original `_refresh_cache> eval` pattern died: the eval
 # moved into _write_cache and the gate silently matched nothing).
-typeset any_tool
+typeset any_tool=''
 any_tool=$(run_sandbox_zsh "$sb" \
     'print -rn -- $(( $+commands[fzf] || $+commands[atuin] || $+commands[direnv] || $+commands[vivid] || $+commands[zoxide] ))' 2>/dev/null)
 if [[ "$any_tool" == 1 ]]; then
@@ -77,12 +77,12 @@ else
     t_skip "cold-boot gate sanity" "no cached tools visible in sandbox"
 fi
 
-typeset baseline
+typeset baseline=''
 baseline="$(_cache_fingerprint "$sb/.cache/zsh")"
 
 # ── Two traced warm boots ────────────────────────────────────────────
 typeset -i n
-typeset trace compinit_calls refresh_evals
+typeset trace='' compinit_calls='' refresh_evals=''
 for n in 1 2; do
     trace="$T_SCRATCH/warm$n.trace"
     _traced_boot "$sb" "$trace"
@@ -120,7 +120,7 @@ assert_eq "${#sourced}" "${#expected}" "all ${#expected} lib modules sourced"
 assert_eq "${#${(@u)sourced}}" "${#sourced}" "no lib module sourced twice"
 
 # ── Nothing under the cache dir rewritten across both warm boots ─────
-typeset final
+typeset final=''
 final="$(_cache_fingerprint "$sb/.cache/zsh")"
 if [[ "$final" == "$baseline" ]]; then
     t_pass "warm boots rewrite nothing under the cache dir"
@@ -130,14 +130,14 @@ else
 fi
 
 # ── Hook hygiene: no duplicate registrations ─────────────────────────
-typeset hooks
+typeset hooks=''
 hooks=$(run_sandbox_zsh "$sb" '
 typeset -a v
 for arr in precmd_functions preexec_functions chpwd_functions; do
     v=("${(@P)arr}")
     print -r -- "$arr:${#v}:${#${(@u)v}}"
 done' 2>/dev/null)
-typeset line name total uniq
+typeset line='' name='' total='' uniq=''
 for line in ${(f)hooks}; do
     name="${line%%:*}"
     total="${${line#*:}%%:*}"

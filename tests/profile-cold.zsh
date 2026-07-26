@@ -19,7 +19,7 @@ typeset -F t0 t1
 typeset -a cold warm
 typeset -i i ms
 
-typeset sb
+typeset sb=''
 for (( i = 1; i <= runs; i++ )); do
     sb="$(make_sandbox_home)"   # fresh HOME = guaranteed cold caches
     t0=$EPOCHREALTIME

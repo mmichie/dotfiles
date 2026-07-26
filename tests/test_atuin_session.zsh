@@ -10,9 +10,16 @@ source "${0:A:h}/lib.zsh"
 # Sourcing 50-integrations.zsh runs setup_integrations/setup_zoxide at the
 # bottom; point their cache writes at scratch so a test run never touches
 # the real ~/.cache/zsh. zle noise on stderr is expected non-interactively.
+# HOME is scratch for the duration of the source: atuin init creates
+# ~/.config/atuin/config.toml on first run, the nix sandbox HOME
+# (/homeless-shelter) is unwritable, and the cache layer refuses to cache
+# a failed generator — so the atuin cache would never materialize there.
 typeset -g SHELL_CACHE_DIR="$T_SCRATCH/cache"
-mkdir -p "$SHELL_CACHE_DIR"
+typeset _saved_home="$HOME"
+HOME="$T_SCRATCH/home"
+mkdir -p "$SHELL_CACHE_DIR" "$HOME"
 source "$ZSH_CONF/.zsh/lib/50-integrations.zsh" 2>/dev/null
+HOME="$_saved_home"
 
 # ── generator format ──────────────────────────────────────────────
 zmodload zsh/datetime
@@ -60,7 +67,7 @@ assert_eq "$dups" "0" "500 consecutive mints all unique"
 
 # ── filter rewrites the mint line, preserves everything else ───────
 typeset upstream='	export ATUIN_SESSION=$(atuin uuid)'
-typeset rewritten
+typeset rewritten=''
 rewritten="$(print -r -- "$upstream" | _atuin_filter_init)"
 assert_contains "$rewritten" '_atuin_session_uuid && export ATUIN_SESSION="$REPLY"' \
     "mint line calls the fork-free generator"

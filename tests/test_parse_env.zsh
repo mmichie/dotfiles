@@ -46,7 +46,7 @@ print -r -- "CRLFQ_LEN=${#CRLFQ}"
 print -r -- "MISSING_RC=$(_parse_env_file /nonexistent/file; print -rn -- $?)"
 EOF
 
-typeset sb out
+typeset sb='' out=''
 sb="$(make_sandbox_home)"
 out=$(HOME="$sb" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$fixture" 2>&1)
 

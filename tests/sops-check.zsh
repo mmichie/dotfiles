@@ -14,7 +14,7 @@ emulate -R zsh
 setopt extended_glob
 
 typeset -i findings=0
-typeset f content
+typeset f='' content=''
 for f in "$@"; do
     [[ "$f" == secrets/* ]] || continue
     # Skip the test fixture, which stages deliberately-unencrypted secrets/ files.

@@ -19,7 +19,7 @@ git -C "$repo" init -q
 git -C "$repo" config user.email t@example.invalid
 git -C "$repo" config user.name tester
 
-typeset out
+typeset out=''
 typeset -i rc
 stage_and_scan() {
     local rel="$1" body="$2"

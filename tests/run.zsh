@@ -16,7 +16,9 @@ if (( ${#files} == 0 )); then
     exit 1
 fi
 
-typeset f
+# typeset f (bare, unassigned) would PRINT f=value for an inherited f rather
+# than declare it — the same trap as the `p` that /etc/zshenv leaks.
+typeset f=''
 typeset -i rc
 typeset -a runner
 runner=(zsh --no-globalrcs)

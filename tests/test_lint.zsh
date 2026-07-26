@@ -68,7 +68,7 @@ lint_absent 'no hardcoded cache dir outside .zshrc' \
 
 # ── lib module naming: two-digit prefix, lowercase, .zsh ──────────────
 typeset -a badnames
-typeset f
+typeset f=''
 for f in "$ZSH_CONF"/.zsh/lib/*(N); do
     [[ "${f:t}" == [0-9][0-9]-[a-z0-9-]##.zsh ]] || badnames+=("${f:t}")
 done

@@ -20,7 +20,7 @@ print -r -- "T4=$(_urlencode_path '/p%q')"
 print -r -- "T5=$(_urlencode_path '/tmp/café')"
 EOF
 
-typeset sb out
+typeset sb='' out=''
 sb="$(make_sandbox_home)"
 out=$(HOME="$sb" PATH="$stubdir:$PATH" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains "$out" "T1=/tmp/a%20b"      "space percent-encoded"
@@ -125,7 +125,7 @@ assert_contains "$out" "KEEP=good"      "failed refresh preserves the old cache 
 # ── _ssh_title_host (lib/80-ssh.zsh) ─────────────────────────────────
 # Destination parsing for the tmux window title. Probed via a sandbox
 # shell: sourcing 80-ssh.zsh raw would run its agent logic.
-typeset sb_ssh
+typeset sb_ssh=''
 sb_ssh="$(make_sandbox_home)"
 out=$(run_sandbox_zsh "$sb_ssh" '
 _ssh_title_host host1;                                          print -r -- "S1=$REPLY"
@@ -212,7 +212,7 @@ corpus=(
 )
 corpus+=("${(l:4096::x:):-}")   # 4KB single token
 typeset -i failures=0
-typeset input
+typeset input=''
 for input in "${corpus[@]}"; do
     local REPLY
     if ! _tmux_emoji_get_command "$input" 2>>"$2"; then
@@ -266,7 +266,7 @@ corpus=(
     ''
 )
 typeset -i bad_charset=0 bad_roundtrip=0
-typeset p enc dec
+typeset p='' enc='' dec=''
 for p in "${corpus[@]}"; do
     enc="$(_urlencode_path "$p")"
     [[ "$enc" != *[^A-Za-z0-9._~/%-]* ]] || (( bad_charset++ ))
@@ -283,7 +283,7 @@ assert_contains "$out" "URL_BAD_ROUNDTRIP=0" "urlencode/decode roundtrips byte-f
 # ── _ssh_title_host: flag-soup corpus ─────────────────────────────────
 # Property: always returns 0 with a non-empty REPLY (the title is used
 # unconditionally), plus exact answers where the parse is unambiguous.
-typeset sb_soup
+typeset sb_soup=''
 sb_soup="$(make_sandbox_home)"
 out=$(run_sandbox_zsh "$sb_soup" '
 typeset -i soup_failures=0

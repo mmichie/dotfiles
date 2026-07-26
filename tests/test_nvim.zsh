@@ -14,7 +14,7 @@ fi
 typeset NVIM_CONF="$REPO_ROOT/configs/nvim"
 
 # ── Tier 1: parse gates (no plugins required) ────────────────────────
-typeset f out
+typeset f='' out=''
 for f in "$NVIM_CONF/init.lua" "$NVIM_CONF/lua/plugins.lua"; do
     out=$(nvim --clean --headless \
         +"lua local f,e = loadfile('$f'); print(f and 'PARSE_OK' or 'PARSE_ERR: '..tostring(e))" \
@@ -28,7 +28,7 @@ typeset -a spec_names missing
 spec_names=(${(f)"$(grep -oE '"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"' "$NVIM_CONF/lua/plugins.lua" \
     | sed -E 's|.*/||; s|"||g' | sort -u)"})
 missing=()
-typeset n
+typeset n=''
 for n in "${spec_names[@]}"; do
     grep -q "\"$n\"" "$NVIM_CONF/lazy-lock.json" || missing+=("$n")
 done
@@ -61,7 +61,7 @@ fi
 
 # Lockfile orphan gate: lazy's managed-plugin count must match the lock
 # (regression: 12 stale entries had accumulated from removed plugins).
-typeset managed lockn
+typeset managed='' lockn=''
 managed=$(nvim --headless +'lua io.write(#require("lazy").plugins())' +q 2>/dev/null)
 lockn=$(grep -c '": {' "$NVIM_CONF/lazy-lock.json")
 assert_eq "$managed" "$lockn" "lazy-lock.json matches the managed plugin set (no orphans)"
@@ -69,7 +69,7 @@ assert_eq "$managed" "$lockn" "lazy-lock.json matches the managed plugin set (no
 # Treesitter highlighting must actually attach (regression: the master
 # branch needs nvim-treesitter.configs + highlight.enable — the old setup
 # call was silently ignored and Go files fell back to regex syntax).
-typeset gofile probe
+typeset gofile='' probe=''
 gofile="$T_SCRATCH/probe.go"
 printf 'package main\n\nfunc main() {}\n' > "$gofile"
 probe=$(nvim --headless "$gofile" +'lua vim.defer_fn(function()
@@ -80,7 +80,7 @@ end, 800)' 2>/dev/null)
 assert_contains "$probe" "TS_HL=true" "treesitter highlighter attaches to Go buffers (regression)"
 
 # LSP servers enabled in the config should have their binaries available.
-typeset srv
+typeset srv=''
 for srv in gopls pyright; do
     if have "$srv"; then
         t_pass "$srv binary present for vim.lsp.enable"

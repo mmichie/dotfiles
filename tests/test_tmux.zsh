@@ -17,7 +17,7 @@ typeset SOCK="tmuxtest-$$"
 typeset SOCK2="tmuxtest2-$$"
 
 # Sandbox HOME: ~/.config/tmux must resolve for source-file/tpm paths.
-typeset thome
+typeset thome=''
 thome="$(mktemp -d "$T_SCRATCH/tmuxhome.XXXXXX")"
 mkdir -p "$thome/.config"
 ln -s "$REPO_ROOT/configs/tmux" "$thome/.config/tmux"
@@ -31,7 +31,7 @@ tm() { tmux -L "$SOCK" "$@"; }
 # TMUX_LEVEL= explicitly: the test runner may itself live inside a tmux
 # session (TMUX_LEVEL=1 inherited), which would flip this "outer" server
 # into the nested %if branch.
-typeset boot_err
+typeset boot_err=''
 boot_err=$(HOME="$thome" TMUX_LEVEL= tmux -L "$SOCK" -f "$TMUX_CONF" new-session -d -x 80 -y 24 2>&1)
 if [[ $? -eq 0 && -z "$boot_err" ]]; then
     t_pass "config parses with no errors"
@@ -44,7 +44,7 @@ tm run-shell true 2>/dev/null   # sync barrier: queue behind tpm's run-shell
 # the server message log, NOT the booting client's stderr — the boot_err
 # gate above cannot see them. The log also records routine client commands,
 # so match error shapes only.
-typeset srvmsgs
+typeset srvmsgs=''
 # tpm probes TMUX_PLUGIN_MANAGER_PATH before first setting it — benign.
 srvmsgs=$(tm show-messages 2>/dev/null \
     | grep -v "unknown variable: TMUX_PLUGIN_MANAGER_PATH" \
@@ -71,7 +71,7 @@ tm source-file "$TMUX_CONF" 2>/dev/null
 tm run-shell true 2>/dev/null
 env2=$(tm show -g update-environment | wc -l)
 assert_eq "$env2" "$env1" "update-environment does not grow across config reloads"
-typeset envlist
+typeset envlist=''
 envlist=$(tm show -g update-environment)
 assert_contains "$envlist" "CHEVRON_WEATHER_LOCATION_CMD" "chevron weather var forwarded"
 assert_contains "$envlist" "PATH"                         "PATH forwarded"
@@ -84,15 +84,15 @@ assert_contains "$(tm show-hooks -g pane-focus-in)" "pane-focus-in[0]" \
     "pane-focus-in title hook installed"
 assert_contains "$(tm show-hooks -g pane-exited)" "pane-exited[0]" \
     "dwm pane-exited layout hook installed"
-typeset arf
+typeset arf=''
 arf=$(tm show -gv automatic-rename-format)
 assert_contains "$arf" "@priority_title" "rename format consumes @priority_title"
 assert_contains "$arf" "@dir_title"      "rename format consumes @dir_title"
 # Stale-title regression: at a shell prompt the focus hook must prefer
 # @dir_title over a leftover @custom_title from an exited command.
-typeset fhook
+typeset fhook=''
 fhook=$(tm show-hooks -g pane-focus-in)
-typeset dir_pos custom_pos
+typeset dir_pos='' custom_pos=''
 dir_pos=${fhook[(i)@dir_title]}
 custom_pos=${fhook[(i)@custom_title]}
 if (( dir_pos < custom_pos )); then
@@ -106,7 +106,10 @@ fi
 typeset -a declared missing
 declared=(${(f)"$(grep -E "^set -g @plugin" "$TMUX_CONF" | sed -E "s/.*'[^/]+\/([^']+)'.*/\1/")"})
 missing=()
-typeset p
+# The empty assignment is load-bearing: a bare `typeset p` PRINTS p=value when
+# the name already exists, and nix-darwin's /etc/zshenv leaks its
+# `for p in $NIX_PROFILES` loop variable into every zsh process.
+typeset p=''
 for p in "${declared[@]}"; do
     [[ "$p" == tpm ]] && continue
     [[ -d "$REPO_ROOT/configs/tmux/plugins/$p" ]] || missing+=("$p")
@@ -116,7 +119,7 @@ if (( ${#missing} == 0 )); then
 else
     t_fail "every declared @plugin is vendored" "missing: ${(j:, :)missing}"
 fi
-typeset dragbind
+typeset dragbind=''
 dragbind=$(tm list-keys -T copy-mode-vi 2>/dev/null | grep MouseDragEnd1Pane | head -1)
 if [[ -n "$dragbind" ]]; then
     t_pass "mouse drag-copy bound (tmux-yank)"
@@ -125,12 +128,12 @@ else
 fi
 
 # ── Status line: no junk #() commands ────────────────────────────────
-typeset sleft
+typeset sleft=''
 sleft=$(tm show -gv status-left)
 assert_not_contains "$sleft" '#( ' "status-left has no broken #() command (regression)"
 
 # ── Keybindings: dwm + nested toggle ─────────────────────────────────
-typeset rootkeys offkeys
+typeset rootkeys='' offkeys=''
 rootkeys=$(tm list-keys -T root 2>/dev/null)
 # tmux 3.7 `list-keys -T <table>` returns nothing for user-defined tables
 # (builtin root/prefix still enumerate), so pull the off table out of the
@@ -139,7 +142,7 @@ offkeys=$(tm list-keys 2>/dev/null | grep -- '-T off')
 assert_contains "$rootkeys" "M-n" "dwm newpane binding present"
 assert_contains "$rootkeys" '"M-;"' "nested-toggle binding in root table"
 assert_contains "$offkeys"  '"M-;"' "nested-toggle binding in off table"
-typeset prefixkeys
+typeset prefixkeys=''
 prefixkeys=$(tm list-keys -T prefix 2>/dev/null)
 assert_contains "$prefixkeys" "confirm-before" "kill-window asks for confirmation"
 assert_contains "$prefixkeys" "display-popup" "prefix-f sessionizer opens in a popup (TTY for fzf)"
@@ -152,7 +155,7 @@ else
 fi
 
 # ── Nested branch: %if TMUX_LEVEL styles with orange accent ──────────
-typeset boot2_err
+typeset boot2_err=''
 boot2_err=$(HOME="$thome" TMUX_LEVEL=1 tmux -L "$SOCK2" -f "$TMUX_CONF" new-session -d -x 80 -y 24 2>&1)
 if [[ $? -eq 0 && -z "$boot2_err" ]]; then
     t_pass "nested config branch parses"

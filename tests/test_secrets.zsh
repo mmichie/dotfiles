@@ -20,15 +20,24 @@ fi
 # automatically; the only coupling is the work-only filename below.
 typeset -a all_keys
 all_keys=(${(f)"$(grep -oE 'age1[0-9a-z]{58,}' "$SOPS_YAML" | sort -u)"})
-typeset moab_key
+typeset moab_key=''
 moab_key=$(grep -oE '&mim_moab age1[0-9a-z]+' "$SOPS_YAML" | awk '{print $2}')
 typeset WORK_ONLY="zshrc-work-local"   # matches the work creation_rule in .sops.yaml
 
 assert_eq "${#all_keys}" "3" "sops.yaml declares the expected recipient count"
 
 # Per-file checks via one python pass (envelope shape + recipients + nonces).
-typeset report
-report=$(python3 - "$WORK_ONLY" "$moab_key" "${(j:,:)all_keys}" "${secret_files[@]}" <<'PY'
+# python3 carries the entire tier below, so its absence must be visible: an
+# unguarded call leaves $report empty, the loop over it iterates zero times,
+# and the file reports green with nothing checked.
+if ! have python3; then
+    t_skip "sops envelope, recipient, and nonce checks" "python3 not in PATH"
+    t_finish
+fi
+
+typeset py_err="$T_SCRATCH/sops-python.err"
+typeset report=''
+report=$(python3 - "$WORK_ONLY" "$moab_key" "${(j:,:)all_keys}" "${secret_files[@]}" 2>"$py_err" <<'PY'
 import json, base64, sys
 work_only, moab_key, all_keys_csv = sys.argv[1], sys.argv[2], sys.argv[3]
 all_keys = set(all_keys_csv.split(','))
@@ -70,7 +79,17 @@ uniq("ephemeral-unique", ephem)
 PY
 )
 
-typeset line
+typeset -i py_rc=$?
+# Same trap as a missing python3: a pass that dies before printing produces an
+# empty report, which the loop below would read as "nothing to complain about".
+# Python's own diagnostics land on stdout via t_fail, never stderr.
+if (( py_rc != 0 )) || [[ -z "$report" ]]; then
+    t_fail "sops envelope, recipient, and nonce pass ran" \
+        "python3 exited $py_rc: $(tr '\n' ' ' < "$py_err")"
+    t_finish
+fi
+
+typeset line=''
 for line in ${(f)report}; do
     if [[ "$line" == OK* ]]; then
         t_pass "${line#OK }"

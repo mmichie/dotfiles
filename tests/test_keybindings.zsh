@@ -6,7 +6,7 @@
 
 source "${0:A:h}/lib.zsh"
 
-typeset sb out
+typeset sb='' out=''
 sb="$(make_sandbox_home)"
 out=$(run_sandbox_zsh "$sb" 'bindkey -M viins' 2>/dev/null)
 
@@ -26,7 +26,7 @@ assert_contains "$out" "viins" "main keymap is viins"
 
 # fzf-dependent bindings — gate on fzf as seen from *inside* the sandbox
 # shell (the runner's view can differ, e.g. under nix builds).
-typeset sandbox_fzf
+typeset sandbox_fzf=''
 sandbox_fzf=$(run_sandbox_zsh "$sb" 'print -rn -- $+commands[fzf]' 2>/dev/null)
 if [[ "$sandbox_fzf" == 1 ]]; then
     out=$(run_sandbox_zsh "$sb" 'bindkey -M viins "^R"; bindkey -M vicmd "^R"; bindkey -M viins "^T"' 2>/dev/null)
