@@ -248,8 +248,12 @@ setup_integrations() {
 # function in $SHELL_FUNCTIONS_DIR.
 setup_zoxide() {
     command -v zoxide &>/dev/null || return
+    # Gated on the init, like every other integration here: without the
+    # sourced init there is no zi widget, and an unconditional cdi alias
+    # would answer "command not found: zi" instead of degrading to a clean
+    # absence.
     _init_from_cache "$SHELL_CACHE_DIR/zoxide-init.zsh" \
-        'zoxide init zsh' "$commands[zoxide]"
+        'zoxide init zsh' "$commands[zoxide]" || return
     export _ZO_ECHO=1                                                  # Print matched dir before cd
     export _ZO_RESOLVE_SYMLINKS=1                                      # Resolve symlinks to true path
     export _ZO_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zoxide"
