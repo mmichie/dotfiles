@@ -107,7 +107,19 @@ obliviate example.com --restart-chrome --yes
   process, so "forcing" them means killing or corrupting.
 - A timestamped backup (`History.prune-backup-<unix>`, plus `-wal`/`-shm`
   sidecars) is written next to the original unless you pass `--no-backup`. The
-  tool prints the exact `cp` command to restore it.
+  tool prints one `cp` command per file it copied, and they belong together:
+  restoring the main database on its own, next to the newer `-wal` the run left
+  behind, replays a different database's log into it and can lose or corrupt the
+  restored state.
+- Backups do not accumulate. Once a run has written its own set, it deletes the
+  previous run's backups of that same database, so the forgotten data does not
+  stack up beside the profile. Only files matching this tool's exact backup
+  naming (`<db>`, `<db>-wal` or `<db>-shm`, then `.prune-backup-<digits>`) are
+  ever candidates, and only after the replacement copies exist.
+- Everything the tool has to tell you prints on **stdout**, including errors.
+  When a step fails the run continues, and the closing line says so instead of
+  reading as a clean success: `done with 2 warnings: removed 41 rows for
+  example.com; skipped Top Sites, HTTP cache.`
 
 ### Flags
 

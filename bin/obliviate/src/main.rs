@@ -74,7 +74,9 @@ struct Cli {
 
 fn main() {
     if let Err(e) = run() {
-        eprintln!("error: {e:#}");
+        // Everything the user has to see goes to stdout: stderr is not always
+        // visible in their terminal, and a silent failure here reads as success.
+        println!("error: {e:#}");
         std::process::exit(1);
     }
 }
@@ -111,6 +113,10 @@ fn prune_all(cli: &Cli, domain: &str, history: &Path) -> Result<()> {
         .with_context(|| format!("opening {}", history.display()))?;
     conn.busy_timeout(Duration::from_secs(5))?;
 
+    // Every non-fatal failure below is recorded here so the closing summary can
+    // name it: a step that was skipped must not read as a step that worked.
+    let mut warnings = Warnings::default();
+
     // Build connection-scoped scratch tables of the ids we intend to remove.
     build_scratch_tables(&conn, domain)?;
 
@@ -126,7 +132,10 @@ fn prune_all(cli: &Cli, domain: &str, history: &Path) -> Result<()> {
         match scan_satellite(&path, s, domain) {
             Ok(Some(n)) => satellites.push((s, path, n)),
             Ok(None) => {}
-            Err(e) => eprintln!("warning: could not read {} ({e}); skipping in preview", s.file),
+            Err(e) => warnings.note(
+                s.file,
+                format!("could not read {} ({e}); skipping in preview", s.file),
+            ),
         }
     }
 
@@ -144,10 +153,11 @@ fn prune_all(cli: &Cli, domain: &str, history: &Path) -> Result<()> {
                 let bytes = hits.iter().map(|h| h.bytes).sum();
                 caches.push((dir, hits.len(), bytes));
             }
-            Err(e) => eprintln!(
-                "warning: could not scan {} ({e}); skipping in preview",
-                dir.path.display()
-            ),
+            Err(e) => {
+                let path = dir.path.display();
+                let msg = format!("could not scan {path} ({e}); skipping in preview");
+                warnings.note(dir.label, msg)
+            }
         }
     }
 
@@ -156,12 +166,15 @@ fn prune_all(cli: &Cli, domain: &str, history: &Path) -> Result<()> {
     let history_total: usize = history_counts.values().sum();
     let sat_total: usize = satellites.iter().map(|(_, _, n)| *n).sum();
     let cache_total: usize = caches.iter().map(|(_, n, _)| *n).sum();
+    // A scan that failed leaves an unknown, not a zero, so both of these early
+    // exits carry the warning tally rather than claiming a clean bill of health.
+    let skipped = warnings.suffix();
     if history_total == 0 && sat_total == 0 && cache_total == 0 {
-        println!("\nnothing matches {domain}; no changes made.");
+        println!("\nnothing matches {domain}; no changes made{skipped}.");
         return Ok(());
     }
     if cli.dry_run {
-        println!("\ndry run: no changes made.");
+        println!("\ndry run: no changes made{skipped}.");
         return Ok(());
     }
 
@@ -178,14 +191,17 @@ fn prune_all(cli: &Cli, domain: &str, history: &Path) -> Result<()> {
     if history_total > 0 {
         println!("\nHistory:");
         if !cli.no_backup {
-            announce_backup(history)?;
+            announce_backup(history, &mut warnings)?;
         }
         // Fold any write-ahead log into the main file before mutating.
         let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
         let deleted = execute_deletes(&mut conn, &ops, history)?;
         if !cli.no_vacuum {
             if let Err(e) = conn.execute_batch("VACUUM;") {
-                eprintln!("warning: VACUUM failed on History ({e}); freed space not reclaimed");
+                warnings.note(
+                    "History VACUUM",
+                    format!("VACUUM failed on History ({e}); freed space not reclaimed"),
+                );
             }
         }
         removed += deleted.values().sum::<usize>();
@@ -193,9 +209,9 @@ fn prune_all(cli: &Cli, domain: &str, history: &Path) -> Result<()> {
     drop(conn);
 
     for (s, path, _) in &satellites {
-        match prune_satellite(path, s, domain, cli.no_backup, cli.no_vacuum) {
+        match prune_satellite(path, s, domain, cli.no_backup, cli.no_vacuum, &mut warnings) {
             Ok(n) => removed += n,
-            Err(e) => eprintln!("warning: {} ({e:#})", s.file),
+            Err(e) => warnings.note(s.file, format!("{} ({e:#})", s.file)),
         }
     }
 
@@ -212,19 +228,79 @@ fn prune_all(cli: &Cli, domain: &str, history: &Path) -> Result<()> {
                 cache_removed += n;
                 cache_bytes += bytes;
             }
-            Err(e) => eprintln!("warning: {} ({e:#})", dir.label),
+            Err(e) => warnings.note(dir.label, format!("{} ({e:#})", dir.label)),
         }
     }
 
-    if cache_removed > 0 {
-        println!(
-            "\ndone: removed {removed} rows and {cache_removed} cache entries ({}) for {domain}.",
-            human_bytes(cache_bytes)
-        );
-    } else {
-        println!("\ndone: removed {removed} rows for {domain}.");
-    }
+    let summary = summary_line(domain, removed, cache_removed, cache_bytes, &warnings);
+    println!("\n{summary}");
     Ok(())
+}
+
+/// Non-fatal failures from one run: steps that were skipped or left incomplete
+/// while the rest carried on. Each is printed when it happens and named again in
+/// the closing summary, so a partial run can never read as a clean one.
+#[derive(Default)]
+struct Warnings {
+    skipped: Vec<String>,
+}
+
+impl Warnings {
+    /// Report a failed step: print it now — on stdout, the stream the user
+    /// actually sees — and remember `subject` for the summary.
+    fn note(&mut self, subject: impl Into<String>, message: impl std::fmt::Display) {
+        println!("warning: {message}");
+        self.skipped.push(subject.into());
+    }
+
+    fn is_empty(&self) -> bool {
+        self.skipped.is_empty()
+    }
+
+    /// `1 warning` / `3 warnings`.
+    fn tally(&self) -> String {
+        let n = self.skipped.len();
+        format!("{n} warning{}", if n == 1 { "" } else { "s" })
+    }
+
+    /// The subjects in the order they failed: `Top Sites, HTTP cache`.
+    fn subjects(&self) -> String {
+        self.skipped.join(", ")
+    }
+
+    /// ` (1 warning; skipped Top Sites)`, or empty for a clean run, so it can be
+    /// appended to a summary line unconditionally.
+    fn suffix(&self) -> String {
+        if self.is_empty() {
+            return String::new();
+        }
+        format!(" ({}; skipped {})", self.tally(), self.subjects())
+    }
+}
+
+/// The closing line of a run. It leads with the warning count when anything was
+/// skipped, because this line is the one the user reads to decide the domain is
+/// gone — success-shaped wording after a partial failure would be a lie.
+fn summary_line(
+    domain: &str,
+    removed: usize,
+    cache_removed: usize,
+    cache_bytes: u64,
+    warnings: &Warnings,
+) -> String {
+    let counts = if cache_removed > 0 {
+        format!(
+            "removed {removed} rows and {cache_removed} cache entries ({}) for {domain}",
+            human_bytes(cache_bytes)
+        )
+    } else {
+        format!("removed {removed} rows for {domain}")
+    };
+    if warnings.is_empty() {
+        return format!("done: {counts}.");
+    }
+    let (tally, subjects) = (warnings.tally(), warnings.subjects());
+    format!("done with {tally}: {counts}; skipped {subjects}.")
 }
 
 /// One table to clean, with the predicate selecting the doomed rows.
@@ -433,6 +509,7 @@ fn prune_satellite(
     domain: &str,
     no_backup: bool,
     no_vacuum: bool,
+    warnings: &mut Warnings,
 ) -> Result<usize> {
     let mut conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)
         .with_context(|| format!("opening {}", path.display()))?;
@@ -447,7 +524,7 @@ fn prune_satellite(
 
     println!("\n{}:", s.file);
     if !no_backup {
-        announce_backup(path)?;
+        announce_backup(path, warnings)?;
     }
 
     let tx = conn
@@ -743,15 +820,41 @@ fn human_bytes(n: u64) -> String {
     }
 }
 
-/// Copy a database file (plus any `-wal`/`-shm` sidecars) and print the backup
-/// path and the command to restore it.
-fn announce_backup(path: &Path) -> Result<()> {
+/// Copy a database file (plus any `-wal`/`-shm` sidecars), print the backup paths
+/// and the commands to restore them, then drop the previous run's backups so
+/// only the newest set survives.
+fn announce_backup(path: &Path, warnings: &mut Warnings) -> Result<()> {
     let backups = backup_files(path)?;
     for b in &backups {
-        println!("backup          : {}", b.display());
+        println!("backup          : {}", b.dst.display());
     }
-    if let Some(main) = backups.first() {
-        println!("restore with    : cp \"{}\" \"{}\"", main.display(), path.display());
+    // One restore command per file copied. Putting the main database back on its
+    // own, next to the newer `-wal` this run leaves behind, replays a different
+    // database's log into it and can lose or corrupt the restored state — so the
+    // sidecars are spelled out here instead of left to be inferred.
+    let mut key = "restore with    ";
+    for b in &backups {
+        println!("{key}: cp \"{}\" \"{}\"", b.dst.display(), b.src.display());
+        key = "                ";
+    }
+    if backups.len() > 1 {
+        println!("                  (restore every line above, not just the first)");
+    }
+
+    // Retention: the point of this tool is that the data stops existing, so the
+    // superseded copies go. Only ever after a replacement set was written, so a
+    // failure here can never leave the user with no backup at all.
+    match trim_old_backups(path, &backups) {
+        Ok(0) => {}
+        Ok(n) => {
+            let files = if n == 1 { "file" } else { "files" };
+            println!("older backups   : removed {n} {files}");
+        }
+        Err(e) => {
+            let name = path.file_name().unwrap_or_default().to_string_lossy();
+            let msg = format!("could not remove older backups of {name} ({e:#})");
+            warnings.note(format!("{name} backups"), msg);
+        }
     }
     Ok(())
 }
@@ -764,9 +867,19 @@ fn confirm(prompt: &str) -> Result<bool> {
     Ok(matches!(line.trim().to_ascii_lowercase().as_str(), "y" | "yes"))
 }
 
+/// One file this run copied: the original, and the backup written beside it.
+struct Backup {
+    src: PathBuf,
+    dst: PathBuf,
+}
+
+/// The infix every backup filename carries, between the database's own name and
+/// the run's timestamp. Retention keys off exactly this.
+const BACKUP_INFIX: &str = ".prune-backup-";
+
 /// Copy the History file and any WAL/SHM sidecars next to the originals,
-/// returning the paths written (the main file first).
-fn backup_files(history: &Path) -> Result<Vec<PathBuf>> {
+/// returning what was copied (the main file first).
+fn backup_files(history: &Path) -> Result<Vec<Backup>> {
     let ts = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
@@ -775,12 +888,68 @@ fn backup_files(history: &Path) -> Result<Vec<PathBuf>> {
     for suffix in ["", "-wal", "-shm"] {
         let src = sidecar(history, suffix);
         if src.exists() {
-            let dst = sidecar(history, &format!("{suffix}.prune-backup-{ts}"));
+            let dst = sidecar(history, &format!("{suffix}{BACKUP_INFIX}{ts}"));
             fs::copy(&src, &dst).with_context(|| format!("backing up {}", src.display()))?;
-            made.push(dst);
+            made.push(Backup { src, dst });
         }
     }
     Ok(made)
+}
+
+/// Delete backups of `db` left by earlier runs, keeping only the set just
+/// written. Candidates are matched by exact filename shape — `<db>`, `<db>-wal`
+/// or `<db>-shm`, then `.prune-backup-` and an all-digit timestamp, in the
+/// database's own directory — so nothing this tool did not write is ever a
+/// candidate. Returns how many files were removed.
+fn trim_old_backups(db: &Path, keep: &[Backup]) -> Result<usize> {
+    // No replacement set means nothing has superseded the old ones yet.
+    if keep.is_empty() {
+        return Ok(0);
+    }
+    let Some(dir) = db.parent() else { return Ok(0) };
+    let Some(base) = db.file_name().and_then(|n| n.to_str()) else {
+        return Ok(0);
+    };
+    let keep: BTreeSet<&Path> = keep.iter().map(|b| b.dst.as_path()).collect();
+
+    let mut removed = 0usize;
+    for entry in fs::read_dir(dir).with_context(|| format!("reading {}", dir.display()))? {
+        let Ok(entry) = entry else { continue };
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else { continue };
+        if !is_prune_backup(name, base) {
+            continue;
+        }
+        let path = entry.path();
+        if keep.contains(path.as_path()) {
+            continue;
+        }
+        match fs::remove_file(&path) {
+            Ok(()) => removed += 1,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e).with_context(|| format!("removing {}", path.display())),
+        }
+    }
+    Ok(removed)
+}
+
+/// True when `name` is exactly a backup this tool wrote for the database file
+/// `base`: the database's own name or one of its two sidecars, then the infix
+/// and an all-digit timestamp. Deliberately strict — a name that merely starts
+/// with `base`, or whose timestamp is not one, is somebody else's file.
+fn is_prune_backup(name: &str, base: &str) -> bool {
+    let Some(rest) = name.strip_prefix(base) else {
+        return false;
+    };
+    for sidecar in ["", "-wal", "-shm"] {
+        let Some(rest) = rest.strip_prefix(sidecar) else {
+            continue;
+        };
+        if let Some(ts) = rest.strip_prefix(BACKUP_INFIX) {
+            return !ts.is_empty() && ts.bytes().all(|b| b.is_ascii_digit());
+        }
+    }
+    false
 }
 
 /// `History` + `-wal` => `History-wal`, etc., preserving the full filename.
@@ -843,7 +1012,7 @@ fn quit_chrome(history: &Path) -> Result<bool> {
         println!("ok");
     } else {
         println!("timed out");
-        eprintln!(
+        println!(
             "warning: Chrome has not released {} after 20s; if \"Continue running\n  \
              background apps\" is enabled, quit it from the menu-bar icon.",
             history.display()
@@ -868,7 +1037,7 @@ fn chrome_is_running() -> bool {
 fn relaunch_chrome() {
     println!("reopening Google Chrome...");
     if let Err(e) = Command::new("open").args(["-a", "Google Chrome"]).status() {
-        eprintln!("warning: could not reopen Chrome ({e}); open it manually");
+        println!("warning: could not reopen Chrome ({e}); open it manually");
     }
 }
 
@@ -908,7 +1077,7 @@ fn db_is_writable(history: &Path) -> bool {
 
 #[cfg(not(target_os = "macos"))]
 fn quit_chrome(_history: &Path) -> Result<bool> {
-    eprintln!("warning: --restart-chrome is only implemented on macOS; quit Chrome yourself");
+    println!("warning: --restart-chrome is only implemented on macOS; quit Chrome yourself");
     Ok(false)
 }
 
@@ -1080,5 +1249,126 @@ mod tests {
         let cache = CacheDir { label: "test cache", path: dir.clone() };
         assert!(scan_cache_dir(&cache, "example.com").unwrap().is_empty());
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    /// Files this tool never wrote, whose names brush against its backup pattern
+    /// closely enough to be deleted by a sloppier match.
+    const FOREIGN_FILES: [&str; 6] = [
+        "History",
+        "History-wal",
+        "History.prune-backup-yesterday",
+        "History Provider Cache.prune-backup-1000",
+        "Top Sites.prune-backup-1000",
+        "History.bak",
+    ];
+
+    /// A profile dir holding `History` (+ `-wal`), two earlier runs' backup sets,
+    /// and the foreign files above.
+    fn temp_profile_dir(tag: &str) -> PathBuf {
+        let dir = temp_cache_dir(tag);
+        let write = |name: &str| fs::write(dir.join(name), b"contents").unwrap();
+        for ts in ["1000", "2000"] {
+            write(&format!("History.prune-backup-{ts}"));
+            write(&format!("History-wal.prune-backup-{ts}"));
+        }
+        for name in FOREIGN_FILES {
+            write(name);
+        }
+        dir
+    }
+
+    fn foreign_files_survive(dir: &Path) {
+        for name in FOREIGN_FILES {
+            assert!(dir.join(name).exists(), "must not touch {name}");
+        }
+    }
+
+    #[test]
+    fn retention_keeps_the_newest_backup_set_and_drops_the_rest() {
+        let dir = temp_profile_dir("retention");
+        let db = dir.join("History");
+
+        let backups = backup_files(&db).unwrap();
+        assert_eq!(backups.len(), 2, "main file and its -wal, no -shm exists");
+        assert_eq!(trim_old_backups(&db, &backups).unwrap(), 4);
+
+        for b in &backups {
+            assert!(b.dst.exists(), "must survive: {}", b.dst.display());
+        }
+        for ts in ["1000", "2000"] {
+            assert!(!dir.join(format!("History.prune-backup-{ts}")).exists());
+            assert!(!dir.join(format!("History-wal.prune-backup-{ts}")).exists());
+        }
+        foreign_files_survive(&dir);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn retention_deletes_nothing_without_a_replacement_set() {
+        let dir = temp_profile_dir("retention-empty");
+        let db = dir.join("History");
+        assert_eq!(trim_old_backups(&db, &[]).unwrap(), 0);
+        assert!(dir.join("History.prune-backup-1000").exists());
+        assert!(dir.join("History-wal.prune-backup-2000").exists());
+        foreign_files_survive(&dir);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn recognizes_only_its_own_backup_names() {
+        let ours = |name: &str| is_prune_backup(name, "History");
+        assert!(ours("History.prune-backup-1721683200"));
+        assert!(ours("History-wal.prune-backup-0"));
+        assert!(ours("History-shm.prune-backup-17"));
+        assert!(is_prune_backup("Top Sites.prune-backup-17", "Top Sites"));
+        // Not ours: no timestamp, a non-numeric one, a database whose name merely
+        // starts with ours, a suffix we never write, the live files, a stray copy.
+        assert!(!ours("History.prune-backup-"));
+        assert!(!ours("History.prune-backup-2000x"));
+        assert!(!ours("History Provider Cache.prune-backup-2000"));
+        assert!(!ours("History-journal.prune-backup-2000"));
+        assert!(!ours("History-wal-shm.prune-backup-2000"));
+        assert!(!ours("History"));
+        assert!(!ours("History-wal"));
+        assert!(!ours("History.bak"));
+        assert!(!is_prune_backup("Top Sites.prune-backup-17", "History"));
+    }
+
+    #[test]
+    fn summary_says_done_only_when_every_step_worked() {
+        let clean = Warnings::default();
+        assert_eq!(
+            summary_line("example.com", 12, 0, 0, &clean),
+            "done: removed 12 rows for example.com."
+        );
+        assert_eq!(
+            summary_line("example.com", 12, 3, 2048, &clean),
+            "done: removed 12 rows and 3 cache entries (2.0 KiB) for example.com."
+        );
+        assert!(clean.suffix().is_empty());
+    }
+
+    #[test]
+    fn summary_counts_and_names_every_failed_step() {
+        let mut warnings = Warnings::default();
+        warnings.note("Top Sites", "Top Sites (database is locked)");
+        assert_eq!(
+            summary_line("example.com", 12, 0, 0, &warnings),
+            "done with 1 warning: removed 12 rows for example.com; skipped Top Sites."
+        );
+
+        warnings.note("HTTP cache", "HTTP cache (permission denied)");
+        let line = summary_line("example.com", 12, 3, 2048, &warnings);
+        assert_eq!(
+            line,
+            "done with 2 warnings: removed 12 rows and 3 cache entries (2.0 KiB) \
+             for example.com; skipped Top Sites, HTTP cache."
+        );
+        // The line must not be readable as a clean run at a glance.
+        assert!(!line.starts_with("done:"));
+
+        // The dry-run and nothing-matched exits carry the same tally.
+        let suffix = warnings.suffix();
+        assert_eq!(suffix, " (2 warnings; skipped Top Sites, HTTP cache)");
     }
 }
