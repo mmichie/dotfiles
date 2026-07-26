@@ -16,8 +16,13 @@ jobs:
             # Build the linux home closure too (native x86_64, cache-backed) so
             # the standalone home-manager path is proven, not just evaluated.
             build: .#devShells.x86_64-linux.default .#homeConfigurations.mim@linux.activationPackage
+            eval: ""
           - runner: macos-latest
             build: .#darwinConfigurations.mims-mbp.system
+            # The work hosts are never built here: no signing keys, no reason to
+            # spend a runner on a closure nothing installs. Evaluating them is
+            # what closes the gap — see the step below.
+            eval: .#darwinConfigurations.mim-moab.system.drvPath .#darwinConfigurations.tensor9-mbp.system.drvPath
 
     runs-on: ${{ matrix.runner }}
     steps:
@@ -30,22 +35,133 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
       # No --all-systems: it would try to build checks.* for foreign systems
-      # and fail. Host configs are evaluated regardless, and the two-OS matrix
-      # builds each platform's checks natively.
+      # and fail. The NixOS host is evaluated regardless (nixosConfigurations
+      # is an output nix knows), and the two-OS matrix builds each platform's
+      # checks natively. The darwin hosts are the gap the next step closes.
       - name: Check flake
         run: nix flake check
 
       - name: Check formatting
         run: nix fmt -- --fail-on-change
 
+      # `nix flake check` recognizes nixosConfigurations and evaluates each one,
+      # but darwinConfigurations is not an output it knows: it prints a single
+      # "checking flake output 'darwinConfigurations'" line and never descends
+      # into the hosts. Combined with a matrix that builds mims-mbp only, that
+      # left mim-moab and tensor9-mbp first evaluated at switch time on the
+      # machine that needs them — and they are the only hosts carrying the
+      # my.isWork branch (work-only sops secret, work git identity), plus
+      # mim-moab's own home.nix. Evaluating the drvPath needs no signing keys,
+      # no root and no build, so it runs before the long build step below.
+      - name: Evaluate hosts CI never builds
+        if: matrix.eval != ''
+        run: |
+          for target in ${{ matrix.eval }}; do
+            printf '%s -> ' "$target"
+            nix eval --raw "$target"
+            printf '\n'
+          done
+
       - name: Build closure
         run: nix build --no-link --print-out-paths ${{ matrix.build }}
 
-  # Run the zsh config test suite outside the nix build sandbox too — the
-  # flake check above builds checks.<system>.zsh-config hermetically; this
-  # job catches anything the sandbox masks.
-  zsh-tests:
+  # Nothing lints shell scripts repo-wide. lefthook's pre-commit shellcheck
+  # sees only STAGED files, and its `^#!/.*/(bash|sh|dash|ksh)` filter matches
+  # absolute interpreters only — so `#!/usr/bin/env bash`, anything committed
+  # with --no-verify, and every zsh script in the repo have gone unlinted.
+  # This job sweeps every tracked file by shebang instead, so coverage does
+  # not depend on what a given commit happened to stage.
+  lint:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      # shellcheck and zsh come from the repo devShell, so CI lints with the
+      # flake.lock-pinned versions the pre-commit hooks use locally. Both
+      # linters run before the job fails, so one bad file cannot hide the rest.
+      - name: Lint shell scripts
+        run: |
+          set -euo pipefail
+          sh_re='^#!(/[^ ]*/)?(env +)?(bash|sh|dash|ksh)( |$)'
+          zsh_re='^#!(/[^ ]*/)?(env +)?zsh( |$)'
+
+          # Bucket every tracked file by its shebang. git ls-files stops at
+          # submodule boundaries, so the vendored tmux plugins stay out of
+          # scope; [ -f ] drops the gitlink paths themselves, and symlinks are
+          # skipped because their targets are either swept here already or
+          # inside a submodule.
+          sh_list=''
+          zsh_list=''
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            if [ -L "$f" ]; then continue; fi
+            shebang=''
+            read -r shebang < "$f" || true
+            if [[ $shebang =~ $sh_re ]]; then
+              sh_list+="$f"$'\n'
+            elif [[ $shebang =~ $zsh_re ]]; then
+              zsh_list+="$f"$'\n'
+            fi
+          done < <(git ls-files)
+
+          # zsh source with no shebang of its own: the autoloaded functions,
+          # the sourced test lib, and the rc files zsh finds by name.
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            if [ -L "$f" ]; then continue; fi
+            zsh_list+="$f"$'\n'
+          done < <(git ls-files \
+            'configs/zsh/.zshenv' \
+            'configs/zsh/.zshrc' \
+            'configs/zsh/.zprofile' \
+            'configs/zsh/.zsh/lib/*.zsh' \
+            'configs/zsh/.zsh/functions/*' \
+            'tests/*.zsh')
+
+          mapfile -t sh_files < <(printf '%s' "$sh_list" | sort -u)
+          mapfile -t zsh_files < <(printf '%s' "$zsh_list" | sort -u)
+
+          # A sweep that quietly matches nothing is worse than no sweep.
+          if [ ${#sh_files[@]} -eq 0 ] || [ ${#zsh_files[@]} -eq 0 ]; then
+            echo "lint: shebang sweep matched nothing, so the filter broke" >&2
+            exit 1
+          fi
+          printf 'shellcheck: %s\n' "${sh_files[@]}"
+          printf 'zsh -n: %s\n' "${zsh_files[@]}"
+
+          rc=0
+          nix develop --command shellcheck "${sh_files[@]}" || rc=1
+
+          # The parse loop runs in bash, so it needs zsh's path rather than the
+          # dev shell's PATH. --no-globalrcs matches tests/test_syntax.zsh,
+          # the in-suite sweep this backstops for the files it does not cover
+          # (bin/ scripts, tests/ itself) and for the case where the suite
+          # harness is what broke.
+          zsh_bin=$(nix develop --command sh -c 'command -v zsh')
+          for f in "${zsh_files[@]}"; do
+            "$zsh_bin" --no-globalrcs -n "$f" || { echo "zsh -n: parse error in $f" >&2; rc=1; }
+          done
+          exit $rc
+
+  # Run the zsh config test suite outside the nix build sandbox too — the
+  # flake check above builds checks.<system>.zsh-config hermetically on both
+  # runners; this job catches anything the sandbox masks. It runs on both OSes
+  # because the suite branches on platform (clipboard tools, /etc/zshenv, BSD
+  # vs GNU flags), and the non-sandbox darwin half used to exist only as a
+  # local `just test`.
+  zsh-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v5
         with:
