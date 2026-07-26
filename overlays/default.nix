@@ -6,16 +6,24 @@ final: prev: {
   # the matured `dolt sql-server` + remote model (`bd dolt remote/push/pull`).
   # Source + vendor hashes updated together. Drop this override once nixpkgs
   # ships beads >= 1.1.0.
-  beads = prev.beads.overrideAttrs (_: {
-    version = "1.1.0";
-    src = final.fetchFromGitHub {
-      owner = "gastownhall";
-      repo = "beads";
-      tag = "v1.1.0";
-      hash = "sha256-+dFV//0N8ZDw9BHOJOoWZ+BvLmJKlnGtONHIYPRhfBE=";
-    };
-    vendorHash = "sha256-WWEwGpCwMPD7jaz02zN745RQQqYTQttehbcT3J9hayM=";
-  });
+  #
+  # This is the only override here that pins a VERSION rather than patching a
+  # build, so it is the only one whose staleness is dangerous: once nixpkgs
+  # passes 1.1.0 the pin silently becomes a downgrade. The assert converts that
+  # into a hard eval failure on the next flake update instead.
+  beads =
+    assert prev.lib.assertMsg (prev.lib.versionOlder prev.beads.version "1.1.0")
+      "beads override obsolete: nixpkgs now ships beads ${prev.beads.version} (>= 1.1.0). Delete the beads override in overlays/default.nix.";
+    prev.beads.overrideAttrs (_: {
+      version = "1.1.0";
+      src = final.fetchFromGitHub {
+        owner = "gastownhall";
+        repo = "beads";
+        tag = "v1.1.0";
+        hash = "sha256-+dFV//0N8ZDw9BHOJOoWZ+BvLmJKlnGtONHIYPRhfBE=";
+      };
+      vendorHash = "sha256-WWEwGpCwMPD7jaz02zN745RQQqYTQttehbcT3J9hayM=";
+    });
 
   # nixpkgs rclone 1.74.2 always builds with the cmount tag on Darwin but
   # supplies no fuse headers, so cgofuse fails on <fuse.h>. Disable cmount
