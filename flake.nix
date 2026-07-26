@@ -142,6 +142,25 @@
               nativeBuildInputs = [
                 pkgs.zsh
                 pkgs.tmux
+                # Tiers of the suite gate themselves on a tool being present
+                # and skip otherwise, so anything missing here is a test that
+                # only ever runs on a workstation: python3 drives the sops
+                # envelope/recipient/nonce pass, and the rest feed real
+                # `tool init zsh` output through the cache layer (atuin's
+                # format-parity tripwire, the gum banner probes, the eza
+                # flag-translation dispatch). Present here, `nix flake check`
+                # after `just update` is a gate on the new inputs.
+                pkgs.python3
+                pkgs.atuin
+                pkgs.fzf
+                pkgs.zoxide
+                pkgs.direnv
+                pkgs.vivid
+                pkgs.gum
+                pkgs.eza
+                # bat arms the `cat` alias in 30-aliases.zsh, which the
+                # clipboard alias-expansion regression exists to exercise.
+                pkgs.bat
               ];
             }
             ''
@@ -177,6 +196,17 @@
             pkgs.zsh
             pkgs.tmux
             pkgs.neovim # tests/test_nvim.zsh parse tier in CI
+            # Tool-gated test tiers (integrations cache, banner, secrets):
+            # without these, the non-sandbox CI job silently skips them.
+            pkgs.python3
+            pkgs.atuin
+            pkgs.fzf
+            pkgs.zoxide
+            pkgs.direnv
+            pkgs.vivid
+            pkgs.gum
+            pkgs.eza
+            pkgs.bat # arms the cat alias for the clipboard regression
           ];
         };
       });
