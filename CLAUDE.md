@@ -19,8 +19,8 @@ Personal dotfiles managed by **Nix** — nix-darwin on macOS, full NixOS in a VM
 # Apply everything (auto-detects macOS vs Linux vs NixOS)
 just switch
 
-# macOS explicitly
-darwin-rebuild switch --flake .#mims-mbp
+# macOS explicitly (sudo required: nix-darwin runs system activation as root)
+sudo darwin-rebuild switch --flake .#mims-mbp
 
 # NixOS VM explicitly
 sudo nixos-rebuild switch --flake .#vm-aarch64
@@ -52,7 +52,8 @@ just fmt
 # Garbage collect old generations
 just gc
 
-# Backup .ssh + .gnupg for machine migration
+# Backup/restore the sops age key + .ssh + .gnupg + .gam for machine migration.
+# The age key leads: without it the sops secrets are undecryptable on a rebuild.
 just secrets-backup
 just secrets-restore
 ```
@@ -62,12 +63,27 @@ just secrets-restore
 # 1. Install Nix (Determinate Systems installer)
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
 
-# 2. Clone and apply
+# 2. Install Homebrew (macOS only). nix-darwin declares the casks but never
+#    installs Homebrew itself; activation only prints "Homebrew is not
+#    installed, skipping..." to stderr and succeeds, so skipping this step
+#    silently yields zero GUI apps.
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 3. Clone
 git clone https://github.com/mmichie/dotfiles ~/src/dotfiles
 cd ~/src/dotfiles
 
-# macOS:
-nix run nix-darwin -- switch --flake .#mims-mbp
+# 4. Restore secrets, BEFORE the first switch and before opening a new shell.
+#    Copy backup.tar.gz over from `just secrets-backup` on the old machine
+#    first. The sops age key it carries is the root of trust and nothing
+#    regenerates it (secrets.nix sets generateKey = false), and atuin must find
+#    the real key on its first shell, or it writes its own and sync wedges on
+#    the mismatch later. `just` only arrives with the first switch:
+nix run nixpkgs#just -- secrets-restore
+
+# 5. Apply
+# macOS (sudo required: nix-darwin runs system activation as root):
+sudo nix run nix-darwin -- switch --flake .#mims-mbp
 
 # Linux:
 nix run home-manager -- switch --flake .#mim@linux
@@ -92,13 +108,16 @@ justfile                      # Task runner (switch, update, vm-switch, secrets,
 lefthook.yml                  # Pre-commit hooks (nix-fmt, statix, shellcheck, conventional commits)
 lib/
   mkHost.nix                  # Host constructors — mkDarwinHost, mkNixosHost, mkHomeConfig
-hosts/mims-mbp/               # nix-darwin system config + macOS home-manager overrides
-hosts/vm-aarch64/             # NixOS VM config (DWM, VMware, aarch64-linux)
+hosts/                        # Per-host configuration.nix (thin: import a base, set the hostname)
+  mims-mbp/                   # personal nix-darwin (imports workstation-base, sets hostname)
+  mim-moab/                   # work nix-darwin (my.isWork = true), plus a host home.nix
+  tensor9-mbp/                # work nix-darwin (my.isWork = true)
+  vm-aarch64/                 # NixOS VM config (DWM, VMware, aarch64-linux)
 hostclass/
   darwin-workstation.nix      # macOS-specific home config (aerospace, karabiner)
   linux-workstation.nix       # Linux-specific home config (clipboard tools, git signing)
 home/                         # shared.nix (cross-platform)
-modules/darwin/               # homebrew.nix (casks), defaults.nix (macOS prefs)
+modules/darwin/               # workstation-base.nix (shared macOS base), homebrew.nix (casks), defaults.nix (macOS prefs)
 modules/home/                 # options, lib, packages-core/dev, shell, git, editor, terminal, secrets, secrets-darwin
 configs/                      # Raw config files (symlinked by home-manager)
   aerospace/ claude/ ghostty/ git/ karabiner/ nvim/ ssh/ system/ tmux/ wezterm/ zsh/
@@ -134,7 +153,7 @@ bin/                          # Personal scripts
 
 | Target | System | Entry point | Command |
 |--------|--------|-------------|---------|
-| macOS (mims-mbp) | aarch64-darwin | `darwinConfigurations."mims-mbp"` | `darwin-rebuild switch --flake .#mims-mbp` |
+| macOS (mims-mbp, mim-moab, tensor9-mbp) | aarch64-darwin | `darwinConfigurations."<host>"` | `sudo darwin-rebuild switch --flake .#<host>` |
 | NixOS VM (vm-aarch64) | aarch64-linux | `nixosConfigurations."vm-aarch64"` | `sudo nixos-rebuild switch --flake .#vm-aarch64` |
 | Linux | x86_64-linux | `homeConfigurations."mim@linux"` | `home-manager switch --flake .#mim@linux` |
 

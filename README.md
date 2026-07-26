@@ -8,15 +8,30 @@ Personal dotfiles managed by [Nix](https://nixos.org/) — nix-darwin on macOS, 
 ## Quick Start
 
 ```bash
-# Install Nix
+# 1. Install Nix
 curl -sSf -L https://install.determinate.systems/nix | sh -s -- install
 
-# Clone and apply
+# 2. Install Homebrew (macOS only). nix-darwin declares the casks but never
+#    installs Homebrew itself, and activation just prints "Homebrew is not
+#    installed, skipping..." to stderr, so skip this and you get zero GUI apps
+#    with no visible error.
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 3. Clone
 git clone https://github.com/mmichie/dotfiles ~/src/dotfiles
 cd ~/src/dotfiles
 
+# 4. Restore secrets, BEFORE the first switch and before opening a new shell.
+#    Copy backup.tar.gz here from `just secrets-backup` on the old machine
+#    first. The sops age key it carries is the root of trust and nothing
+#    regenerates it (secrets.nix sets generateKey = false), and atuin must find
+#    the real key on its first shell, or it writes its own and sync wedges on
+#    the mismatch later. just only arrives with the first switch:
+nix run nixpkgs#just -- secrets-restore
+
+# 5. Apply. sudo is required: nix-darwin runs system activation as root.
 # macOS
-nix run nix-darwin -- switch --flake .#mims-mbp
+sudo nix run nix-darwin -- switch --flake .#mims-mbp
 
 # Linux
 nix run home-manager -- switch --flake .#mim@linux
@@ -31,11 +46,11 @@ After the initial bootstrap, apply changes with:
 just switch          # auto-detects macOS vs Linux vs NixOS
 just update          # update flake inputs and show what changed
 just dry-run         # preview what would change without applying
-just check           # validate flake for all systems
+just check           # validate flake (builds checks for the current system only)
 just fmt             # format all nix files
 just gc              # garbage collect old generations
 just vm-switch       # rsync config to VM and apply nixos-rebuild
-just secrets-backup  # tar .ssh + .gnupg to backup.tar.gz
+just secrets-backup  # tar the sops age key + .ssh + .gnupg + .gam to backup.tar.gz
 just secrets-restore # restore from backup.tar.gz
 ```
 
@@ -66,7 +81,7 @@ lefthook.yml                  # Pre-commit hooks (nix-fmt, statix, shellcheck, c
 lib/
   mkHost.nix                  # Host constructors — mkDarwinHost, mkNixosHost, mkHomeConfig
 hosts/
-  mims-mbp/                   # personal nix-darwin (Touch ID sudo, launchd GC, Spotlight)
+  mims-mbp/                   # personal nix-darwin (imports workstation-base, sets hostname)
   mim-moab/                   # work nix-darwin (my.isWork = true)
   tensor9-mbp/                # work nix-darwin (my.isWork = true)
   vm-aarch64/                 # NixOS VM (DWM + VMware Fusion on Apple Silicon)
@@ -77,6 +92,7 @@ home/
   shared.nix                  # Cross-platform home-manager base
 modules/
   darwin/
+    workstation-base.nix      # Shared macOS base (Touch ID sudo, launchd GC, Spotlight app copy)
     homebrew.nix              # ~30 GUI casks, auto-removes unlisted apps on activation
     defaults.nix              # macOS system preferences
   home/
