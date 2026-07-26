@@ -39,17 +39,42 @@ if [ "$detached_count" -eq 1 ]; then
     exec $TMUX attach-session -t "$detached"
 fi
 
-# Multiple detached sessions — menu.
+# Multiple detached sessions — menu. The list becomes an array so an answer is
+# an array index, not a sed expression: `sed -n "${choice}p"` turned anything
+# non-numeric into an empty session_name and a confusing attach-session error.
+sessions=("${(f)detached}")
+
 echo "Detached tmux sessions:"
 echo
-printf '%s\n' "$detached" | nl -w2 -s'. '
+printf '%s\n' "${sessions[@]}" | nl -w2 -s'. '
 echo
-echo -n "Enter session number to attach (or press Enter for first): "
-read -r choice
 
-if [ -z "$choice" ]; then
-    session_name=$(printf '%s\n' "$detached" | head -1)
-else
-    session_name=$(printf '%s\n' "$detached" | sed -n "${choice}p")
-fi
+session_name=""
+eof=0
+while [[ -z $session_name ]]; do
+    echo -n "Enter session number to attach (or press Enter for first): "
+    if ! read -r choice; then
+        # Ctrl-D or an exhausted pipe: there is no second chance to ask.
+        eof=1
+        echo
+    fi
+
+    # Leading zeros stripped so 007 lines up with the plain number nl printed.
+    index=0
+    [[ -n $choice && $choice != *[!0-9]* ]] && index=$((10#$choice))
+
+    if [[ -z $choice ]]; then
+        session_name=${sessions[1]}
+    elif (( index >= 1 && index <= ${#sessions} )); then
+        session_name=${sessions[index]}
+    elif (( ${sessions[(Ie)$choice]} )); then
+        # A session name typed out in full works too; a number always means
+        # the menu position, as it did before.
+        session_name=$choice
+    else
+        echo "No session \"$choice\" — enter 1-${#sessions}, a session name, or press Enter for ${sessions[1]}."
+        (( eof )) && { echo "Nothing selected, not attaching."; exit 1; }
+    fi
+done
+
 exec $TMUX attach-session -t "$session_name"

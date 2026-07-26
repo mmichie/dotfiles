@@ -11,5 +11,18 @@ if [ -d "/opt/homebrew/bin" ]; then
     export PATH="/opt/homebrew/bin:$PATH"
 fi
 
-# Use the local claude installation
-exec /Users/mim/.claude/local/claude "$@"
+# Prefer the per-user local installation, whoever the user is
+local_claude="$HOME/.claude/local/claude"
+if [ -x "$local_claude" ]; then
+    exec "$local_claude" "$@"
+fi
+
+# No local install on this machine: fall back to claude on PATH. -ef skips a
+# "claude" that is this wrapper under another name, which would exec forever.
+path_claude=$(command -v claude 2>/dev/null)
+if [ -n "$path_claude" ] && ! [ "$path_claude" -ef "$0" ]; then
+    exec "$path_claude" "$@"
+fi
+
+echo "claude-intellij: no claude executable found (looked for $local_claude and claude on PATH)"
+exit 127
