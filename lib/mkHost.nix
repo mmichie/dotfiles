@@ -100,6 +100,33 @@ let
       { my.user.name = username; }
     ];
 
+  # ── First-switch file collisions ─────────────────────────────────────
+
+  # home-manager aborts the entire switch when a managed path already holds a
+  # regular file — a stock ~/.zshrc, or the ~/.ssh/id_ed25519.pub that
+  # ssh-keygen leaves behind when someone makes a key before bootstrapping.
+  # With an extension set it moves the file to <path>.backup and carries on,
+  # which is what lets a first switch land on a machine that has been used.
+  # It is a first-switch affordance, not a rotation scheme: a SECOND collision
+  # on the same path fails anyway, because <path>.backup is itself in the way
+  # by then and nothing clears it.
+  backupFileExtension = "backup";
+
+  # The nix-darwin and NixOS wrappers expose backupFileExtension as an option;
+  # standalone home-manager has no such option and reads only the environment.
+  # Both ends come down to $HOME_MANAGER_BACKUP_EXT (what the wrappers export,
+  # and what `home-manager switch -b <ext>` sets), so the standalone path
+  # exports it here — before checkLinkTargets, the activation entry that turns
+  # a collision into a failed switch. An extension passed on the command line
+  # still wins.
+  backupExtHomeModule =
+    { lib, ... }:
+    {
+      home.activation.setBackupFileExtension = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+        export HOME_MANAGER_BACKUP_EXT="''${HOME_MANAGER_BACKUP_EXT:-${backupFileExtension}}"
+      '';
+    };
+
   # ── Host constructors ────────────────────────────────────────────────
 
   mkDarwinHost =
@@ -120,7 +147,7 @@ let
           home-manager = {
             useGlobalPkgs = true;
             useUserPackages = true;
-            backupFileExtension = "backup";
+            inherit backupFileExtension;
             users.${username}.imports = mkUserModules { inherit class username extraHomeModules; };
           };
         }
@@ -147,6 +174,7 @@ let
           home-manager = {
             useGlobalPkgs = true;
             useUserPackages = true;
+            inherit backupFileExtension;
             users.${username}.imports = mkUserModules { inherit class username extraHomeModules; };
           };
         }
@@ -168,7 +196,7 @@ let
         config.allowUnfree = true;
         overlays = overlays system;
       };
-      modules = mkUserModules { inherit class username extraHomeModules; };
+      modules = mkUserModules { inherit class username extraHomeModules; } ++ [ backupExtHomeModule ];
     };
 
 in
