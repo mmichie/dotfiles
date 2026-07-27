@@ -8,14 +8,25 @@ Personal dotfiles managed by [Nix](https://nixos.org/) — nix-darwin on macOS, 
 ## Quick Start
 
 ```bash
-# 1. Install Nix
+# 1. Install Nix. This installer installs Determinate Nix, a Nix fork that
+#    resolves bare flake references (nixpkgs, home-manager) through FlakeHub
+#    rather than the upstream registry. Everything below is written to work
+#    under it.
 curl -sSf -L https://install.determinate.systems/nix | sh -s -- install
 
-# 2. Install Homebrew (macOS only). nix-darwin declares the casks but never
-#    installs Homebrew itself, and activation just prints "Homebrew is not
-#    installed, skipping..." to stderr, so skip this and you get zero GUI apps
-#    with no visible error.
+# 2. Platform prerequisites.
+
+# macOS. nix-darwin declares the Homebrew casks but never installs Homebrew
+#    itself, and activation just prints "Homebrew is not installed,
+#    skipping..." to stderr, so skip this and you get zero GUI apps with no
+#    visible error.
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Linux. home-manager manages user config, not system packages, so the shell
+#    it configures and the ssh-agent it drives have to come from the distro.
+#    Without them there is no zsh to log into, and every interactive shell
+#    prints "command not found: ssh-agent" from .zsh/lib/80-ssh.zsh.
+sudo apt-get update && sudo apt-get install -y zsh openssh-client
 
 # 3. Clone
 git clone https://github.com/mmichie/dotfiles ~/src/dotfiles
@@ -26,8 +37,11 @@ cd ~/src/dotfiles
 #    first. The sops age key it carries is the root of trust and nothing
 #    regenerates it (secrets.nix sets generateKey = false), and atuin must find
 #    the real key on its first shell, or it writes its own and sync wedges on
-#    the mismatch later. just only arrives with the first switch:
-nix run nixpkgs#just -- secrets-restore
+#    the mismatch later. just only arrives with the first switch, so run it
+#    from the repo's own lock: --inputs-from . resolves nixpkgs out of
+#    flake.lock, where a bare nixpkgs#just resolves through FlakeHub to a
+#    weekly channel this repo does not pin.
+nix run --inputs-from . nixpkgs#just -- secrets-restore
 
 # 5. Apply. sudo is required: nix-darwin runs system activation as root.
 # macOS

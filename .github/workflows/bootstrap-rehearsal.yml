@@ -121,15 +121,11 @@ jobs:
           apt-get -qq install -y --no-install-recommends \
               ca-certificates curl git openssh-client sudo util-linux xz-utils zsh
 
-          # BOOTSTRAP GAP, deliberately papered over here so the rest of the
-          # rehearsal can run: nothing in the documented Linux bootstrap
-          # installs zsh. packages-core.nix ships zsh-completions but not zsh,
-          # and standalone home-manager cannot set a login shell either. macOS
-          # ships zsh; hosts/vm-aarch64 declares programs.zsh + users.users.mim
-          # .shell. The mim@linux leg alone hands you a fully configured shell
-          # that is not installed, so zsh is an undocumented apt prerequisite.
-          echo 'note: zsh installed from apt — no part of the documented Linux'
-          echo 'note: bootstrap provides it (see the comment in this workflow)'
+          # zsh and openssh-client mirror the documented Linux prerequisites
+          # step (README Quick Start step 2): home-manager manages user config,
+          # not system packages, so the shell it configures and the ssh-agent
+          # it drives come from the distro. The rehearsal exposed this as an
+          # undocumented gap originally; the docs now carry it.
 
           command -v script >/dev/null \
             || { echo 'FAIL: no script(1); the restore confirmation needs a pty' >&2; exit 1; }
