@@ -105,10 +105,13 @@ fi
 if have gum; then
     typeset sb2='' out2='' nest=''
     sb2="$(make_sandbox_home)"
-    # The banner boot starts in a nested directory: 30-aliases.zsh's
-    # `alias :="cd .."` is live when 90-banner.zsh is PARSED, so writing the
-    # stamp with a bare `:` compiled to `cd ..` and moved the first shell of
-    # every hour to the parent of wherever it started. PWD is compared
+    # The banner boot starts in a nested directory: 30-aliases.zsh once
+    # aliased `:` to "cd ..", which was live when 90-banner.zsh was PARSED,
+    # so writing the stamp with a bare `:` compiled to `cd ..` and moved the
+    # first shell of every hour to the parent of wherever it started. The
+    # alias is gone; this pins PWD stability against any successor (an
+    # earlier-parsed module or ~/.zshrc.local can recreate the hazard).
+    # PWD is compared
     # through :A on both sides — macOS resolves the sandbox's /var prefix to
     # /private/var when the shell fills in $PWD from getcwd().
     nest="$sb2/nest/deep"

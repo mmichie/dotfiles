@@ -38,8 +38,9 @@ setup_aliases() {
     alias lsock="sudo lsof -i -P"
     alias keypress="read -sk1 keypress; echo \$keypress"  # zsh read: -k1 reads one char (-n is a bashism)
 
-    # Directory navigation
-    alias :="cd .."
+    # Directory navigation. No bare `:` alias: aliasing the POSIX no-op
+    # expands at parse time into every later-sourced file that uses `:` at
+    # command position (it once turned the banner stamp into `cd ..`).
     alias ::="cd ../.."
     alias :::="cd ../../.."
     alias ::::="cd ../../../.."

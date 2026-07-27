@@ -17,9 +17,10 @@ if [[ -z "$INFLUX_SHOWN" ]] && command -v gum &>/dev/null; then
         INFLUX_SHOWN=1
         # Stamp before displaying: rate-limits the attempt, so a banner
         # renderer dying mid-draw cannot re-trigger every shell.
-        # `command true`, not `:` — 30-aliases.zsh is parsed first and its
-        # `alias :="cd .."` would expand into this line at parse time,
-        # making the hourly banner shell cd to its parent directory.
+        # `command true`, not `:` — any alias of `:` in an earlier-parsed
+        # file (30-aliases.zsh once had `alias :="cd .."`, ~/.zshrc.local
+        # could add one) expands into this line at parse time; that bug
+        # made the hourly banner shell cd to its parent directory.
         command true >| "$SHELL_CACHE_DIR/banner-stamp"
         notify_shell_status
         tips
