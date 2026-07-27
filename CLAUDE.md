@@ -122,7 +122,7 @@ modules/home/                 # options, lib, packages-core/dev, shell, git, edi
 configs/                      # Raw config files (symlinked by home-manager)
   aerospace/ claude/ ghostty/ git/ karabiner/ nvim/ ssh/ system/ tmux/ wezterm/ zsh/
 bin/                          # Personal scripts
-.github/workflows/            # CI: nix flake check + fmt on push
+.github/workflows/            # CI: flake check + fmt + lint + zsh tests (push), weekly linux bootstrap rehearsal
 ```
 
 ### Key Design Decisions

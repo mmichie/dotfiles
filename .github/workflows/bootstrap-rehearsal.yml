@@ -1,0 +1,640 @@
+name: Bootstrap Rehearsal
+
+# Rehearse the README Quick Start (Linux leg) end to end, weekly, in a blank
+# ubuntu:24.04 container: install Nix, clone the repo, restore secrets, then
+# `home-manager switch` and assert the machine actually works.
+#
+# check.yml already BUILDS .#homeConfigurations.mim@linux.activationPackage, so
+# "does the closure evaluate and compile" is covered. What it cannot cover is
+# the bootstrap itself — installer flags, clone, restore-before-switch
+# ordering, first activation on a host with nothing in $HOME — and that path is
+# exercised for real maybe once a year. Anything that rots in it stays rotted
+# until the next new machine, at the worst possible moment. This job is the
+# thing that notices.
+
+on:
+  # Weekly. 09:17 UTC Tuesday (02:17 America/Los_Angeles): off the top of the
+  # hour, where GitHub's cron queues bunch up and runs get delayed.
+  schedule:
+    - cron: '17 9 * * 2'
+
+  workflow_dispatch:
+
+  # Self-test: any push that edits this workflow reruns the rehearsal it
+  # describes, so changes to it never wait a week to be proven.
+  push:
+    paths: ['.github/workflows/bootstrap-rehearsal.yml']
+
+permissions:
+  contents: read
+
+# One rehearsal at a time. Never cancel a run in flight: a half-finished
+# bootstrap tells you nothing, and the schedule can wait.
+concurrency:
+  group: bootstrap-rehearsal
+  cancel-in-progress: false
+
+jobs:
+  linux:
+    name: Fresh-machine bootstrap (ubuntu:24.04, x86_64)
+    runs-on: ubuntu-latest
+    # Nothing is cached inside the container on purpose — that is what "fresh
+    # machine" means. Everything substitutes from cache.nixos.org except the
+    # overlay/flake-input derivations (chevron via crane, the beads and statix
+    # overrides), which build from source every week.
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out the commit under test
+        uses: actions/checkout@v5
+        with:
+          # The container clones from this checkout over file://, so it needs
+          # real history — git refuses to serve a clone out of a shallow repo —
+          # and the submodules a clone off GitHub could reach.
+          fetch-depth: 0
+          submodules: true
+
+      # The rehearsal's /nix is the whole mim@linux closure (texliveSmall,
+      # google-cloud-sdk, azure-cli, keybase, seven nerd-fonts, ...) and it
+      # lives in the container's writable layer under docker's data root. That
+      # measured 24 GB, against ~63 GB free on the runner's single 145 GB
+      # volume — comfortable, but the margin is worth watching, so print it
+      # here and again in the diagnostics step at the end.
+      - name: Record starting disk
+        run: df -h /
+
+      # --privileged is tried first for fidelity: the nix build sandbox uses
+      # mount + user namespaces, and docker's default seccomp/capability set
+      # blocks them, so an unprivileged container can only build with the
+      # sandbox off — which is NOT how a real machine builds. If the runner
+      # ever refuses --privileged, fall back and say so in the log rather than
+      # failing the rehearsal for a reason unrelated to the bootstrap.
+      - name: Start a blank container
+        run: |
+          set -euo pipefail
+          docker pull --quiet ubuntu:24.04
+          args=(
+            --detach
+            --name rehearsal
+            --hostname rehearsal
+            --volume "$GITHUB_WORKSPACE:/workspace:ro"
+            ubuntu:24.04
+            sleep infinity
+          )
+          if docker run --privileged "${args[@]}"; then
+            echo 'container: --privileged, nix builds in its real sandbox'
+            echo 'NIX_EXTRA_CONF=' >> "$GITHUB_ENV"
+          else
+            echo 'container: --privileged refused; falling back to an'
+            echo 'unprivileged container with sandbox = false. Builds no longer'
+            echo 'match a real machine, so treat build failures with suspicion.'
+            docker rm -f rehearsal || true
+            docker run "${args[@]}"
+            echo 'NIX_EXTRA_CONF=sandbox = false' >> "$GITHUB_ENV"
+          fi
+          docker ps
+
+      - name: Prerequisites and the mim user
+        run: |
+          docker exec -i -e HOME=/root -e USER=root rehearsal bash -s <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+
+          # What a fresh machine plausibly ships, or what the docs assume:
+          #   curl, git        README steps 1 and 3
+          #   ca-certificates  TLS for both
+          #   xz-utils         the installer unpacks a .tar.xz
+          #   sudo             a real workstation user has it
+          #   util-linux       script(1), the pty the restore confirmation needs
+          #   openssh-client   ssh-agent + ssh-add + ssh-keygen. Nothing in the
+          #                    mim@linux closure provides them (openssh appears
+          #                    only as a store path for git's ssh signing), and
+          #                    configs/zsh/.zsh/lib/80-ssh.zsh starts an agent
+          #                    unconditionally on every interactive shell, so
+          #                    without it a first shell says "command not found:
+          #                    ssh-agent" on stderr. A real box has it; apt
+          #                    normally pulls it in as a git recommendation,
+          #                    which --no-install-recommends here suppresses.
+          #   zsh              see the note below
+          apt-get -qq update
+          apt-get -qq install -y --no-install-recommends \
+              ca-certificates curl git openssh-client sudo util-linux xz-utils zsh
+
+          # BOOTSTRAP GAP, deliberately papered over here so the rest of the
+          # rehearsal can run: nothing in the documented Linux bootstrap
+          # installs zsh. packages-core.nix ships zsh-completions but not zsh,
+          # and standalone home-manager cannot set a login shell either. macOS
+          # ships zsh; hosts/vm-aarch64 declares programs.zsh + users.users.mim
+          # .shell. The mim@linux leg alone hands you a fully configured shell
+          # that is not installed, so zsh is an undocumented apt prerequisite.
+          echo 'note: zsh installed from apt — no part of the documented Linux'
+          echo 'note: bootstrap provides it (see the comment in this workflow)'
+
+          command -v script >/dev/null \
+            || { echo 'FAIL: no script(1); the restore confirmation needs a pty' >&2; exit 1; }
+
+          # home/shared.nix hardcodes /home/<user> and my.user.name = "mim", so
+          # the container needs exactly that user. Login shell stays bash: the
+          # bootstrap never runs chsh, and pretending otherwise would hide it.
+          useradd --create-home --home-dir /home/mim --shell /bin/bash mim
+          printf 'mim ALL=(ALL) NOPASSWD:ALL\n' > /etc/sudoers.d/90-mim
+          chmod 0440 /etc/sudoers.d/90-mim
+          id mim
+
+          # systemd-logind creates /run/user/$UID at login and nothing does it
+          # here. sops-nix puts its secrets under %r = $XDG_RUNTIME_DIR, so
+          # without this the secret probe dies on mkdir long before it gets
+          # anywhere near a key. Same mode logind uses.
+          install -d -m 700 -o mim -g mim "/run/user/$(id -u mim)"
+          ls -ld "/run/user/$(id -u mim)"
+          SCRIPT
+
+      - name: 'Bootstrap step 1: install Nix'
+        run: |
+          docker exec -i -e HOME=/root -e USER=root -e NIX_EXTRA_CONF rehearsal bash -s <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          # README step 1 verbatim, plus three container-only flags:
+          #   linux         name the planner explicitly; --init belongs to it
+          #   --init none   no systemd in here, so the installer must not try to
+          #                 install (or start) a nix-daemon unit
+          #   --no-confirm  the plan confirmation wants a tty
+          # README step 2 (Homebrew) is macOS-only and is skipped: nix-darwin
+          # declares the casks, nothing on Linux consumes them.
+          extra=()
+          if [ -n "${NIX_EXTRA_CONF:-}" ]; then
+            extra=(--extra-conf "$NIX_EXTRA_CONF")
+            echo "installer: adding --extra-conf '$NIX_EXTRA_CONF'"
+          fi
+
+          # Expect a loud `WARN SelfTest([ShellFailed ...])` here, three times,
+          # all saying "cannot connect to socket at /nix/var/nix/daemon-socket".
+          # That is --init none's doing: the installer's own smoke test wants a
+          # running daemon and nothing has started one yet, which is the next
+          # step's job. It is not a signal about the bootstrap.
+          curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix \
+            | sh -s -- install linux --init none --no-confirm "${extra[@]}"
+
+          # Every later step sources this snippet to get nix on PATH the way a
+          # login shell would, so a missing one is a hard failure, not a
+          # fallback: it would mean the installer stopped configuring shells.
+          ls -l /etc/profile.d/ || true
+          test -f /etc/profile.d/nix.sh \
+            || { echo 'FAIL: installer left no /etc/profile.d/nix.sh' >&2; exit 1; }
+          SCRIPT
+
+      - name: Start the nix daemon by hand (no init in the container)
+        run: |
+          docker exec -i -e HOME=/root -e USER=root rehearsal bash -s <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          set +u; . /etc/profile.d/nix.sh; set -u
+
+          # --init none leaves nothing supervising the daemon, and the
+          # installer sets up MULTI-USER nix: every unprivileged `nix` call
+          # goes through /nix/var/nix/daemon-socket/socket. setsid so the
+          # daemon outlives this `docker exec`.
+          socket=/nix/var/nix/daemon-socket/socket
+          if [ ! -S "$socket" ]; then
+            setsid nohup /nix/var/nix/profiles/default/bin/nix-daemon \
+              >/var/log/nix-daemon.log 2>&1 </dev/null &
+            for _ in $(seq 1 100); do
+              [ -S "$socket" ] && break
+              sleep 0.2
+            done
+          fi
+          if [ ! -S "$socket" ]; then
+            echo 'FAIL: nix-daemon never created its socket' >&2
+            cat /var/log/nix-daemon.log >&2 || true
+            exit 1
+          fi
+          ls -l "$socket"
+
+          # Prove mim can reach the daemon now, not 30 minutes into a build.
+          # sudo -i gives a login shell, which is how a real user picks nix up.
+          sudo -iu mim nix store ping
+          nix --version
+          SCRIPT
+
+      - name: 'Bootstrap step 3: clone the repo'
+        run: |
+          docker exec -i -u mim -e HOME=/home/mim -e USER=mim rehearsal bash -s <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          set +u; . /etc/profile.d/nix.sh; set -u
+
+          mkdir -p "$HOME/src"
+
+          # DEVIATION: the clone source is the checked-out workspace over
+          # file://, not github.com/mmichie/dotfiles, so the run rehearses THE
+          # COMMIT UNDER TEST instead of whatever master happens to be.
+          #
+          # -c safe.directory: the bind-mounted workspace belongs to the
+          # runner's uid, not mim's, and git's ownership check would refuse to
+          # serve it. Deliberately not `git config --global` — that writes a
+          # real ~/.gitconfig, which home-manager is about to symlink over, and
+          # a regular file in the way of a managed file aborts the switch.
+          git -c safe.directory=/workspace clone file:///workspace "$HOME/src/dotfiles"
+          cd "$HOME/src/dotfiles"
+          git log -1 --oneline
+
+          # Submodules are deliberately NOT recursed: the README's clone does
+          # not, and modules/home/terminal.nix initializes them during
+          # activation precisely because of that. The assertion step checks it.
+          git submodule status || true
+          SCRIPT
+
+      # CI must never hold real secrets, so the archive `just secrets-restore`
+      # consumes is synthesized here. What this exercises is the RESTORE PATH —
+      # member layout, the tty gate, the mode re-assertion — not the real keys.
+      # The age key is a throwaway that is not a recipient in .sops.yaml, so it
+      # decrypts nothing in secrets/; see the sops probe step for what that
+      # does and does not prove.
+      - name: 'Bootstrap step 4a: synthesize a fake backup.tar.gz'
+        run: |
+          docker exec -i -u mim -e HOME=/home/mim -e USER=mim rehearsal bash -s <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          set +u; . /etc/profile.d/nix.sh; set -u
+
+          work="$(mktemp -d)"
+          mkdir -p "$work/.config/sops/age" "$work/.ssh" "$work/.gnupg" "$work/.gam"
+
+          # Throwaway keypair. age-keygen writes the pubkey to stderr, hence 2>&1.
+          nix shell nixpkgs#age -c age-keygen -o "$work/.config/sops/age/keys.txt" 2>&1
+          chmod 700 "$work/.config/sops/age"
+          chmod 600 "$work/.config/sops/age/keys.txt"
+
+          # Stand-ins for the members `just secrets-backup` collects. Nothing
+          # here is or resembles a real credential.
+          #
+          # The ssh key is a genuine throwaway keypair rather than a text
+          # placeholder, because 80-ssh.zsh does real work with it on the first
+          # interactive shell (ssh-keygen -lf for a fingerprint, then ssh-add).
+          # A dummy file only exercises that module's error branch.
+          ssh-keygen -q -t ed25519 -N '' -C 'bootstrap rehearsal throwaway' \
+            -f "$work/.ssh/id_ed25519"
+          printf 'placeholder known_hosts\n' > "$work/.ssh/known_hosts"
+          printf 'placeholder authorized_keys\n' > "$work/.ssh/authorized_keys"
+          printf 'placeholder keyring\n' > "$work/.gnupg/pubring.kbx"
+          printf 'placeholder token\n' > "$work/.gam/oauth2.txt"
+          chmod 700 "$work/.ssh" "$work/.gnupg" "$work/.gam"
+
+          # Fidelity detail that matters: on the machine the backup came from,
+          # the home-manager-managed members of ~/.ssh are symlinks into
+          # /nix/store/*-home-manager-files/, so a real archive carries those
+          # symlinks and they land DANGLING on the new machine. home-manager's
+          # collision check is `[[ -e $target && ... ]]`, and -e is false for a
+          # dangling link, so the switch overwrites them silently — which is
+          # the whole reason restore-before-switch is safe. Reproduce it, so
+          # the rehearsal would notice if that ever stopped being true. The
+          # .pub ssh-keygen just wrote is one of those managed paths, so it
+          # goes and comes back as the symlink a real archive would carry.
+          rm "$work/.ssh/id_ed25519.pub"
+          ln -s '/nix/store/00000000000000000000000000000000-home-manager-files/.ssh/config' \
+            "$work/.ssh/config"
+          ln -s '/nix/store/00000000000000000000000000000000-home-manager-files/.ssh/id_ed25519.pub' \
+            "$work/.ssh/id_ed25519.pub"
+
+          tar -czf "$HOME/src/dotfiles/backup.tar.gz" -C "$work" \
+            .config/sops/age/keys.txt .ssh .gnupg .gam
+          tar -tvzf "$HOME/src/dotfiles/backup.tar.gz"
+          rm -rf "$work"
+          SCRIPT
+
+      - name: 'Bootstrap step 4b: restore secrets before the first switch'
+        run: |
+          docker exec -i -u mim -e HOME=/home/mim -e USER=mim rehearsal bash -s <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          set +u; . /etc/profile.d/nix.sh; set -u
+          cd "$HOME/src/dotfiles"
+
+          # First, the documented safety property: the recipe refuses to
+          # overwrite keys unattended. If this ever silently succeeded, a CI
+          # job or a script could clobber the root of trust.
+          if nix run nixpkgs#just -- secrets-restore </dev/null; then
+            echo 'ASSERT FAIL: secrets-restore ran with stdin not a terminal' >&2
+            exit 1
+          fi
+          echo 'ok: secrets-restore refuses a non-tty'
+
+          # Now the real thing. README step 4, driven through a pty because the
+          # recipe reads an interactive [y/N] confirmation; script(1) is the
+          # pty, and the `y` comes in on its stdin.
+          printf 'y\n' | script -qec 'nix run nixpkgs#just -- secrets-restore' /dev/null
+
+          key="$HOME/.config/sops/age/keys.txt"
+          if [ ! -f "$key" ]; then
+            echo "ASSERT FAIL: $key absent after secrets-restore" >&2
+            exit 1
+          fi
+          mode="$(stat -c '%a' "$key")"
+          if [ "$mode" != '600' ]; then
+            echo "ASSERT FAIL: $key has mode $mode, expected 600" >&2
+            exit 1
+          fi
+          echo "ok: age key restored at $key with mode $mode"
+          ls -la "$HOME/.ssh" "$HOME/.gnupg" "$HOME/.gam"
+          SCRIPT
+
+      - name: 'Bootstrap step 5: home-manager switch'
+        id: switch
+        run: |
+          docker exec -i -u mim -e HOME=/home/mim -e USER=mim rehearsal bash -s <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          set +u; . /etc/profile.d/nix.sh; set -u
+          cd "$HOME/src/dotfiles"
+
+          # No --print-build-logs: without a tty nix already prints one
+          # `building '...drv'` line per derivation, which is the diagnosable
+          # part. Full logs would be tens of thousands of lines of rustc for
+          # chevron alone. On failure, follow nix's own "For full logs" hint
+          # and dump only the derivations that actually failed.
+          if nix run home-manager -- switch --flake '.#mim@linux' 2>&1 | tee /tmp/switch.log; then
+            echo 'ok: first switch succeeded'
+            exit 0
+          fi
+
+          echo 'ASSERT FAIL: first home-manager switch failed' >&2
+          grep -oE '/nix/store/[a-z0-9]{32}-[^ ]+\.drv' /tmp/switch.log \
+            | sort -u \
+            | while read -r drv; do
+                echo "=== nix log $drv (tail) ==="
+                nix log "$drv" 2>&1 | tail -100
+              done
+          exit 1
+          SCRIPT
+
+      - name: Assert the machine actually works
+        run: |
+          docker exec -i -u mim -e HOME=/home/mim -e USER=mim -e TERM=xterm-256color \
+            rehearsal bash -s <<'SCRIPT'
+          #!/usr/bin/env bash
+          # No -e: every assertion runs so one run reports every problem.
+          set -uo pipefail
+          set +u; . /etc/profile.d/nix.sh; set -u
+
+          fails=0
+          fail() { echo "ASSERT FAIL: $*"; fails=$((fails + 1)); }
+
+          # ── 1. a generation exists, and ~/.zshrc reaches the working tree ──
+          if gens="$(home-manager generations 2>&1)"; then
+            if [ -n "$gens" ]; then
+              echo "ok: home-manager generations:"
+              printf '%s\n' "$gens" | sed 's/^/    /'
+            else
+              fail 'home-manager generations printed nothing'
+            fi
+          else
+            fail "home-manager generations failed: $gens"
+          fi
+
+          # mkOutOfStoreSymlink means the chain is
+          # ~/.zshrc -> store/home-manager-files/.zshrc -> store/-.zshrc ->
+          # ~/src/dotfiles/configs/zsh/.zshrc, i.e. edits to the working tree
+          # take effect with no rebuild. That property is the whole design, so
+          # assert the end of the chain, not just that the link exists.
+          want="$HOME/src/dotfiles/configs/zsh/.zshrc"
+          got="$(readlink -f "$HOME/.zshrc" || true)"
+          if [ "$got" = "$want" ]; then
+            echo "ok: ~/.zshrc resolves to $got"
+          else
+            fail "$HOME/.zshrc resolves to '${got:-<nothing>}', expected '$want'"
+          fi
+
+          # ── 2. no dangling symlinks in $HOME, save an explicit allowlist ──
+          # This sweep is the assertion that would have caught a dangling
+          # ~/.config/dosbox-x that shipped for months, so it stays strict.
+          #
+          # Two allowlisted classes, and nothing else:
+          #
+          # 1. The sops-nix secret paths. On Linux sops-nix materializes
+          #    secrets from a systemd USER SERVICE (its
+          #    modules/home-manager/sops.nix), which never runs in a container
+          #    with no init, so these can legitimately be absent or be links
+          #    into a secrets dir nothing populated.
+          # 2. ~/.nix-defexpr/channels and channels_root, which the Nix
+          #    installer creates for nix-channel's benefit. Nothing here
+          #    subscribes to a channel — this config is flakes-only — so they
+          #    dangle from the moment Nix is installed. Not repo-managed and
+          #    not container-specific: both dangle identically on the live
+          #    macOS workstation, dated to its Nix install.
+          allow=(
+            "$HOME/.local/share/atuin/key"
+            "$HOME/.zshrc.local"
+            "$HOME/.nix-defexpr/channels"
+            "$HOME/.nix-defexpr/channels_root"
+          )
+          mapfile -t dangling < <(find "$HOME" -maxdepth 4 -xtype l -printf '%p -> %l\n' | sort)
+          unexpected=()
+          for entry in "${dangling[@]}"; do
+            path="${entry%% -> *}"
+            allowed=0
+            for a in "${allow[@]}"; do
+              [ "$path" = "$a" ] && allowed=1
+            done
+            if [ "$allowed" -eq 1 ]; then
+              echo "ok: allowlisted dangling link: $entry"
+            else
+              unexpected+=("$entry")
+            fi
+          done
+          if [ "${#unexpected[@]}" -eq 0 ]; then
+            echo "ok: no unexpected dangling symlinks under $HOME (depth 4)"
+          else
+            for entry in "${unexpected[@]}"; do
+              fail "dangling symlink: $entry"
+            done
+          fi
+
+          # ── 3. an interactive zsh boots ──
+          zsh_bin="$(command -v zsh || true)"
+          echo "zsh: ${zsh_bin:-<none>}"
+          if [ -z "$zsh_bin" ]; then
+            fail 'no zsh on PATH'
+          else
+            boot_err=/tmp/zsh-boot-stderr.txt
+            boot_out="$("$zsh_bin" -ic 'echo BOOT_OK' 2>"$boot_err")"
+            rc=$?
+            [ "$rc" -eq 0 ] || fail "interactive zsh exited $rc"
+            if printf '%s\n' "$boot_out" | grep -qx 'BOOT_OK'; then
+              echo 'ok: interactive zsh printed BOOT_OK'
+            else
+              fail 'interactive zsh did not print BOOT_OK'
+              printf 'stdout was:\n%s\n' "$boot_out"
+            fi
+            echo "=== interactive zsh stderr ($(wc -c <"$boot_err") bytes) ==="
+            cat "$boot_err"
+            echo '=== end interactive zsh stderr ==='
+
+            # Stderr is asserted against an allowlist, not merely reported:
+            #
+            #   can't change option: zle
+            #     fzf's shipped key-bindings.zsh and completion.zsh save the
+            #     shell's options and restore them with `eval $..._options`,
+            #     and `zle` cannot be set when the shell has no terminal —
+            #     `docker exec` gives it a pipe. Two files, two lines.
+            #     Reproduces identically on the live workstation with
+            #     `zsh -ic 'echo BOOT_OK' </dev/null`, so it says nothing about
+            #     a fresh machine. Everything else here does.
+            #   Identity added:
+            #     ssh-add reporting on stdout's behalf: 80-ssh.zsh started an
+            #     agent and loaded the restored key. Evidence, not noise.
+            noise="$(grep -vE "^\(eval\):1: can't change option: zle$|^Identity added: |^$" \
+              "$boot_err" || true)"
+            if [ -n "$noise" ]; then
+              fail 'unexpected stderr from the first interactive zsh:'
+              printf '%s\n' "$noise" | sed 's/^/    /'
+            fi
+          fi
+
+          # ── 4. the switch put the tools on PATH for that shell ──
+          if [ -n "$zsh_bin" ]; then
+            # shellcheck disable=SC2016  # zsh source, expanded by zsh not bash
+            probe="$("$zsh_bin" -ic '
+              for t in just atuin fzf zoxide eza chevron; do
+                if p=$(whence -p $t); then print -r -- "FOUND $t $p"
+                else print -r -- "MISSING $t"; fi
+              done' 2>/dev/null)"
+            printf '%s\n' "$probe" | grep -E '^(FOUND|MISSING) ' || true
+            for t in just atuin fzf zoxide eza chevron; do
+              printf '%s\n' "$probe" | grep -q "^FOUND $t " \
+                || fail "$t does not resolve inside an interactive zsh"
+            done
+          fi
+
+          # ── 5. activation side effects a fresh clone depends on ──
+          # terminal.nix initializes the tmux plugin submodules on every
+          # switch, on the grounds that a plain `git clone` leaves them empty
+          # and tmux's source-file then fails silently. Nothing else verifies
+          # that claim.
+          if [ -f "$HOME/src/dotfiles/configs/tmux/plugins/tpm/tpm" ]; then
+            echo 'ok: tmux plugin submodules initialized by activation'
+          else
+            fail 'configs/tmux/plugins/tpm/tpm missing — activation did not init submodules'
+          fi
+
+          # The restored archive puts a REGULAR file at ~/.ssh/authorized_keys,
+          # which home-manager's collision check never sees (activation writes
+          # that file, it is not a home.file). Assert activation won anyway.
+          if grep -q '^ssh-ed25519 ' "$HOME/.ssh/authorized_keys" 2>/dev/null; then
+            echo 'ok: activation rewrote the restored ~/.ssh/authorized_keys'
+          else
+            fail "$HOME/.ssh/authorized_keys still holds the restored placeholder"
+          fi
+
+          if [ "$fails" -eq 0 ]; then
+            echo 'ALL ASSERTIONS PASSED'
+          else
+            echo "$fails assertion(s) failed"
+            exit 1
+          fi
+          SCRIPT
+
+      # Informational. A container with no init never runs the sops-nix user
+      # service, so `home-manager switch` above could not have exercised
+      # decryption at all — it prints "User systemd daemon not running" and
+      # moves on. Run the unit's ExecStart by hand to see how far the wiring
+      # gets with the throwaway key. Expected outcome: it finds and reads the
+      # restored age key and fails to DECRYPT, because that key is not a
+      # recipient in .sops.yaml. A "key file not found" instead would mean
+      # restore-then-switch does not actually satisfy sops-nix.
+      # Gated on the switch, not on the assertions: a failed assertion is
+      # exactly when the remaining evidence is most useful.
+      - name: Probe sops-nix secret materialization (informational)
+        if: always() && steps.switch.outcome == 'success'
+        run: |
+          docker exec -i -u mim -e HOME=/home/mim -e USER=mim rehearsal bash -s <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -uo pipefail
+          set +u; . /etc/profile.d/nix.sh; set -u
+
+          unit="$HOME/.config/systemd/user/sops-nix.service"
+          if [ ! -f "$unit" ]; then
+            echo "note: no $unit — sops-nix declared no user service"
+            exit 0
+          fi
+          grep -E '^(ExecStart|Environment)=' "$unit" || true
+          exec_start="$(sed -n 's/^ExecStart=//p' "$unit" | head -1)"
+
+          XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          export XDG_RUNTIME_DIR
+          ls -ld "$XDG_RUNTIME_DIR"
+          echo "age key: $(stat -c '%a %U %n' "$HOME/.config/sops/age/keys.txt")"
+
+          echo "=== running $exec_start ==="
+          out="$("$exec_start" 2>&1)"
+          rc=$?
+          printf '%s\n' "$out" | sed 's/^/    /'
+          echo "sops-install-secrets exit: $rc"
+          for p in "$HOME/.local/share/atuin/key" "$HOME/.zshrc.local"; do
+            if [ -e "$p" ]; then
+              echo "materialized: $p -> $(readlink "$p" || echo '<regular file>')"
+            else
+              echo "not materialized: $p"
+            fi
+          done
+
+          # How to read the above: a nonzero exit that talks about the
+          # CIPHERTEXT is the expected result and says the bootstrap contract
+          # holds — the key restored in step 4b is where sops-nix looks, it
+          # just is not a recipient in .sops.yaml, and CI must never hold one
+          # that is. An error about the KEY FILE would be the real finding.
+          echo 'note: decryption cannot succeed here by design — CI holds a'
+          echo 'note: throwaway age key, not a recipient of secrets/*.'
+          exit 0
+          SCRIPT
+
+      # Re-activation over an existing generation is what every day after the
+      # first looks like, and it is a different code path: home-manager has an
+      # old generation to diff and clean up, and every activation script runs
+      # again over state it already created.
+      - name: Idempotency — switch a second time
+        if: always() && steps.switch.outcome == 'success'
+        run: |
+          docker exec -i -u mim -e HOME=/home/mim -e USER=mim rehearsal bash -s <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          set +u; . /etc/profile.d/nix.sh; set -u
+          cd "$HOME/src/dotfiles"
+
+          nix run home-manager -- switch --flake '.#mim@linux'
+          echo 'ok: second switch succeeded'
+          home-manager generations
+          SCRIPT
+
+      - name: Diagnostics
+        if: always()
+        run: |
+          set -uo pipefail
+          echo '=== runner disk ==='
+          df -h / || true
+          echo '=== container /nix size ==='
+          docker exec rehearsal du -sh /nix 2>/dev/null || true
+          echo '=== nix-daemon log (tail) ==='
+          docker exec rehearsal tail -40 /var/log/nix-daemon.log 2>/dev/null || true
+          echo '=== /home/mim ==='
+          docker exec rehearsal ls -la /home/mim 2>/dev/null || true
+          # Ubuntu's zsh package and what it does before ~/.zshrc gets a say.
+          # Debian's /etc/zsh/zshrc runs a bare `compinit` of its own (around
+          # line 120), so the Linux leg pays for two on every interactive
+          # shell and leaves an unfingerprinted ~/.zcompdump next to the
+          # curated one in ~/.cache/zsh — the exact cost workstation-base.nix
+          # strips out of the generated /etc/zshrc on macOS. That file honors
+          # `skip_global_compinit=1`, which a ~/.zshenv could set; nothing in
+          # configs/zsh does today. Kept as a diagnostic, not an assertion:
+          # the fix belongs in the repo, not in this workflow.
+          echo '=== /etc/zsh ==='
+          docker exec rehearsal ls -la /etc/zsh 2>/dev/null || true
+          docker exec rehearsal grep -n 'compinit\|compdump' /etc/zsh/zshrc 2>/dev/null || true
+          docker exec rehearsal ls -la /home/mim/.zcompdump /home/mim/.cache/zsh 2>/dev/null || true
+          echo '=== every symlink under /home/mim, depth 3 ==='
+          docker exec rehearsal find /home/mim -maxdepth 3 -type l -printf '%p -> %l\n' 2>/dev/null || true
+
+      - name: Tear down
+        if: always()
+        run: docker rm -f rehearsal || true
