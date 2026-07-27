@@ -88,6 +88,29 @@
         done
       '';
 
+    # Spotlight recurrently sheds an arbitrary subset of /Applications from
+    # its index, so cask apps vanish from cmd-space search. Heal after every
+    # activation and print the drift count first: a switch is this machine's
+    # biggest churn event (brew upgrade rewrites bundles while nix GC deletes
+    # store paths), so a recurring nonzero count here is evidence that
+    # switches trigger the loss. mdls prints `kMDItemFSName = (null)` for a
+    # bundle absent from the store; a quoted name means it is indexed.
+    activationScripts.postActivation.text = ''
+      missing=0
+      for app in /Applications/*.app; do
+        [ -e "$app" ] || continue
+        if ! mdls -name kMDItemFSName "$app" 2>/dev/null | grep -q '"'; then
+          missing=$((missing + 1))
+          mdimport "$app" 2>/dev/null || true
+        fi
+      done
+      if [ "$missing" -eq 0 ]; then
+        echo "spotlight: /Applications fully indexed"
+      else
+        echo "spotlight: reimported $missing app(s) missing from the index"
+      fi
+    '';
+
     stateVersion = 6;
   };
 }
