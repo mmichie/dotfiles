@@ -7,6 +7,15 @@
 #
 # Interactive-only setup (aliases, prompt, keybindings) lives in .zshrc.
 
+# Suppress the global compinit that Ubuntu's /etc/zsh/zshrc gates on this
+# variable (zsh-common, /etc/zsh/zshrc:106-113). It is a bare compinit on top
+# of the one .zshrc already runs, and it writes a second, unfingerprinted
+# ~/.zcompdump beside the curated dump in ~/.cache/zsh. zsh reads ~/.zshenv
+# before any global zshrc, so the guard is in place by the time that file
+# runs. Unconditional: nothing reads it on macOS or NixOS, where the system
+# layer drops the global compinit instead (modules/darwin/workstation-base.nix).
+skip_global_compinit=1
+
 # Setup PATH environment variable
 # Order = priority (first entry wins). typeset -U deduplicates.
 setup_path() {

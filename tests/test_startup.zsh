@@ -25,6 +25,7 @@ print -r -- "M_CORRECT_IGNORE=$CORRECT_IGNORE"
 print -r -- "M_TZ=$TZ"
 print -r -- "M_CD_COMPLETER=${_comps[cd]}"
 [[ -s "$HOME/.cache/zsh/.zcompdump" ]] && print -r -- "M_COMPDUMP=yes"
+print -r -- "M_SKIP_GLOBAL_COMPINIT=$skip_global_compinit"
 print -r -- "M_END"
 '
 
@@ -44,6 +45,7 @@ assert_contains "$out" "M_CORRECT_IGNORE=(.*|claude)" "CORRECT_IGNORE set"
 assert_contains "$out" "M_TZ=America/Los_Angeles"   "TZ uses the canonical zone name"
 assert_contains "$out" "M_CD_COMPLETER=_cd"         "cd keeps stock _cd completer (stack/CDPATH/named dirs)"
 assert_contains "$out" "M_COMPDUMP=yes"             "compinit dump written to cache dir"
+assert_contains "$out" "M_SKIP_GLOBAL_COMPINIT=1"   "skip_global_compinit set (a distro /etc/zsh/zshrc would otherwise run a second compinit)"
 
 # stderr must be empty apart from the known no-tty ZLE lines that cached
 # tool inits emit when stdin is not a terminal.
