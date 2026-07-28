@@ -2,7 +2,7 @@
   lib,
   stdenv,
   swift,
-  apple-sdk_26,
+  darwinMinVersionHook,
 }:
 
 stdenv.mkDerivation {
@@ -17,20 +17,24 @@ stdenv.mkDerivation {
     ];
   };
 
-  nativeBuildInputs = [ swift ];
-
   # The CoreAudio process-tap API (CATapDescription, kAudioTapPropertyFormat)
-  # only exists in SDK 14.2+, and ScreenCaptureKit needs 12.3+; the SDK the
-  # nixpkgs swift wrapper defaults to predates both. Raise the deployment
-  # target to match, or swiftc's availability checker rejects the calls.
-  buildInputs = [ apple-sdk_26 ];
-  env.MACOSX_DEPLOYMENT_TARGET = "15.0";
+  # needs SDK 14.2+ and ScreenCaptureKit needs 12.3+. Swift's own SDK (14.4)
+  # carries both, so only the deployment target has to move; it defaults to
+  # 14.0, which the availability checker rejects.
+  #
+  # Do not reach for a newer apple-sdk to get there. Adding one points -sdk at
+  # the new headers while the toolchain's own .swiftinterface files still
+  # resolve against 14.4, and the ClangImporter then cannot build
+  # _Builtin_intrinsics from the newer arm_neon.h. It retries against the
+  # module cache instead of failing, so the build hangs for hours.
+  nativeBuildInputs = [ swift ];
+  buildInputs = [ (darwinMinVersionHook "14.2") ];
 
   buildPhase = ''
     runHook preBuild
     # The embedded Info.plist names the binary for the macOS privacy
     # indicator; without it captures are attributed to "unknown".
-    swiftc -O -sdk "$SDKROOT" -o sckrec sckrec.swift \
+    swiftc -O -o sckrec sckrec.swift \
       -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __info_plist -Xlinker Info.plist
     runHook postBuild
   '';
