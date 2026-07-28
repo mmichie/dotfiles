@@ -38,12 +38,29 @@ final: prev: {
     enableCmount = !prev.stdenv.hostPlatform.isDarwin;
   };
 
-  # nixpkgs pipx 1.8.0 tests assert the old `name@ url` form, but the bundled
-  # `packaging` now emits `name @ url`. Skip the affected unit tests.
+  # pipx needs two independent test fixups on the current nixpkgs:
+  #
+  #   1. 1.8.0's `test_fix_package_name` / `test_parse_specifier_for_metadata`
+  #      assert the old `name@ url` form, but the bundled `packaging` now emits
+  #      `name @ url`. Deselect them.
+  #
+  #   2. 1.14.0's test_inject.py has a broken parametrize call —
+  #      `parametrize("pkg_spec", "black==22.8.0")` hands pytest a bare string
+  #      where it wants a list, so it reads the 13-char string as 13 values for
+  #      1 name and errors during COLLECTION (surfaced once per xdist worker, 48
+  #      errors). A collection error cannot be skipped with `disabledTests` —
+  #      that is a post-collection `-k` filter and the item never finishes
+  #      collecting — so the whole file is dropped with `--ignore` via
+  #      disabledTestPaths.
+  #
+  # Remove each once upstream/nixpkgs catches up.
   pipx = prev.pipx.overridePythonAttrs (old: {
     disabledTests = (old.disabledTests or [ ]) ++ [
       "test_fix_package_name"
       "test_parse_specifier_for_metadata"
+    ];
+    disabledTestPaths = (old.disabledTestPaths or [ ]) ++ [
+      "tests/test_inject.py"
     ];
   });
 
