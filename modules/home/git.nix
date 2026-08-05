@@ -27,5 +27,30 @@
           && PATH="${pkgs.git}/bin:$PATH" "${pkgs.lefthook}/bin/lefthook" install --force ) \
         || echo "installGitHooks: lefthook install failed (git hooks may be inactive)"
     fi
+
+    # A global hooksPath means these shims also run in repositories that no
+    # human created: notably the BARE cache-mirror repo Dolt builds for a
+    # git-backed remote (beads' `bd dolt push`). lefthook's shim ends in an
+    # unconditional `call_lefthook run <hook>`, and lefthook requires a work
+    # tree, so it aborts with "fatal: this operation must be run in a work
+    # tree" and takes the enclosing operation down with it. That is upstream
+    # beads #3724/#4272, where the same crash is reported via init.templateDir.
+    #
+    # Gate every shim on actually being inside a work tree. `lefthook install
+    # --force` above rewrites the shims each switch, so this re-applies after
+    # it, and is idempotent. Exiting 0 is deliberate: no work tree means no
+    # hooks to run, which is success, not a blocked operation.
+    hooksDir="$(PATH="${pkgs.git}/bin:$PATH" git config --get core.hooksPath || true)"
+    case "$hooksDir" in
+      "~/"*) hooksDir="$HOME/''${hooksDir#\~/}" ;;
+    esac
+    if [ -n "$hooksDir" ] && [ -d "$hooksDir" ]; then
+      for hook in "$hooksDir"/*; do
+        [ -f "$hook" ] || continue
+        grep -q 'is-inside-work-tree' "$hook" && continue
+        head -n 1 "$hook" | grep -q '^#!' || continue
+        sed -i '1a [ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" = "true" ] || exit 0' "$hook"
+      done
+    fi
   '';
 }
