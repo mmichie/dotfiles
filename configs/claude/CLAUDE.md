@@ -1,7 +1,9 @@
-Use convention commit messages for all commits.
+Use conventional commit messages for all commits.
 
-If you have not been given enough information by the user, ask for more
-information.  Don't make assumptions, or guess.
+Make routine judgment calls yourself. Ask for more information only when
+different readings of the request would lead to materially different work;
+don't invent facts or guess at missing requirements.
 
 Don't create a new file if one already exists. Never use emojis in docs, commit
-messages. If you have two choices, prefer the more difficult one.
+messages. When two approaches differ in rigor, prefer the more rigorous one
+over the expedient shortcut.
