@@ -109,6 +109,7 @@ return {
             "hrsh7th/nvim-cmp",
             "hrsh7th/cmp-nvim-lsp",
             "L3MON4D3/LuaSnip",
+            "saadparwaiz1/cmp_luasnip",
         },
         config = function()
             -- LSP keymaps on attach
@@ -174,6 +175,27 @@ return {
                     ["<CR>"] = cmp.mapping.confirm({ select = true }),
                     ["<C-n>"] = cmp.mapping.select_next_item(),
                     ["<C-p>"] = cmp.mapping.select_prev_item(),
+                    ["<Tab>"] = cmp.mapping(function(fallback)
+                        local suggestion = package.loaded["copilot.suggestion"]
+                        if suggestion and suggestion.is_visible() then
+                            suggestion.accept()
+                        elseif cmp.visible() then
+                            cmp.select_next_item()
+                        elseif luasnip.locally_jumpable(1) then
+                            luasnip.jump(1)
+                        else
+                            fallback()
+                        end
+                    end, { "i", "s" }),
+                    ["<S-Tab>"] = cmp.mapping(function(fallback)
+                        if cmp.visible() then
+                            cmp.select_prev_item()
+                        elseif luasnip.locally_jumpable(-1) then
+                            luasnip.jump(-1)
+                        else
+                            fallback()
+                        end
+                    end, { "i", "s" }),
                 }),
                 sources = cmp.config.sources({
                     { name = "nvim_lsp" },
@@ -301,6 +323,7 @@ return {
                 lsp_cfg = false, -- gopls managed by native vim.lsp.config
                 lsp_gofumpt = false,
                 lsp_on_attach = false,
+                lsp_codelens = false, -- go.nvim's codelens API is deprecated on Neovim 0.12
             })
         end,
         event = { "CmdlineEnter" },
@@ -349,23 +372,6 @@ return {
                     ["."] = false,
                 },
             })
-
-            -- Add a smarter Tab handling function
-            local function smart_tab()
-                if require("copilot.suggestion").is_visible() then
-                    require("copilot.suggestion").accept()
-                else
-                    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Tab>", true, false, true), "n", false)
-                end
-            end
-
-            -- Map Tab to the smart function
-            vim.keymap.set(
-                "i",
-                "<Tab>",
-                smart_tab,
-                { expr = false, silent = true, desc = "Accept Copilot suggestion or insert Tab" }
-            )
         end,
     },
 }

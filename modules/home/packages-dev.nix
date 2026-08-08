@@ -23,6 +23,7 @@
     go
     gopls
     gofumpt
+    gotools # goimports, used synchronously by nvim's BufWritePre formatter
     delve
     golangci-lint
 

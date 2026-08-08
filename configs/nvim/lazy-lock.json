@@ -1,6 +1,7 @@
 {
   "LuaSnip": { "branch": "master", "commit": "dae4f5aaa3574bd0c2b9dd20fb9542a02c10471c" },
   "cmp-nvim-lsp": { "branch": "main", "commit": "cbc7b02bb99fae35cb42f514762b89b5126651ef" },
+  "cmp_luasnip": { "branch": "master", "commit": "98d9cb5c2c38532bd9bdb481067b20fea8f32e90" },
   "copilot.lua": { "branch": "master", "commit": "00446a63cba4cc59bb24fc1e210a555a3e4acdfb" },
   "gitsigns.nvim": { "branch": "main", "commit": "9f3c6dd7868bcc116e9c1c1929ce063b978fa519" },
   "go.nvim": { "branch": "master", "commit": "421694ad11759ad22d5200cff6a8c69d223ade29" },

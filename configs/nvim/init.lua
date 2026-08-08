@@ -124,17 +124,46 @@ autocmd("BufWritePre", {
     end,
 })
 
--- Format Go files on save. Wrapped in pcall so a goimports failure
--- (syntax error, missing binary) surfaces a warning instead of
--- aborting the write.
+-- Format Go files synchronously so :wq cannot exit before the formatted text
+-- reaches disk. go.nvim's formatter is asynchronous, which is unsafe from a
+-- BufWritePre callback and uses deprecated LSP APIs on Neovim 0.12.
+local function goimports(buf)
+    if vim.fn.executable("goimports") ~= 1 then
+        vim.notify("goimports failed: executable not found", vim.log.levels.WARN)
+        return
+    end
+
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    local input = table.concat(lines, "\n")
+    if vim.bo[buf].endofline then input = input .. "\n" end
+
+    local result = vim.system({ "goimports", "-srcdir", vim.api.nvim_buf_get_name(buf) }, {
+        stdin = input,
+        text = true,
+    }):wait(5000)
+
+    if result.code ~= 0 then
+        local message = vim.trim(result.stderr or "")
+        if message == "" then message = "exit code " .. tostring(result.code) end
+        vim.notify("goimports failed: " .. message, vim.log.levels.WARN)
+        return
+    end
+
+    local output = result.stdout or ""
+    local has_eol = output:sub(-1) == "\n"
+    local formatted = vim.split(output, "\n", { plain = true })
+    if has_eol then table.remove(formatted) end
+
+    if not vim.deep_equal(lines, formatted) then vim.api.nvim_buf_set_lines(buf, 0, -1, false, formatted) end
+    vim.bo[buf].endofline = has_eol
+end
+
 local go_format = augroup("go_format", { clear = true })
 autocmd("BufWritePre", {
     group = go_format,
     pattern = "*.go",
-    callback = function()
-        local ok, err = pcall(function()
-            require("go.format").goimports()
-        end)
+    callback = function(args)
+        local ok, err = pcall(goimports, args.buf)
         if not ok then vim.notify("goimports failed: " .. tostring(err), vim.log.levels.WARN) end
     end,
 })
@@ -144,9 +173,9 @@ autocmd("BufWritePre", {
 vim.diagnostic.config({
     signs = {
         text = {
-            [vim.diagnostic.severity.ERROR] = " ",
-            [vim.diagnostic.severity.WARN] = " ",
-            [vim.diagnostic.severity.INFO] = " ",
+            [vim.diagnostic.severity.ERROR] = "",
+            [vim.diagnostic.severity.WARN] = "",
+            [vim.diagnostic.severity.INFO] = "",
             [vim.diagnostic.severity.HINT] = "󰌵",
         },
     },
