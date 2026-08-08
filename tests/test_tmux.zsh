@@ -61,6 +61,7 @@ assert_eq "$(tm show -gv allow-passthrough)" "on"   "allow-passthrough on (chevr
 assert_eq "$(tm show -gv set-titles)"        "on"   "terminal titles enabled"
 assert_eq "$(tm show -gv renumber-windows)"  "on"   "windows renumber on close"
 assert_eq "$(tm show -gsv escape-time)"      "10"   "escape-time 10ms"
+assert_eq "$(tm show -gv status-interval)"   "60"   "status polling matches minute-resolution content"
 assert_eq "$(tm show -gwv mode-keys)"        "vi"   "vi copy mode"
 assert_eq "$(tm show -gsv set-clipboard)"    "on"   "OSC52 clipboard enabled (set-clipboard on)"
 
@@ -141,6 +142,8 @@ rootkeys=$(tm list-keys -T root 2>/dev/null)
 offkeys=$(tm list-keys 2>/dev/null | grep -- '-T off')
 assert_contains "$rootkeys" "M-n" "dwm newpane binding present"
 assert_contains "$rootkeys" '"M-;"' "nested-toggle binding in root table"
+assert_contains "$rootkeys" "session_attached" \
+    "nested toggle refuses session-wide mutation with multiple clients"
 assert_contains "$offkeys"  '"M-;"' "nested-toggle binding in off table"
 typeset prefixkeys=''
 prefixkeys=$(tm list-keys -T prefix 2>/dev/null)
@@ -166,6 +169,23 @@ assert_contains "$(tmux -L "$SOCK2" show -gwv window-status-current-style 2>/dev
     "colour208" "nested server uses orange accent"
 assert_contains "$(tm show -gwv window-status-current-style)" \
     "colour39" "outer server uses blue accent"
+
+# ── DWM kill-window vs automatic renumbering ─────────────────────────
+# With renumber-windows on, tmux has already shifted later indexes by the time
+# the helper's old manual loop ran. It then targeted stale windows and logged
+# `can't find window` after every non-final deletion.
+typeset -i dwm_original_count dwm_before_errors dwm_after_errors
+dwm_original_count=$(tm list-windows -F '#{window_index}' | wc -l)
+dwm_before_errors=$(tm show-messages | grep -cF "can't find window")
+tm new-window -d -t :$dwm_original_count -n dwm-one
+tm new-window -d -t :$(( dwm_original_count + 1 )) -n dwm-two
+tm select-window -t :$dwm_original_count
+tm killwindow
+assert_eq "$(tm list-windows -F '#{window_index}' | wc -l | tr -d ' ')" \
+    "$(( dwm_original_count + 1 ))" "dwm killwindow removes exactly one window"
+dwm_after_errors=$(tm show-messages | grep -cF "can't find window")
+assert_eq "$dwm_after_errors" "$dwm_before_errors" \
+    "dwm killwindow does not target stale indexes after renumbering"
 
 tm kill-server 2>/dev/null
 tmux -L "$SOCK2" kill-server 2>/dev/null

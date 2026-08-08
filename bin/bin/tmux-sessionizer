@@ -14,16 +14,31 @@ if [[ -z $selected ]]; then
     exit 0
 fi
 
-selected_name=$(basename "$selected" | tr . _)
-tmux_running=$(pgrep tmux)
+# Canonicalize before deriving the identifier so symlinked paths reuse the
+# same session. The path checksum keeps same-basename projects distinct while
+# leaving the human-readable basename at the front of the status-bar name.
+selected=$(cd "$selected" 2>/dev/null && pwd -P) || {
+    echo "tmux-sessionizer: not a directory: $selected" >&2
+    exit 1
+}
+selected_base=$(basename "$selected")
+selected_base=$(printf '%s' "$selected_base" | tr -c '[:alnum:]_-' '_')
+selected_checksum=$(printf '%s' "$selected" | cksum)
+selected_checksum=${selected_checksum%% *}
+selected_name="${selected_base}_${selected_checksum}"
 
-if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
-    tmux new-session -s "$selected_name" -c "$selected"
-    exit 0
+# Outside tmux there is no client for switch-client to operate on. Attach to
+# an existing matching session, or create a foreground session directly.
+if [[ -z $TMUX ]]; then
+    if tmux has-session -t="$selected_name" 2>/dev/null; then
+        exec tmux attach-session -t "$selected_name"
+    else
+        exec tmux new-session -s "$selected_name" -c "$selected"
+    fi
 fi
 
-if ! tmux has-session -t="$selected_name" 2> /dev/null; then
+if ! tmux has-session -t="$selected_name" 2>/dev/null; then
     tmux new-session -ds "$selected_name" -c "$selected"
 fi
 
-tmux switch-client -t "$selected_name"
+exec tmux switch-client -t "$selected_name"
