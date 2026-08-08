@@ -8,8 +8,20 @@ git_cleanup() {
     git show-ref --verify -q "refs/remotes/origin/$default_branch" \
         && merge_ref="origin/$default_branch"
     local current_branch=$(git branch --show-current)
-    local branches=$(git branch --merged "$merge_ref" --format='%(refname:short)' |
-        grep -vE "^(${default_branch}|master|main|${current_branch})$")
-    [[ -z "$branches" ]] && { echo "No merged branches to delete."; return; }
-    echo "$branches" | xargs -n 1 git branch -d
+    local branch_output
+    branch_output=$(git branch --merged "$merge_ref" --format='%(refname:short)') || return
+    [[ -n "$branch_output" ]] || { echo "No merged branches to delete."; return; }
+    local -a branches delete_branches
+    branches=("${(@f)branch_output}")
+    local branch
+    for branch in "${branches[@]}"; do
+        # Exact string comparisons: branch names may legally contain regex
+        # metacharacters such as `+`, which made the old grep -E filter fail
+        # to protect the default branch.
+        [[ "$branch" == "$default_branch" || "$branch" == master \
+            || "$branch" == main || "$branch" == "$current_branch" ]] && continue
+        delete_branches+=("$branch")
+    done
+    (( ${#delete_branches} )) || { echo "No merged branches to delete."; return; }
+    git branch -d "${delete_branches[@]}"
 }

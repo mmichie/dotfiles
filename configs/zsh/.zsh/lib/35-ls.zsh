@@ -68,10 +68,11 @@ setup_eza() {
 # the common ones (--color, --time-style, --group-directories-first) agree.
 _ls_gnu_to_eza() {
     reply=()
-    local -a out paths
+    local -a out paths argv=("$@")
     local arg c sort='' gnu_desc=0 rev=0 ddash=0
-    local -i i
-    for arg in "$@"; do
+    local -i i arg_i
+    for (( arg_i = 1; arg_i <= ${#argv}; arg_i++ )); do
+        arg="${argv[arg_i]}"
         if (( ddash )) || [[ "$arg" != -?* ]]; then
             paths+=("$arg")
             continue
@@ -81,7 +82,19 @@ _ls_gnu_to_eza() {
             continue
         fi
         if [[ "$arg" == --* ]]; then
-            out+=("$arg")
+            # Eza's required-value long options accept either --opt=value or
+            # --opt value. Keep a separate value attached here so the paths
+            # bucket below cannot move it behind `--` and turn it into a file.
+            case "$arg" in
+                --level|--width|--color-scale-mode|--ignore-glob|--sort|--time|--time-style)
+                    (( arg_i < ${#argv} )) || return 1
+                    (( arg_i++ ))
+                    out+=("$arg=${argv[arg_i]}")
+                    ;;
+                *)
+                    out+=("$arg")
+                    ;;
+            esac
             continue
         fi
         for (( i = 2; i <= ${#arg}; i++ )); do

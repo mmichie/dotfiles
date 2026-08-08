@@ -74,6 +74,21 @@ op-env some-item -- /bin/sh -c 'printf "GOT=%s\n" "$FOO"'
 print -r -- "OPENV_RC=$?"
 leftover=("$TMPDIR"/op-env.*(N))
 print -r -- "OPENV_LEFTOVER=${#leftover}"
+
+# A missing --account value used to make `shift 2` fail without consuming
+# argv, leaving the parser in a tight infinite loop. Bound the regression
+# probe so a broken implementation fails quickly instead of hanging CI.
+op-env some-item --account >/dev/null 2>&1 &
+probe_pid=$!
+sleep 0.1
+if kill -0 $probe_pid 2>/dev/null; then
+    kill $probe_pid 2>/dev/null
+    wait $probe_pid 2>/dev/null
+    print -r -- "OPENV_MISSING_ACCOUNT=hung"
+else
+    wait $probe_pid
+    print -r -- "OPENV_MISSING_ACCOUNT=rc:$?"
+fi
 EOF
 typeset openvtmp="$T_SCRATCH/openvtmp"
 mkdir -p "$openvtmp"
@@ -81,6 +96,7 @@ out=$(TMPDIR="$openvtmp" PATH="$opdir:$PATH" zsh --no-globalrcs -f "$inner" "$ZS
 assert_contains "$out" "GOT=from_op" "op-env round-trips env through op stub (mktemp regression)"
 assert_contains "$out" "OPENV_RC=0"  "op-env exits 0"
 assert_contains "$out" "OPENV_LEFTOVER=0" "op-env removes its env tempfile (always-block cleanup)"
+assert_contains "$out" "OPENV_MISSING_ACCOUNT=rc:2" "op-env rejects --account without a value instead of hanging"
 
 # ── claude wrapper binary resolution (functions/claude) ──────────────
 # Bug: `command -v claude` inside the wrapper resolves to the wrapper
@@ -92,20 +108,86 @@ inner="$T_SCRATCH/claude_inner.zsh"
 cat > "$inner" <<'EOF'
 fpath=("$1/.zsh/functions" $fpath)
 autoload -Uz claude
+trap 'true' INT TERM EXIT
+trap > "$2.before"
 claude --probe
 print -r -- "CLAUDE_RC=$?"
+trap > "$2.after"
+[[ "$(<"$2.before")" == "$(<"$2.after")" ]] && print -r -- "CLAUDE_TRAPS=preserved"
 EOF
 # The pinned PATH is the CHILD's search path (so only the stub dir can
 # satisfy `claude`), but zsh itself must be spawned by absolute path: a
 # temporary PATH assignment also governs the lookup of the command being
 # run, and /usr/bin:/bin has no zsh inside a Linux nix sandbox or on
 # current ubuntu runner images.
-out=$(TMUX= PATH="$claudebin:/usr/bin:/bin" "${commands[zsh]}" --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+typeset claude_trap_probe="$T_SCRATCH/claude-traps"
+out=$(TMUX= PATH="$claudebin:/usr/bin:/bin" "${commands[zsh]}" --no-globalrcs -f "$inner" "$ZSH_CONF" "$claude_trap_probe" 2>&1)
 assert_contains "$out" "stub-claude:--probe" "claude wrapper dispatches to the PATH binary"
 assert_contains "$out" "CLAUDE_RC=7"         "claude wrapper propagates the binary's exit code"
-out=$(TMUX= PATH="/usr/bin:/bin" "${commands[zsh]}" --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+assert_contains "$out" "CLAUDE_TRAPS=preserved" "claude wrapper preserves caller signal and exit traps"
+out=$(TMUX= PATH="/usr/bin:/bin" "${commands[zsh]}" --no-globalrcs -f "$inner" "$ZSH_CONF" "$claude_trap_probe" 2>&1)
 assert_contains "$out" "claude command not found" "missing binary hits the guard (regression: command -v matched the function)"
 assert_contains "$out" "CLAUDE_RC=1"              "missing claude returns 1"
+
+# ── tmux title wrapper trap locality (lib/70-tmux-title.zsh) ──────────────
+# Bug: the wrapper installed process-global traps and then cleared them,
+# deleting any handlers the caller had installed before invoking it.
+inner="$T_SCRATCH/tmux_title_traps_inner.zsh"
+cat > "$inner" <<'EOF'
+source "$1/.zsh/lib/70-tmux-title.zsh"
+tmux() {
+    [[ "$1" == display-message ]] && print -r -- '%1'
+    return 0
+}
+trap 'true' INT TERM EXIT
+trap > "$2.before"
+TMUX=stub _tmux_title_wrap probe true
+trap > "$2.after"
+[[ "$(<"$2.before")" == "$(<"$2.after")" ]] && print -r -- "TMUX_WRAP_TRAPS=preserved"
+EOF
+typeset tmux_trap_probe="$T_SCRATCH/tmux-wrap-traps"
+out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$tmux_trap_probe" 2>&1)
+assert_contains "$out" "TMUX_WRAP_TRAPS=preserved" "tmux title wrapper preserves caller signal and exit traps"
+
+# ── git_cleanup literal branch filtering (functions/git_cleanup) ────────
+# Bug: default/current branch names were interpolated into grep -E. A valid
+# name such as release+prod was treated as a regex and reached git branch -d.
+typeset gitstubdir="$T_SCRATCH/gitstub"
+make_stub "$gitstubdir" git 'case "$1:$2" in
+    fetch:--prune) exit 0 ;;
+    symbolic-ref:--short) printf "%s\n" "origin/release+prod" ;;
+    show-ref:--verify) exit 0 ;;
+    branch:--show-current) printf "%s\n" "feature" ;;
+    branch:--merged) printf "%s\n" "release+prod" "old-feature" ;;
+    branch:-d) printf "%s\n" "$3" >> "$GIT_DELETE_LOG" ;;
+    *) exit 64 ;;
+esac'
+inner="$T_SCRATCH/git_cleanup_inner.zsh"
+cat > "$inner" <<'EOF'
+fpath=("$1/.zsh/functions" $fpath)
+autoload -Uz git_cleanup
+: > "$GIT_DELETE_LOG"
+git_cleanup >/dev/null
+deleted=("${(@f)$(<"$GIT_DELETE_LOG")}")
+print -r -- "GIT_DELETED=${(j:,:)deleted}"
+EOF
+typeset git_delete_log="$T_SCRATCH/git-deleted.log"
+out=$(PATH="$gitstubdir:$PATH" GIT_DELETE_LOG="$git_delete_log" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+assert_contains "$out" "GIT_DELETED=old-feature" "git_cleanup protects default branch names containing regex metacharacters"
+
+# ── helper error statuses (functions/d, functions/sshtunnel) ────────────
+inner="$T_SCRATCH/helper_status_inner.zsh"
+cat > "$inner" <<'EOF'
+fpath=("$1/.zsh/functions" $fpath)
+autoload -Uz d sshtunnel
+d --definitely-invalid >/dev/null 2>&1
+print -r -- "D_BAD_RC=$?"
+sshtunnel >/dev/null 2>&1
+print -r -- "SSHTUNNEL_USAGE_RC=$?"
+EOF
+out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+assert_contains "$out" "D_BAD_RC=1" "d propagates dirs errors instead of masking them"
+assert_contains "$out" "SSHTUNNEL_USAGE_RC=1" "sshtunnel invalid usage returns failure"
 
 # ── remember backslash fidelity (functions/remember) ─────────────────
 # Bug: zsh echo expands \n and friends, so a remembered command containing

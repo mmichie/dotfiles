@@ -338,6 +338,8 @@ print -rn -- "L8=";  probe -lG
 print -rn -- "L9=";  probe --git-ignore
 print -rn -- "L10="; probe -l -- -t
 print -rn -- "L11="; probe
+print -rn -- "L12="; probe --sort size somedir
+print -rn -- "L13="; probe --time-style long-iso somedir
 EOF
 out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains "$out" "L1=OK --all --long --sort=modified"           "-altr translates (oldest first)"
@@ -351,5 +353,7 @@ assert_contains "$out" "L8=FALLBACK"                                  "unmapped 
 assert_contains "$out" "L9=OK --git-ignore"                           "long options pass through to eza"
 assert_contains "$out" "L10=OK --long -- -t"                          "args after -- are paths, not flags"
 assert_contains "$out" "L11=OK"                                       "bare invocation translates to bare eza"
+assert_contains "$out" "L12=OK --sort=size -- somedir"                 "separate --sort value stays attached to the option"
+assert_contains "$out" "L13=OK --time-style=long-iso -- somedir"       "separate --time-style value stays attached to the option"
 
 t_finish

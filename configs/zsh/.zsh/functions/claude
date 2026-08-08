@@ -1,6 +1,10 @@
 # Claude wrapper: pins tmux window title, keeps shell from exiting on claude quirks.
 # Depends on _tmux_title_push/_tmux_title_pop from lib/70-tmux-title.zsh.
 claude() {
+    # Keep the cleanup traps local to this invocation. Without LOCAL_TRAPS,
+    # the `trap -` below also erased handlers installed by the caller.
+    setopt localoptions localtraps
+
     # whence -p: path search only. `command -v claude` would return this
     # wrapper function's own name — never empty, never the binary path —
     # so the missing-binary guard below could not fire.

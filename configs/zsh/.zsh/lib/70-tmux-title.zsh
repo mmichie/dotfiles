@@ -45,6 +45,10 @@ _tmux_title_pop() {
 #
 # Usage: _tmux_title_wrap "🔐 host" command ssh ...
 _tmux_title_wrap() {
+    # Restore the caller's traps when the wrapper returns. LOCAL_OPTIONS keeps
+    # LOCAL_TRAPS itself scoped without resetting any other inherited option.
+    setopt localoptions localtraps
+
     local title="$1"; shift
     if [[ -z "$TMUX" ]]; then
         "$@"
