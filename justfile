@@ -5,6 +5,8 @@
 # sudo) stops warning that $HOME (/Users/you) is not root-owned; both only touch
 # /nix/store, so HOME is irrelevant there. Deliberately NOT on darwin-rebuild:
 # activation runs home-manager, where HOME must stay the invoking user's.
+# The trailing zsh -i absorbs the first-shell init-cache/compdump regen a
+# switch triggers, so the next real shell opens fast.
 switch:
     @if [ "$(uname)" = "Darwin" ]; then \
         sudo "$(command -v darwin-rebuild)" switch --flake ".#$(hostname -s)" \
@@ -15,6 +17,8 @@ switch:
     else \
         home-manager switch --flake .#mim@linux; \
     fi
+    @echo "warming shell caches..."
+    @zsh -i -c exit >/dev/null 2>&1 || true
 
 # Install git hooks. The repo sets core.hooksPath globally (configs/git/
 # .gitconfig), so git ignores .git/hooks and nothing wires lefthook in per
