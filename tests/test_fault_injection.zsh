@@ -7,6 +7,7 @@
 #   - corrupt tool-init cache      -> quarantined + regenerated SAME boot
 #   - corrupt .zcompdump           -> completions rebuilt SAME boot
 #   - new completion file in fpath -> full compinit, then back to -C
+#   - generation flip (fpath list) -> stale dump on -C, deferred revalidate
 #   - corrupt-but-newer .zwc       -> silent fallback, no false quarantine
 #   - generator emitting garbage   -> refused at write time, never cached
 #   - unwritable cache dir         -> boot completes, degraded
@@ -202,6 +203,66 @@ else
 fi
 assert_contains "$(<$settletrace.out)" "M_SOMECMD=[_somecmd]" \
     "the fast path still serves the added completion"
+
+# ── Generation flip (resolved fpath LIST moved): stale-while-revalidate ─
+# A rebuild moves store paths without adding completion files, so blocking
+# ~1s on a full compinit buys nothing: the stale dump must be served on the
+# -C path, the fingerprint left alone for a background revalidation shell
+# (ZSH_CACHE_REVALIDATE=1) to re-stamp, and the spawn age-gated by the
+# .revalidating stamp. Distinct from the mtime-only case above, which keeps
+# its same-boot rebuild.
+sb="$(make_sandbox_home)"
+run_sandbox_zsh "$sb" 'exit' >/dev/null 2>&1
+dump="$sb/.cache/zsh/.zcompdump"
+if [[ -s "$dump" && -s "$dump.fpath" ]]; then
+    # Simulate the flip: the recorded dir list no longer matches. A fresh
+    # stamp suppresses the spawn so the assertions below cannot race a
+    # live revalidator.
+    print -r -- '/nonexistent-old-generation:none' >> "$dump.fpath"
+    command true >| "$dump.revalidating"
+    typeset fliptrace="$T_SCRATCH/genflip.trace"
+    typeset -a maybe_timeout
+    have timeout && maybe_timeout=(timeout 30)
+    _sandbox_env_args "$sb"
+    "${maybe_timeout[@]}" env -i "${reply[@]}" zsh --no-globalrcs -x -i -c \
+        'print -r -- "M_COMPS=$(( ${#_comps} > 0 )) M_END"' \
+        </dev/null >"$T_SCRATCH/genflip.out" 2>"$fliptrace"
+    assert_contains "$(<$T_SCRATCH/genflip.out)" "M_END" \
+        "generation-flip boot completes"
+    assert_contains "$(<$T_SCRATCH/genflip.out)" "M_COMPS=1" \
+        "the stale dump still serves completions"
+    if grep -qE '> compinit -C ' "$fliptrace" && ! grep -qE '> compinit -i ' "$fliptrace"; then
+        t_pass "generation flip stays on -C (no blocking rebuild)"
+    else
+        t_fail "generation flip stays on -C (no blocking rebuild)" \
+            "$(grep -E '> compinit' "$fliptrace" | head -2)"
+    fi
+    if grep -qF '/nonexistent-old-generation' "$dump.fpath"; then
+        t_pass "fingerprint untouched by the stale boot (revalidation deferred)"
+    else
+        t_fail "fingerprint untouched by the stale boot (revalidation deferred)"
+    fi
+    # The revalidation shell itself takes the synchronous path and re-stamps.
+    run_sandbox_zsh "$sb" 'exit' ZSH_CACHE_REVALIDATE=1 >/dev/null 2>&1
+    if grep -qF '/nonexistent-old-generation' "$dump.fpath"; then
+        t_fail "revalidation shell rebuilds and re-stamps the fingerprint"
+    else
+        t_pass "revalidation shell rebuilds and re-stamps the fingerprint"
+    fi
+    typeset flipsettle="$T_SCRATCH/genflip-settle.trace"
+    _sandbox_env_args "$sb"
+    "${maybe_timeout[@]}" env -i "${reply[@]}" zsh --no-globalrcs -x -i -c \
+        'print -r -- M_END' </dev/null >"$T_SCRATCH/genflip-settle.out" 2>"$flipsettle"
+    if grep -qE '> compinit -C ' "$flipsettle" && ! grep -qE '> compinit -i ' "$flipsettle"; then
+        t_pass "boot after revalidation is back on the -C fast path"
+    else
+        t_fail "boot after revalidation is back on the -C fast path" \
+            "$(grep -E '> compinit' "$flipsettle" | head -2)"
+    fi
+else
+    t_fail "generation-flip stale-while-revalidate" \
+        "precondition: cold boot wrote no dump or fingerprint"
+fi
 
 # ── Generator emitting garbage: refused at write time ────────────────
 # A tool that exits 0 while printing junk to stdout (update banners,

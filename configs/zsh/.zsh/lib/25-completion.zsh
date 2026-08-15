@@ -23,6 +23,23 @@ autoload -Uz compinit
 # readdir: a glob per dir would eat what the -C path saves.
 # /nix/store mtimes are clamped to the epoch and startup writes nothing
 # into the config tree, so the signal does not churn between boots.
+#
+# Entries are stamped symlink-RESOLVED (:A, same trick as the tool-cache
+# sidecars in 50-integrations): stable strings like /run/current-system/...
+# hide a generation flip that only the resolved store path shows. That also
+# splits a mismatch into two causes with different service levels:
+#   - resolved dir LIST moved  -> a rebuild flipped the generation. The old
+#     dump describes the same tools at old paths, so serve it via -C
+#     (stale completions for this one shell) and hand the ~0.9s full
+#     rebuild to a background revalidation shell. Guards: the spawned
+#     shell carries ZSH_CACHE_REVALIDATE=1 and takes the synchronous path
+#     (else it would spawn its own child forever), and a stamp file
+#     age-gates the spawn so a burst of post-rebuild tabs cannot stampede.
+#   - same dirs, mtime moved   -> a completion file just landed in a live
+#     dir. The stale dump genuinely lacks it, so rebuild in THIS shell —
+#     same-boot registration is the guarantee that motivated the mtime
+#     signal (and is pinned by test_fault_injection).
+# A missing/corrupt dump takes the synchronous path regardless.
 zmodload -F zsh/stat b:zstat 2>/dev/null
 # (F) newline-join: a separator-free join could alias two different
 # fpaths whose element boundaries merely shifted. Computed once and reused
@@ -30,14 +47,17 @@ zmodload -F zsh/stat b:zstat 2>/dev/null
 # Unreadable or missing dirs stamp a fixed placeholder: stable across
 # boots, and no mtime can collide with it.
 _fpath_stamps=()
+_fpath_dirs=()
 for _fpath_dir in $fpath; do
+    _fpath_dirs+=("${_fpath_dir:A}")
     zstat -A _fpath_mtime +mtime -- "$_fpath_dir" 2>/dev/null || _fpath_mtime=(none)
-    _fpath_stamps+=("$_fpath_dir:$_fpath_mtime[1]")
+    _fpath_stamps+=("$_fpath_dirs[-1]:$_fpath_mtime[1]")
 done
 _fpath_fingerprint="${(F)_fpath_stamps}"
+_fpath_recorded=''
+[[ -r "$ZSH_COMPDUMP.fpath" ]] && _fpath_recorded="$(<"$ZSH_COMPDUMP.fpath")"
 _compinit_rebuild=1
-if [[ -f "$ZSH_COMPDUMP" && -r "$ZSH_COMPDUMP.fpath" ]] \
-    && [[ "$(<"$ZSH_COMPDUMP.fpath")" == "$_fpath_fingerprint" ]]; then
+if [[ -f "$ZSH_COMPDUMP" && "$_fpath_recorded" == "$_fpath_fingerprint" ]]; then
     compinit -C -d "$ZSH_COMPDUMP"
     # Self-heal: -C trusts the dump blindly, and the fingerprint cannot see
     # corruption — a truncated/garbled dump (crashed shell, disk damage)
@@ -49,6 +69,22 @@ if [[ -f "$ZSH_COMPDUMP" && -r "$ZSH_COMPDUMP.fpath" ]] \
         # One-time backfill after deploys: compile the dump if no wordcode yet.
         [[ -f "$ZSH_COMPDUMP.zwc" ]] || zcompile "$ZSH_COMPDUMP" 2>/dev/null
     fi
+elif [[ -z "$ZSH_CACHE_REVALIDATE" && -f "$ZSH_COMPDUMP" && -n "$_fpath_recorded" ]] \
+    && [[ "${(F)${(@)${(f)_fpath_recorded}%:*}}" != "${(F)_fpath_dirs}" ]]; then
+    # Generation flip (dir list moved): stale-while-revalidate, per the
+    # header comment. The mtime is stripped off each recorded line at the
+    # LAST colon, so a path containing a colon still compares whole.
+    compinit -C -d "$ZSH_COMPDUMP"
+    if (( ${#_comps} > 0 )); then
+        _compinit_rebuild=0
+        _reval_recent=("$ZSH_COMPDUMP.revalidating"(N.ms-120))
+        if (( ${#_reval_recent} == 0 )); then
+            # Stamp before spawning (banner-stamp discipline): a dying
+            # revalidator costs one 120s window, never a spawn storm.
+            command true >| "$ZSH_COMPDUMP.revalidating"
+            INFLUX_SHOWN=1 ZSH_CACHE_REVALIDATE=1 zsh -i -c exit </dev/null &>/dev/null &!
+        fi
+    fi
 fi
 if (( _compinit_rebuild )); then
     command rm -f "$ZSH_COMPDUMP" "$ZSH_COMPDUMP.zwc"
@@ -56,7 +92,8 @@ if (( _compinit_rebuild )); then
     zcompile "$ZSH_COMPDUMP" 2>/dev/null
     print -r -- "$_fpath_fingerprint" >| "$ZSH_COMPDUMP.fpath"
 fi
-unset _fpath_fingerprint _compinit_rebuild _fpath_stamps _fpath_dir _fpath_mtime
+unset _fpath_fingerprint _fpath_recorded _compinit_rebuild _fpath_stamps \
+    _fpath_dirs _fpath_dir _fpath_mtime _reval_recent
 
 setup_completions() {
     # Completion caching

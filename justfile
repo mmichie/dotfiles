@@ -18,7 +18,7 @@ switch:
         home-manager switch --flake .#mim@linux; \
     fi
     @echo "warming shell caches..."
-    @zsh -i -c exit >/dev/null 2>&1 || true
+    @ZSH_CACHE_REVALIDATE=1 zsh -i -c exit >/dev/null 2>&1 || true
 
 # Install git hooks. The repo sets core.hooksPath globally (configs/git/
 # .gitconfig), so git ignores .git/hooks and nothing wires lefthook in per
