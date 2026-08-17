@@ -1,0 +1,12 @@
+{
+  "defaultProvider": "llama-cpp",
+  "defaultModel": "meta-models/Muse-Glimmer-30B-GGUF:Q4_K_M",
+  "defaultThinkingLevel": "low",
+  "compaction": {
+    "enabled": true,
+    "reserveTokens": 4096,
+    "keepRecentTokens": 2048
+  },
+  "lastChangelogVersion": "0.84.1",
+  "theme": "dark"
+}

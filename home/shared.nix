@@ -47,4 +47,8 @@ in
     mkLink "claude/agents/development-tools/code-reviewer.md";
   home.file.".claude/agents/development-tools/refactoring-specialist.md".source =
     mkLink "claude/agents/development-tools/refactoring-specialist.md";
+
+  # Pi coding agent — local Muse Glimmer provider and laptop-sized context.
+  home.file.".pi/agent/models.json".source = mkLink "pi/models.json";
+  home.file.".pi/agent/settings.json".source = mkLink "pi/settings.json";
 }

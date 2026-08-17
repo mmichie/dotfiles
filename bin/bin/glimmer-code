@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly health_url="http://127.0.0.1:${GLIMMER_PORT:-8080}/health"
+server_pid=""
+log_file="${TMPDIR:-/tmp}/glimmer-serve-${UID}.log"
+
+cleanup() {
+	if [[ -n "$server_pid" ]]; then
+		kill "$server_pid" 2>/dev/null || true
+		wait "$server_pid" 2>/dev/null || true
+	fi
+}
+trap cleanup EXIT INT TERM
+
+if ! command -v pi >/dev/null 2>&1; then
+	echo "glimmer-code: pi is not installed; run 'just switch' in ~/src/dotfiles" >&2
+	exit 127
+fi
+
+if ! curl --fail --silent "$health_url" >/dev/null 2>&1; then
+	echo "glimmer-code: starting the local Glimmer server..." >&2
+	glimmer-serve >"$log_file" 2>&1 &
+	server_pid=$!
+
+	for _ in {1..120}; do
+		if curl --fail --silent "$health_url" >/dev/null 2>&1; then
+			break
+		fi
+		if ! kill -0 "$server_pid" 2>/dev/null; then
+			echo "glimmer-code: server failed; see $log_file" >&2
+			exit 1
+		fi
+		sleep 1
+	done
+
+	if ! curl --fail --silent "$health_url" >/dev/null 2>&1; then
+		echo "glimmer-code: server did not become ready; see $log_file" >&2
+		exit 1
+	fi
+fi
+
+pi "$@"

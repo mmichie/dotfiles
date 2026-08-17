@@ -28,6 +28,10 @@ _:
 
     brews = [
       "dosbox-x" # nixpkgs build broken on aarch64-darwin (SCREEN_METAL undeclared in render.cpp)
+      # Muse Glimmer needs llama.cpp >= b10353. The pinned nixpkgs currently
+      # has b10273, while Homebrew has a compatible release. Move this back to
+      # packages-dev.nix once nixpkgs catches up.
+      "llama.cpp"
       "mas" # Mac App Store CLI — required for the masApps below
       # tensor9ine/tensor9/tensor9 is declared in extraConfig below — it needs
       # `trusted: true`, which the brews list can't express.

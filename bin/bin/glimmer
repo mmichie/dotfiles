@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly model="meta-models/Muse-Glimmer-30B-GGUF:Q4_K_M"
+context_size="${GLIMMER_CONTEXT_SIZE:-8192}"
+batch_size="${GLIMMER_BATCH_SIZE:-512}"
+ubatch_size="${GLIMMER_UBATCH_SIZE:-128}"
+reasoning_strength="${GLIMMER_REASONING_STRENGTH:-high}"
+
+case "$reasoning_strength" in
+low | medium | high | xhigh) ;;
+*)
+	echo "glimmer: GLIMMER_REASONING_STRENGTH must be low, medium, high, or xhigh" >&2
+	exit 2
+	;;
+esac
+
+if ! command -v llama-cli >/dev/null 2>&1; then
+	echo "glimmer: llama-cli is not installed; run 'just switch' in ~/src/dotfiles" >&2
+	exit 127
+fi
+
+exec llama-cli \
+	-hf "$model" \
+	-ngl 99 \
+	-c "$context_size" \
+	-b "$batch_size" \
+	-ub "$ubatch_size" \
+	--jinja \
+	--chat-template-kwargs "{\"reasoning_strength\":\"$reasoning_strength\"}" \
+	--temp 1.0 \
+	--top-p 0.95 \
+	--top-k 64 \
+	"$@"

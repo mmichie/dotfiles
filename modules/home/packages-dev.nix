@@ -62,6 +62,12 @@
     hyperfine
     watchexec
 
+    # ── Local AI agents ────────────────────────────────────────────────
+    # Pi is the coding-agent harness for the local Muse Glimmer model.
+    # llama.cpp is temporarily supplied by Homebrew because the pinned
+    # nixpkgs build predates Glimmer support.
+    pi-coding-agent
+
     # ── Infrastructure & Cloud ─────────────────────────────────────────
     google-cloud-sdk
     awscli2
