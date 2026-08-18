@@ -124,6 +124,7 @@
       "Bash(wget:*)"
     ]
   },
+  "model": "opus[1m]",
   "statusLine": {
     "type": "command",
     "command": "bash ~/.claude/statusline-command.sh"
@@ -144,6 +145,5 @@
   "skipWorkflowUsageWarning": true,
   "theme": "dark-daltonized",
   "editorMode": "vim",
-  "agentPushNotifEnabled": true,
-  "model": "claude-fable-5[1m]"
+  "agentPushNotifEnabled": true
 }
