@@ -52,7 +52,7 @@ final: prev: {
     enableCmount = !prev.stdenv.hostPlatform.isDarwin;
   };
 
-  # pipx needs two independent test fixups on the current nixpkgs:
+  # pipx needs three independent test fixups on the current nixpkgs:
   #
   #   1. 1.8.0's `test_fix_package_name` / `test_parse_specifier_for_metadata`
   #      assert the old `name@ url` form, but the bundled `packaging` now emits
@@ -67,11 +67,18 @@ final: prev: {
   #      collecting — so the whole file is dropped with `--ignore` via
   #      disabledTestPaths.
   #
+  #   3. 1.16.6's test_subprocess_stream_hands_a_terminal_to_the_child spawns a
+  #      child under a PTY and asserts the child's stdout `isatty()` is True.
+  #      The Nix build sandbox has no controlling terminal, so it reads False
+  #      (empty '') and the test fails. Deselect it — pipx's runtime PTY
+  #      handling is unaffected; only the test's TTY assumption breaks here.
+  #
   # Remove each once upstream/nixpkgs catches up.
   pipx = prev.pipx.overridePythonAttrs (old: {
     disabledTests = (old.disabledTests or [ ]) ++ [
       "test_fix_package_name"
       "test_parse_specifier_for_metadata"
+      "test_subprocess_stream_hands_a_terminal_to_the_child"
     ];
     disabledTestPaths = (old.disabledTestPaths or [ ]) ++ [
       "tests/test_inject.py"
