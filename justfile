@@ -69,6 +69,16 @@ fmt:
     nix fmt
     nix run nixpkgs#stylua -- configs/nvim
 
+# Build sckrec (screen + system-audio recorder) into ~/.local/bin with the
+# system toolchain. Deliberately not a nix package: nixpkgs swift tops out at
+# 5.10 on darwin and its buildPhase hangs against apple-sdk_26 (a caffeinated
+# build sat the full 30-minute cap without a diagnostic), while system swiftc
+# compiles it in seconds. The -sectcreate flags embed Info.plist so macOS
+# privacy indicators attribute captures to "sckrec" instead of "unknown".
+sckrec:
+    cd bin/sckrec && swiftc -O -o ~/.local/bin/sckrec sckrec.swift \
+        -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __info_plist -Xlinker Info.plist
+
 # Build NixOS VM configuration (from macOS host)
 vm-build:
     nix build .#nixosConfigurations.vm-aarch64.config.system.build.toplevel

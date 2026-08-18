@@ -113,22 +113,14 @@
       # (`nix build .#recs`, `nix run .#obliviate`). They are also injected
       # into every host via the custom-packages overlay below; these are the
       # same derivations, just reachable directly.
-      packages = forAllSystems (
-        pkgs:
-        {
-          recs = pkgs.callPackage ./pkgs/recs { };
-          obliviate = pkgs.callPackage ./pkgs/obliviate { };
-          # Overlay-fixed statix, surfaced so lefthook's pre-commit hook can run
-          # `nix run .#statix` — pinning the linter to the repo's nixpkgs instead
-          # of the floating registry that `nixpkgs#statix` would resolve.
-          inherit (pkgs) statix;
-        }
-        # sckrec links ScreenCaptureKit and the CoreAudio tap API, so it only
-        # exists on macOS; keep it out of the Linux package sets.
-        // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
-          sckrec = pkgs.callPackage ./pkgs/sckrec { };
-        }
-      );
+      packages = forAllSystems (pkgs: {
+        recs = pkgs.callPackage ./pkgs/recs { };
+        obliviate = pkgs.callPackage ./pkgs/obliviate { };
+        # Overlay-fixed statix, surfaced so lefthook's pre-commit hook can run
+        # `nix run .#statix` — pinning the linter to the repo's nixpkgs instead
+        # of the floating registry that `nixpkgs#statix` would resolve.
+        inherit (pkgs) statix;
+      });
 
       # ── Overlays ──────────────────────────────────────────────────
       # The custom-packages overlay (recs + rclone/pipx fixups) that every

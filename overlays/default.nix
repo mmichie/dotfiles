@@ -1,7 +1,6 @@
 final: prev: {
   recs = final.callPackage ../pkgs/recs { };
   obliviate = final.callPackage ../pkgs/obliviate { };
-  sckrec = final.callPackage ../pkgs/sckrec { };
 
   # nixpkgs only packages beads 1.0.3 (embedded-Dolt era); bump to v1.1.2 for
   # the matured `dolt sql-server` + remote model (`bd dolt remote/push/pull`).
