@@ -119,12 +119,54 @@ TMUX_EMOJI_MAP=(
 # call site would cost a subshell fork each time.
 _tmux_emoji_get_command() {
     local cmd="$1"
+    local first tok fallback=""
+    local -i had_wrapper=0
 
-    # Strip leading sudo, time, nice, etc.
-    cmd="${cmd#sudo }"
-    cmd="${cmd#time }"
-    cmd="${cmd#nice }"
-    cmd="${cmd#nohup }"
+    # Wrappers stack and interleave with their own flags: `sudo -E time
+    # make`, `nice -n 5 cargo`. One hard-coded strip per wrapper only
+    # handled a single leading prefix and left the wrapper's flags as the
+    # "command". One loop instead, alternating wrappers and their flag
+    # tokens. Valued wrapper options consume the NEXT token too, keyed by
+    # the wrapper just stripped (sudo's -n is boolean, nice's is valued —
+    # they must not be conflated). Joined forms (-uroot) are not split.
+    local -a wrappers=(sudo time nice nohup)
+    local -A valued_flags=(
+        sudo  '-u -g -h -p -t -T -C -D -R -U -a -c -r --user --group --host --prompt --command-timeout --chdir --role --type --close-from --chroot --other-user --auth-type --login-class'
+        nice  '-n --adjustment'
+        time  '-f -o --format --output'
+        nohup ''
+    )
+    local last_wrapper=""
+    while true; do
+        first="${cmd%% *}"
+        if (( ${wrappers[(Ie)$first]} )); then
+            had_wrapper=1
+            last_wrapper="$first"
+            # Loop must terminate: a lone wrapper word (`sudo` alone)
+            # strips to empty; $fallback restores it below.
+            fallback="$first"
+            [[ "$cmd" == "$first" ]] && cmd="" && break
+            cmd="${cmd[$(( ${#first} + 2 )),-1]}"
+            continue
+        fi
+        if (( had_wrapper )) && [[ "$first" == -* ]]; then
+            [[ "$cmd" == "$first" ]] && cmd="" && break
+            cmd="${cmd[$(( ${#first} + 2 )),-1]}"
+            # Valued option: drop its argument token as well.
+            if [[ -n "${valued_flags[$last_wrapper]}" \
+                && " ${valued_flags[$last_wrapper]} " == *" $first "* \
+                && -n "$cmd" ]]; then
+                tok="${cmd%% *}"
+                [[ "$cmd" == "$tok" ]] && cmd="" && break
+                cmd="${cmd[$(( ${#tok} + 2 )),-1]}"
+            fi
+            continue
+        fi
+        break
+    done
+
+    # Everything stripped to empty (`sudo` alone): degrade to the wrapper.
+    cmd="${cmd:-$fallback}"
 
     # Get first word (the actual command)
     cmd="${cmd%% *}"

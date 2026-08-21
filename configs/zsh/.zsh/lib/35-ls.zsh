@@ -91,6 +91,18 @@ _ls_gnu_to_eza() {
                     (( arg_i++ ))
                     out+=("$arg=${argv[arg_i]}")
                     ;;
+                # --color/--icons take an OPTIONAL value (always/auto/never).
+                # Only the valid values may be consumed: treating it as
+                # required makes bare --icons fall back to real ls (which
+                # errors on it) and turns --color --all into --color=--all.
+                --color|--icons|--classify)
+                    if (( arg_i < ${#argv} )) && [[ "${argv[arg_i+1]}" == (always|auto|never) ]]; then
+                        (( arg_i++ ))
+                        out+=("$arg=${argv[arg_i]}")
+                    else
+                        out+=("$arg")
+                    fi
+                    ;;
                 *)
                     out+=("$arg")
                     ;;

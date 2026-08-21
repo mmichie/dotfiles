@@ -3,5 +3,7 @@ hgrep() {
         echo "Usage: hgrep <pattern>"
         return 1
     fi
-    fc -l 1 -1 | grep --color=auto -i "$@"
+    # Join into ONE pattern ($*): "$@" splatted each word separately, and
+    # grep took word 2+ as FILENAMES (recalls() had the same bug).
+    fc -l 1 -1 | grep --color=auto -i -- "$*"
 }

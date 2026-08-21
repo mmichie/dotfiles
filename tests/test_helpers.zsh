@@ -1,6 +1,7 @@
 #!/usr/bin/env zsh
 # Unit tests for pure helper functions: _urlencode_path, _tmux_emoji_get_command,
-# _refresh_cache, and the autoloaded extract/mkcd functions.
+# _ls_gnu_to_eza, _refresh_cache, and the autoloaded extract/mkcd/hgrep/recalls
+# functions.
 
 source "${0:A:h}/lib.zsh"
 
@@ -39,6 +40,19 @@ _tmux_emoji_get_command 'time cargo build --release';     print -r -- "C2=$REPLY
 _tmux_emoji_get_command '/usr/local/bin/python3 -m http.server'; print -r -- "C3=$REPLY"
 _tmux_emoji_get_command 'nohup ./run.sh arg';             print -r -- "C4=$REPLY"
 _tmux_emoji_get_command 'ls';                             print -r -- "C5=$REPLY"
+_tmux_emoji_get_command 'time sudo make install';         print -r -- "C6=$REPLY"
+_tmux_emoji_get_command 'sudo -E make build';             print -r -- "C7=$REPLY"
+_tmux_emoji_get_command 'nice cargo test';                print -r -- "C8=$REPLY"
+_tmux_emoji_get_command 'sudo';                           print -r -- "C9=$REPLY"
+_tmux_emoji_get_command 'sudo -E time make';              print -r -- "C10=$REPLY"
+_tmux_emoji_get_command 'nice -n 5 cargo test';           print -r -- "C11=$REPLY"
+_tmux_emoji_get_command 'sudo -u root make';              print -r -- "C12=$REPLY"
+_tmux_emoji_get_command 'sudo -n ls -l';                  print -r -- "C13=$REPLY"
+_tmux_emoji_get_command 'sudo --user root make';          print -r -- "C14=$REPLY"
+_tmux_emoji_get_command 'sudo -T 10 make';                print -r -- "C15=$REPLY"
+_tmux_emoji_get_command 'time --output file make';        print -r -- "C16=$REPLY"
+_tmux_emoji_get_command 'sudo --user=root make';          print -r -- "C17=$REPLY"
+_tmux_emoji_get_command 'sudo -r sysadm_r make';          print -r -- "C18=$REPLY"
 EOF
 out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains "$out" "C1=make"    "strips sudo prefix"
@@ -46,6 +60,19 @@ assert_contains "$out" "C2=cargo"   "strips time prefix"
 assert_contains "$out" "C3=python3" "strips path"
 assert_contains "$out" "C4=run.sh"  "strips nohup + relative path"
 assert_contains "$out" "C5=ls"      "bare command unchanged"
+assert_contains "$out" "C6=make"    "strips stacked wrappers (time sudo)"
+assert_contains "$out" "C7=make"    "strips wrapper flags (sudo -E)"
+assert_contains "$out" "C8=cargo"   "strips nice prefix"
+assert_contains "$out" "C9=sudo"    "lone wrapper degrades to itself"
+assert_contains "$out" "C10=make"   "wrapper after wrapper flags (sudo -E time)"
+assert_contains "$out" "C11=cargo"  "valued wrapper option (nice -n 5)"
+assert_contains "$out" "C12=make"   "valued wrapper option (sudo -u root)"
+assert_contains "$out" "C13=ls"     "sudo -n is boolean, next word is the command"
+assert_contains "$out" "C14=make"   "valued long option (sudo --user root)"
+assert_contains "$out" "C15=make"   "valued short option (sudo -T 10)"
+assert_contains "$out" "C16=make"   "valued long option (time --output file)"
+assert_contains "$out" "C17=make"   "joined long option (sudo --user=root)"
+assert_contains "$out" "C18=make"   "valued short option (sudo -r role, SELinux)"
 
 # ── _refresh_cache (lib/50-integrations.zsh) ─────────────────────────
 # Deterministic mtime ordering via touch -t (no sleeps, no same-second races).
@@ -340,6 +367,11 @@ print -rn -- "L10="; probe -l -- -t
 print -rn -- "L11="; probe
 print -rn -- "L12="; probe --sort size somedir
 print -rn -- "L13="; probe --time-style long-iso somedir
+print -rn -- "L14="; probe --color always somedir
+print -rn -- "L15="; probe --icons never somedir
+print -rn -- "L16="; probe --icons
+print -rn -- "L17="; probe --color --all
+print -rn -- "L18="; probe --classify never somedir
 EOF
 out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains "$out" "L1=OK --all --long --sort=modified"           "-altr translates (oldest first)"
@@ -355,5 +387,59 @@ assert_contains "$out" "L10=OK --long -- -t"                          "args afte
 assert_contains "$out" "L11=OK"                                       "bare invocation translates to bare eza"
 assert_contains "$out" "L12=OK --sort=size -- somedir"                 "separate --sort value stays attached to the option"
 assert_contains "$out" "L13=OK --time-style=long-iso -- somedir"       "separate --time-style value stays attached to the option"
+assert_contains "$out" "L14=OK --color=always -- somedir"              "separate --color value stays attached to the option"
+assert_contains "$out" "L15=OK --icons=never -- somedir"               "separate --icons value stays attached to the option"
+assert_contains "$out" "L16=OK --icons"                               "bare --icons passes through (eza value is optional)"
+assert_contains "$out" "L17=OK --color --all"                          "bare --color does not swallow a following option"
+assert_contains "$out" "L18=OK --classify=never -- somedir"           "separate --classify value stays attached to the option"
+
+# ── hgrep / recalls: multi-word patterns ─────────────────────────────
+# Both functions must pass the full argument list to grep as ONE pattern.
+# Pre-fix they splatted "$@", so `recalls git commit` ran `grep -i git
+# commit file` — grep treated 'commit' and the remember-file as two
+# FILENAMES, errored, and never matched.
+#
+# hgrep is probed with a stub grep capturing argv (fc needs no real
+# history for the pipe to reach the stub); recalls with the real grep
+# against a written remember-file. Two separate shells, so the stub
+# cannot hijack recalls' grep.
+inner="$T_SCRATCH/hgrep_inner.zsh"
+cat > "$inner" <<'EOF'
+fpath=("$1/.zsh/functions" $fpath)
+autoload -Uz hgrep
+hgrep git commit
+EOF
+sb="$(make_sandbox_home)"
+typeset grepsurrogatedir="$T_SCRATCH/grepsurrogates"
+mkdir -p "$grepsurrogatedir"
+cat > "$grepsurrogatedir/grep" <<'STUB'
+#!/bin/sh
+for a in "$@"; do printf 'ARG[%s]\n' "$a"; done
+STUB
+chmod +x "$grepsurrogatedir/grep"
+out=$(HOME="$sb" PATH="$grepsurrogatedir:$PATH" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+# Trailing newlines are stripped by $(...) capture, so the negative check
+# must not anchor on \n.
+assert_contains "$out" 'ARG[git commit]'     "hgrep passes multi-word pattern as one grep argument"
+assert_not_contains "$out" 'ARG[commit]'      "hgrep: second pattern word must not become a separate argument"
+
+inner="$T_SCRATCH/recalls_inner.zsh"
+cat > "$inner" <<'EOF'
+fpath=("$1/.zsh/functions" $fpath)
+autoload -Uz recalls
+cat > "$HOME/.important_commands" <<'DATA'
+git status --short
+git commit --amend
+DATA
+recalls git commit
+recalls factorial nonsense >/dev/null 2>&1
+print -r -- "NOMATCH_RC=$?"
+EOF
+sb="$(make_sandbox_home)"
+out=$(HOME="$sb" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+assert_contains "$out" 'git commit --amend'  "recalls matches a multi-word pattern against the remember file"
+assert_not_contains "$out" 'git status'       "recalls: non-matching first word alone must not match"
+assert_not_contains "$out" 'No such file'     "recalls: pattern words must not be treated as filenames"
+assert_contains "$out" "NOMATCH_RC=1"        "recalls returns grep's no-match status for a missing pattern"
 
 t_finish

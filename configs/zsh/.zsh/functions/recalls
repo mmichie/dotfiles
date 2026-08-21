@@ -8,6 +8,8 @@ recalls() {
     if [[ $# -eq 0 ]]; then
         cat "$remember_file"
     else
-        grep -i "$@" "$remember_file"
+        # One joined pattern, like hgrep: "$@" made grep read word 2+ as
+        # extra filenames and the search never matched.
+        grep -i -- "$*" "$remember_file"
     fi
 }
