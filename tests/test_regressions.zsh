@@ -275,4 +275,59 @@ else
         "bat not in PATH, so 30-aliases.zsh defines no cat alias"
 fi
 
+# ── sudo interactive detection: flag-value false positive (lib/80-ssh.zsh)
+# Bug: the sudo() wrapper's `for arg in "$@"` loop checked every word
+# against -i|-s|su without skipping the value of -u.  `sudo -u su make`
+# falsely matched "su" (a username) as the interactive `su` command,
+# pinning a ⚠️ ROOT title on a non-interactive command.  Long forms
+# --login/--shell were also missed (false negative).
+#
+# The test exercises the REAL sudo() from 80-ssh.zsh (via run_sandbox_zsh,
+# which sources the full .zshrc with agent stubs).  _sudo_bin is stubbed
+# to echo and tmux is stubbed to capture the @is_root marker; the
+# interactive path sets it, the direct path does not.
+sb="$(make_sandbox_home)"
+out=$(run_sandbox_zsh "$sb" '
+typeset -g _sudo_bin=echo
+_tmux_root_set=0
+tmux() {
+    [[ "$1" == display-message ]] && { print -r -- "%1"; return 0 }
+    [[ "$1" == set-option ]] && {
+        for _a in "$@"; do
+            [[ "$_a" == "@is_root" ]] && _tmux_root_set=1
+        done
+    }
+    return 0
+}
+sudo -u su make
+print -r -- "ROOT_SU=$_tmux_root_set"
+_tmux_root_set=0
+sudo su
+print -r -- "ROOT_BARE=$_tmux_root_set"
+_tmux_root_set=0
+sudo --login
+print -r -- "ROOT_LOGIN=$_tmux_root_set"
+_tmux_root_set=0
+sudo --shell
+print -r -- "ROOT_SHELL=$_tmux_root_set"
+_tmux_root_set=0
+sudo echo su
+print -r -- "ROOT_ECHO_SU=$_tmux_root_set"
+_tmux_root_set=0
+sudo -g su make
+print -r -- "ROOT_G_SU=$_tmux_root_set"
+' TMUX=1 2>/dev/null)
+assert_contains     "$out" "ROOT_SU=0" \
+    "sudo -u su make does not mark root (su is a username, not interactive)"
+assert_contains     "$out" "ROOT_BARE=1" \
+    "sudo su marks root (interactive)"
+assert_contains     "$out" "ROOT_LOGIN=1" \
+    "sudo --login marks root (long form of -i, interactive)"
+assert_contains     "$out" "ROOT_SHELL=1" \
+    "sudo --shell marks root (long form of -s, interactive)"
+assert_contains     "$out" "ROOT_ECHO_SU=0" \
+    "sudo echo su does not mark root (su is a command arg, not interactive)"
+assert_contains     "$out" "ROOT_G_SU=0" \
+    "sudo -g su make does not mark root (su is a group value, not interactive)"
+
 t_finish

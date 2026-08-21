@@ -146,19 +146,28 @@ _tmux_emoji_get_command() {
             # strips to empty; $fallback restores it below.
             fallback="$first"
             [[ "$cmd" == "$first" ]] && cmd="" && break
-            cmd="${cmd[$(( ${#first} + 2 )),-1]}"
+            # Strip the first word + ALL following whitespace (not just one
+            # space): `sudo  make` with 2+ spaces left the remainder starting
+            # with spaces, and ${cmd%% *} below returned empty (dropping the
+            # emoji title for any command typed with extra whitespace).
+            cmd="${cmd[$(( ${#first} + 1 )),-1]}"
+            # Trim leading spaces without EXTENDED_GLOB (the test sources
+            # this module standalone, before 05-options sets it).
+            while [[ "$cmd" == " "* ]]; do cmd="${cmd# }"; done
             continue
         fi
         if (( had_wrapper )) && [[ "$first" == -* ]]; then
             [[ "$cmd" == "$first" ]] && cmd="" && break
-            cmd="${cmd[$(( ${#first} + 2 )),-1]}"
+            cmd="${cmd[$(( ${#first} + 1 )),-1]}"
+            while [[ "$cmd" == " "* ]]; do cmd="${cmd# }"; done
             # Valued option: drop its argument token as well.
             if [[ -n "${valued_flags[$last_wrapper]}" \
                 && " ${valued_flags[$last_wrapper]} " == *" $first "* \
                 && -n "$cmd" ]]; then
                 tok="${cmd%% *}"
                 [[ "$cmd" == "$tok" ]] && cmd="" && break
-                cmd="${cmd[$(( ${#tok} + 2 )),-1]}"
+                cmd="${cmd[$(( ${#tok} + 1 )),-1]}"
+                while [[ "$cmd" == " "* ]]; do cmd="${cmd# }"; done
             fi
             continue
         fi

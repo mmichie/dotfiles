@@ -145,8 +145,26 @@ _sudo_bin="${commands[sudo]:-sudo}"
 [[ -x /run/wrappers/bin/sudo ]] && _sudo_bin=/run/wrappers/bin/sudo
 sudo() {
     local is_interactive=0 arg
-    for arg in "$@"; do
-        case "$arg" in -i|-s|su) is_interactive=1; break ;; esac
+    local -a sudo_args=("$@")
+    local -i i
+    # Valued sudo options that consume the next arg (user, group, role,
+    # cwd, host, etc.).  Their values must not be mistaken for the `su`
+    # command or interactive flags.
+    local -a valued_opts=(-B -b -C -g -D -K -P -R -r -T -t -U -u -p \
+                          --group --user --role --type --other-user --chdir \
+                          --close-from --command-timeout --auth-type --host --prompt)
+    for (( i = 1; i <= ${#sudo_args}; i++ )); do
+        arg="${sudo_args[i]}"
+        case "$arg" in
+            -i|--login) is_interactive=1; break ;;
+            -s|--shell) is_interactive=1; break ;;
+            -*) ;;                  # other sudo flags: skip
+            *)  # first bare word is the command; `su` without args is interactive
+                [[ "$arg" == "su" ]] && is_interactive=1
+                break ;;
+        esac
+        # Valued option: skip its value so it isn't matched below.
+        (( ${valued_opts[(Ie)$arg]} )) && (( i++ ))
     done
 
     if [[ -z "$TMUX" || $is_interactive -eq 0 ]]; then

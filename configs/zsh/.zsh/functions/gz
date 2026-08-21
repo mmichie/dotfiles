@@ -6,6 +6,11 @@ gz() {
     fi
     local origsize=$(wc -c < "$1")
     local gzipsize=$(gzip -c "$1" | wc -c)
-    printf "orig: %d bytes\n" "$origsize"
-    printf "gzip: %d bytes (%2.2f%%)\n" "$gzipsize" "$(( gzipsize * 100.0 / origsize ))"
+    if (( origsize > 0 )); then
+        printf "orig: %d bytes\n" "$origsize"
+        printf "gzip: %d bytes (%2.2f%%)\n" "$gzipsize" "$(( gzipsize * 100.0 / origsize ))"
+    else
+        printf "orig: %d bytes\n" "$origsize"
+        printf "gzip: %d bytes (n/a)\n" "$gzipsize"
+    fi
 }

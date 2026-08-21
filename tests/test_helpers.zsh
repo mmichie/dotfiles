@@ -53,6 +53,14 @@ _tmux_emoji_get_command 'sudo -T 10 make';                print -r -- "C15=$REPL
 _tmux_emoji_get_command 'time --output file make';        print -r -- "C16=$REPLY"
 _tmux_emoji_get_command 'sudo --user=root make';          print -r -- "C17=$REPLY"
 _tmux_emoji_get_command 'sudo -r sysadm_r make';          print -r -- "C18=$REPLY"
+# Multi-space separation: the wrapper-stripping loop assumed exactly one
+# space between words; with 2+ spaces the remainder started with spaces and
+# ${cmd%% *} returned empty, dropping the emoji title for any command typed
+# with extra whitespace after a wrapper.
+_tmux_emoji_get_command 'sudo  make install';             print -r -- "C19=$REPLY"
+_tmux_emoji_get_command 'time  cargo build --release';    print -r -- "C20=$REPLY"
+_tmux_emoji_get_command 'nice  -n 5 cargo test';          print -r -- "C21=$REPLY"
+_tmux_emoji_get_command 'nice -n  5 cargo';               print -r -- "C22=$REPLY"
 EOF
 out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains "$out" "C1=make"    "strips sudo prefix"
@@ -73,6 +81,10 @@ assert_contains "$out" "C15=make"   "valued short option (sudo -T 10)"
 assert_contains "$out" "C16=make"   "valued long option (time --output file)"
 assert_contains "$out" "C17=make"   "joined long option (sudo --user=root)"
 assert_contains "$out" "C18=make"   "valued short option (sudo -r role, SELinux)"
+assert_contains "$out" "C19=make"   "multi-space after wrapper (sudo  make)"
+assert_contains "$out" "C20=cargo"  "multi-space after wrapper (time  cargo)"
+assert_contains "$out" "C21=cargo"  "multi-space after wrapper (nice  -n 5 cargo)"
+assert_contains "$out" "C22=cargo"  "multi-space after valued option (nice -n  5 cargo)"
 
 # ── _refresh_cache (lib/50-integrations.zsh) ─────────────────────────
 # Deterministic mtime ordering via touch -t (no sleeps, no same-second races).
@@ -441,5 +453,23 @@ assert_contains "$out" 'git commit --amend'  "recalls matches a multi-word patte
 assert_not_contains "$out" 'git status'       "recalls: non-matching first word alone must not match"
 assert_not_contains "$out" 'No such file'     "recalls: pattern words must not be treated as filenames"
 assert_contains "$out" "NOMATCH_RC=1"        "recalls returns grep's no-match status for a missing pattern"
+
+# ── gz: empty-file division by zero (functions/gz) ────────────────────
+# Bug: $(( gzipsize * 100.0 / origsize )) with origsize=0 produced "inf%"
+# instead of guarding the zero-division.
+inner="$T_SCRATCH/gz_inner.zsh"
+cat > "$inner" <<'EOF'
+fpath=("$1/.zsh/functions" $fpath)
+autoload -Uz gz
+: > "$2/empty"
+out=$(gz "$2/empty" 2>&1)
+print -r -- "GZ_OUT=$out"
+[[ "$out" == *inf* ]] && print -r -- "GZ_INF=yes"
+EOF
+typeset gzwork="$T_SCRATCH/gzwork"
+mkdir -p "$gzwork"
+out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$gzwork" 2>&1)
+assert_contains     "$out" "GZ_OUT="         "gz runs on empty file"
+assert_not_contains "$out" "GZ_INF"          "gz does not divide by zero on empty files (regression: inf%)"
 
 t_finish
