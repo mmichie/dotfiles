@@ -83,7 +83,10 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 sudo apt-get update && sudo apt-get install -y zsh openssh-client
 
 # 3. Clone
-git clone https://github.com/mmichie/dotfiles ~/src/dotfiles
+# --recurse-submodules matters: flake.nix sets `inputs.self.submodules = true`,
+#    so the vendored tmux plugins have to be present or the flake will not
+#    evaluate. bootstrap.sh initializes them too, if you forget.
+git clone --recurse-submodules https://github.com/mmichie/dotfiles ~/src/dotfiles
 cd ~/src/dotfiles
 
 # 4. Restore secrets, BEFORE the first switch and before opening a new shell.
