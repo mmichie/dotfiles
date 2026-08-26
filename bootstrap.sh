@@ -221,6 +221,33 @@ cd "$DOTFILES_DIR"
 # its PATH — the same reason the justfile uses `sudo "$(command -v ...)"`.
 sudo "$(command -v nix)" run nix-darwin -- switch --flake ".#${FLAKE_REF}"
 
+# ── Start the GUI background services ─────────────────────────────
+# The casks only install these apps; nothing launches them. Both register
+# their own login item on first run, so on a fresh machine they stay absent
+# until someone opens them by hand or logs out and back in -- no tiling and
+# no key remapping on the machine you just finished setting up. Karabiner
+# also needs a first run to prompt for Input Monitoring and its driver
+# extension approval, neither of which can be granted headlessly.
+#
+# Second argument is the process to test for, which is not always the app
+# name: Karabiner-Elements.app is the settings window, while
+# karabiner_console_user_server is the service that actually applies the
+# config, and that is what should decide whether there is work to do.
+start_app() {
+    local app="$1" proc="$2"
+    if [[ ! -d "/Applications/$app.app" ]]; then
+        echo "==> $app not installed, skipping (expected if Homebrew casks did not apply)"
+    elif pgrep -xq "$proc"; then
+        echo "==> $app already running"
+    else
+        echo "==> Starting $app"
+        open -a "$app"
+    fi
+}
+
+start_app AeroSpace AeroSpace
+start_app Karabiner-Elements karabiner_console_user_server
+
 echo ""
 echo "==> Done! Open a new terminal to pick up all changes."
 echo "    Future updates: just switch"
