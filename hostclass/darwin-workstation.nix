@@ -7,6 +7,8 @@
   home.packages = with pkgs; [
     pinentry_mac
     terminal-notifier
+    # mlx-lm is NOT here: nixpkgs builds mlx with -DMLX_BUILD_METAL=FALSE, so
+    # its mlx_lm runs entirely on the CPU. See modules/darwin/homebrew.nix.
   ];
 
   xdg.configFile."aerospace".source = mkLink "aerospace";

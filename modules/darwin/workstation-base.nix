@@ -30,6 +30,31 @@
     };
   };
 
+  # Raise the ceiling on how much unified memory Metal may wire, so local MLX
+  # models larger than the stock fraction of RAM stay resident. The sysctl is a
+  # cap, not a reservation -- nothing is preallocated -- and macOS resets it on
+  # every boot, which is why this is a daemon rather than a one-shot.
+  #
+  # Derived from hw.memsize instead of hardcoded: this module is shared by every
+  # macOS host, and a cap above a machine's physical RAM would let a model wire
+  # the box into a hang. Reserve 1/16 of RAM (8 GiB on a 128 GiB machine) for
+  # everything that is not the GPU, and leave hosts under 64 GiB on the default,
+  # where the stock fraction is already the right call.
+  #
+  # /usr/sbin/sysctl by absolute path: nixpkgs' procps ships a Linux sysctl that
+  # shadows it on PATH and does not speak Darwin's MIB.
+  launchd.daemons.iogpu-wired-limit = {
+    script = ''
+      total_mb=$(( $(/usr/sbin/sysctl -n hw.memsize) / 1048576 ))
+      [ "$total_mb" -ge 65536 ] || exit 0
+      exec /usr/sbin/sysctl iogpu.wired_limit_mb=$(( total_mb - total_mb / 16 ))
+    '';
+    serviceConfig = {
+      RunAtLoad = true;
+      StandardErrorPath = "/var/log/iogpu-wired-limit.log";
+    };
+  };
+
   nixpkgs.config.allowUnfree = true;
   nixpkgs.hostPlatform = "aarch64-darwin";
 

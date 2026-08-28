@@ -28,10 +28,26 @@ _:
 
     brews = [
       "dosbox-x" # nixpkgs build broken on aarch64-darwin (SCREEN_METAL undeclared in render.cpp)
-      # Muse Glimmer needs llama.cpp >= b10353. The pinned nixpkgs currently
-      # has b10273, while Homebrew has a compatible release. Move this back to
-      # packages-dev.nix once nixpkgs catches up.
-      "llama.cpp"
+      # Muse Glimmer needs llama.cpp >= b10353, which the pinned nixpkgs does
+      # not have. Pinned to HEAD rather than the stable bottle: architectures
+      # ship in llama.cpp master well before a tagged release, and the current
+      # stable (0.3.0, build 10621) knows nothing of `qwen4exp` — the arch
+      # behind Qwen3.8-Flash-Next. master carries it. HEAD is a source build
+      # and is unreleased by definition, so if Glimmer or an existing GGUF
+      # breaks after an upgrade, drop the args and take the bottle again.
+      # brew will not re-pull master on later runs without --fetch-HEAD.
+      {
+        name = "llama.cpp";
+        args = [ "HEAD" ];
+      }
+      # MLX with working Metal. nixpkgs pins -DMLX_BUILD_METAL=FALSE because
+      # compiling Metal shaders needs the Xcode toolchain, which the nix build
+      # sandbox does not have; its mlx_lm therefore falls back to the CPU and a
+      # 35B MoE wedges instead of running. Homebrew's mlx formula declares
+      # `depends_on xcode: [..., :build] # for metal` and vendors metal-cpp, so
+      # it builds the GPU backend. Measured on mim-moab: 101 tok/s on
+      # Ornith-1.5-35B-A3B 8-bit, against 16 tok/s CPU-only for a 0.5B model.
+      "mlx-lm"
       "mas" # Mac App Store CLI — required for the masApps below
       # tensor9ine/tensor9/tensor9 is declared in extraConfig below — it needs
       # `trusted: true`, which the brews list can't express.
