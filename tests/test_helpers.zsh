@@ -183,6 +183,31 @@ assert_contains "$out" "S5=host5" "ssh:// URL form stripped"
 assert_contains "$out" "S6=ssh"   "no destination falls back to plain ssh"
 assert_contains "$out" "S7=host7" "-B bind-interface value skipped (regression: titled the window en0)"
 
+# ── ssh wrapper: TERM translation + mode repair (lib/80-ssh.zsh) ─────
+# The wrapper must swap xterm-ghostty for a terminfo entry remotes have,
+# pass other TERMs through, preserve ssh's exit code, and never emit the
+# mode-reset escapes when stdout is not a tty (pipes would be corrupted).
+typeset ssh_stubdir="$T_SCRATCH/sshstub"
+make_stub "$ssh_stubdir" ssh $'echo "TERM_SEEN=$TERM"\nexit 42'
+out=$(run_sandbox_zsh "$sb_ssh" '
+path=("$STUBDIR" $path)
+TERM=xterm-ghostty ssh somehost
+print -r -- "RC=$?"
+TERM=xterm-ghostty ssh mim@wintermute
+TERM=tmux-256color ssh somehost
+modes="$(_ssh_reset_modes)"
+esc="$(printf "\e")"
+[[ "$modes" == *"${esc}[?1000l"* && "$modes" == *"${esc}[?1003l"* \
+&& "$modes" == *"${esc}[?1004l"* && "$modes" == *"${esc}[?1006l"* \
+&& "$modes" == *"${esc}[?25h"* ]] && print -r -- "MODES=ok"
+' STUBDIR="$ssh_stubdir" 2>/dev/null)
+assert_contains "$out" "TERM_SEEN=xterm-256color" "xterm-ghostty translated to xterm-256color for remotes"
+assert_contains "$out" "TERM_SEEN=xterm-ghostty"  "GHOSTTY_TERM_HOSTS host keeps the real TERM"
+assert_contains "$out" "TERM_SEEN=tmux-256color"  "other TERM values pass through untouched"
+assert_contains "$out" "RC=42"    "ssh exit code survives the wrapper"
+assert_contains "$out" "MODES=ok" "reset payload covers mouse, motion, focus, SGR, cursor"
+assert_not_contains "$out" $'\e[?1000l' "no escape spill when stdout is not a tty"
+
 # ── extract (autoloaded function) ────────────────────────────────────
 if have tar && have gzip; then
     inner="$T_SCRATCH/extract_inner.zsh"

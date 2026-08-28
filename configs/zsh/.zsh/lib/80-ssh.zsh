@@ -130,12 +130,40 @@ _ssh_title_host() {
     REPLY="${host:-ssh}"
 }
 
+# Undo terminal modes a remote session that died mid-app (broken pipe out
+# of tmux/vim) can never restore itself: kitty keyboard protocol (pop),
+# mouse tracking + SGR/urxvt encodings, focus reporting, bracketed paste,
+# hidden cursor. Left enabled, every mouse move types \e[<35;x;yM garbage
+# into the next prompt.
+_ssh_reset_modes() {
+    printf '\e[<u\e[?1000l\e[?1001l\e[?1002l\e[?1003l\e[?1004l\e[?1005l\e[?1006l\e[?1015l\e[?2004l\e[?25h'
+}
+
+# Hosts whose nix config ships ghostty's terminfo (homelab repo:
+# environment.enableAllTerminfo) — ssh sends them the real TERM, keeping
+# what xterm-256color lacks (undercurl, synchronized output).
+typeset -ga GHOSTTY_TERM_HOSTS=(wintermute homelab)
+
 # SSH wrapper to auto-rename tmux windows to hostname
 unalias ssh 2>/dev/null
 ssh() {
     local REPLY
     _ssh_title_host "$@"
-    _tmux_title_wrap "🔐 $REPLY" command ssh "$@"
+    # Remotes rarely carry ghostty's terminfo, and an unknown TERM breaks
+    # the login (NixOS set-environment errors on its TERM reload). Outside
+    # the allowlist above, send the plain entry instead — the translation
+    # ghostty's ssh-env integration would do if it could load here (it
+    # can't: windows run tmux-attach-or-new, not a shell ghostty detects,
+    # and this function would shadow its ssh wrapper anyway).
+    local term="$TERM"
+    if [[ "$term" == xterm-ghostty ]] && (( ! ${GHOSTTY_TERM_HOSTS[(Ie)$REPLY]} )); then
+        term=xterm-256color
+    fi
+    TERM="$term" _tmux_title_wrap "🔐 $REPLY" command ssh "$@"
+    local exit_code=$?
+    # Repair only a live tty — never spill escapes into a pipe or file.
+    [[ -t 1 ]] && _ssh_reset_modes
+    return $exit_code
 }
 
 # Sudo wrapper to warn about persistent root shells
