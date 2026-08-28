@@ -1,6 +1,6 @@
 {
-  "defaultProvider": "llama-cpp",
-  "defaultModel": "meta-models/Muse-Glimmer-30B-GGUF:Q4_K_M",
+  "defaultProvider": "openrouter",
+  "defaultModel": "anthropic/claude-fable-5",
   "defaultThinkingLevel": "low",
   "compaction": {
     "enabled": true,
