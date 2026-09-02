@@ -10,7 +10,7 @@
       },
       "models": [
         {
-          "id": "meta-models/Muse-Glimmer-30B-GGUF:Q4_K_M",
+          "id": "muse-glimmer-30B",
           "name": "Muse Glimmer 30B (Local)",
           "reasoning": true,
           "input": [
@@ -18,6 +18,38 @@
           ],
           "contextWindow": 8192,
           "maxTokens": 4096,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "qwen3.8-flash-next",
+          "name": "Qwen3.8 Flash-Next 177B (Local)",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144,
+          "maxTokens": 16384,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "deepseek-v4-flash",
+          "name": "DeepSeek V4 Flash 284B (Local)",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 65536,
+          "maxTokens": 16384,
           "cost": {
             "input": 0,
             "output": 0,
