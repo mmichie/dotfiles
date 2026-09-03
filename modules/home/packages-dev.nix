@@ -27,6 +27,19 @@
     delve
     golangci-lint
 
+    # Mutation testing: generate mutants from the AST, run the covering tests
+    # against each, report the SURVIVORS — changes to the code no test noticed.
+    # A green suite says the tests pass; this says whether they would notice if
+    # the code were wrong. Not in nixpkgs (see pkgs/gremlins).
+    gremlins
+
+    # CodeQL: global dataflow and taint queries over the whole codebase. The
+    # query shape it exists for here is "find a path from an entry point to a
+    # sink that does not pass through the guard" — the defect class that is
+    # invisible to review, unit tests and coverage alike, because it lives in
+    # the set of call sites rather than in any one file.
+    codeql
+
     # ── Development — Rust ─────────────────────────────────────────────
     cargo
     rustc
