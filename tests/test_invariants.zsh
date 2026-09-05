@@ -123,6 +123,22 @@ assert_contains "$out" "FPATH_DUPES=0"  "fpath has no duplicate entries"
 assert_contains "$out" "HIST_SIZED=1"   "HISTSIZE >= SAVEHIST (trim cushion holds)"
 assert_contains "$out" "COLLIDE=[]"     "no name is both an alias and a function"
 
+# .zshenv builds the per-user profile PATH entry from the account name.
+# USER is environment and absent under launchd agents, cron and env -i;
+# zsh's own USERNAME (real uid) is set in every shell. Regression: the
+# entry became /etc/profiles/per-user//bin. The sandbox normally injects
+# USER, so it is filtered here.
+_sandbox_env_args "$sb"
+reply=(${reply:#USER=*})
+out=$(env -i "${reply[@]}" zsh --no-globalrcs -i -c '
+typeset -a dbl=(${(M)path:#*//*})
+print -r -- "NOUSER_DOUBLESLASH=${#dbl}"
+print -r -- "NOUSER_PERUSER=${path[(r)/etc/profiles/per-user/*]}"
+' </dev/null 2>/dev/null)
+assert_contains "$out" "NOUSER_DOUBLESLASH=0" "PATH has no empty segment when USER is unset"
+assert_contains "$out" "NOUSER_PERUSER=/etc/profiles/per-user/$USERNAME/bin" \
+    "per-user profile entry follows the account name when USER is unset"
+
 # ── Reload fixed point: source^2 == source^3 ─────────────────────────
 # The FIRST re-source may legitimately differ from the boot state
 # (compinit binds its ^X widgets into whichever keymap is main at run

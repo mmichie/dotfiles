@@ -33,7 +33,10 @@ setup_path() {
 
         # Nix profile paths
         "$HOME/.nix-profile/bin"
-        "/etc/profiles/per-user/${USER}/bin"
+        # USERNAME, not USER: zsh sets USERNAME from the real uid in every
+        # shell; USER is environment and absent under launchd agents, cron
+        # and env -i, where this entry became per-user//bin.
+        "/etc/profiles/per-user/${USERNAME}/bin"
         "/run/wrappers/bin"
         "/run/current-system/sw/bin"
         "/nix/var/nix/profiles/default/bin"
