@@ -14,6 +14,9 @@
 #     function at the prompt while scripts get the function — divergence)
 #   - no function creates an undeclared global (WARN_CREATE_GLOBAL sweep,
 #     including the per-command preexec/precmd hot paths)
+#   - cached tool-init generators are pure functions of their fingerprint:
+#     the recorded command produces identical output with and without the
+#     config's exports in the environment
 
 source "${0:A:h}/lib.zsh"
 
@@ -203,5 +206,59 @@ if (( ${#leaks} == 0 )); then
 else
     t_fail "no config function creates an undeclared global" "${(j: | :)leaks}"
 fi
+
+# ── Cached generators read nothing their fingerprint cannot see ──────
+# Line 1 of each .dep sidecar is the exact command _write_cache ran. Run it
+# again twice in a booted shell: once as-is, with every export the config
+# makes present (a shell that inherited them from a parent), and once with
+# every export but a fixed baseline removed (the first shell on a fresh
+# machine). Any difference is output shaped by ambient environment, which
+# neither the command string nor the resolved binary path records, so the
+# cache would freeze on whichever variant happened to be generated first.
+# Regression: `zoxide init zsh` baked _ZO_ECHO and _ZO_RESOLVE_SYMLINKS in,
+# and export order decided which variant a machine got. The baseline is
+# what the sandbox itself injects plus zsh's own specials; unset failures
+# on read-only specials are ignored.
+typeset gen_sb=''
+gen_sb="$(make_sandbox_home)"
+run_sandbox_zsh "$gen_sb" 'exit' >/dev/null 2>&1
+out=$(run_sandbox_zsh "$gen_sb" '
+    typeset -a keep=(PATH HOME TERM TMPDIR USER LOGNAME SHLVL PWD OLDPWD
+                     INFLUX_SHOWN CHEVRON_DISABLE SSH_AUTH_SOCK
+                     __NIX_DARWIN_SET_ENVIRONMENT_DONE __NIXOS_SET_ENVIRONMENT_DONE)
+    typeset dep cmd full bare v
+    for dep in "$SHELL_CACHE_DIR"/*.dep(N); do
+        cmd="${${(f)$(<"$dep")}[1]}"
+        full="$(eval "$cmd" 2>/dev/null)"
+        bare="$(
+            for v in ${(k)parameters[(R)*export*]}; do
+                (( ${keep[(Ie)$v]} )) || unset "$v" 2>/dev/null
+            done
+            eval "$cmd" 2>/dev/null
+        )"
+        if [[ "$full" == "$bare" ]]; then
+            print -r -- "GEN_SAME=${${dep:t}%%.*}"
+        else
+            print -r -- "GEN_DIFF=${${dep:t}%%.*}|$(diff <(print -r -- "$full") <(print -r -- "$bare") | head -n 6 | tr "\n" "~")"
+        fi
+    done
+' 2>/dev/null)
+typeset -a gen_lines
+gen_lines=(${(M)${(f)out}:#GEN_(SAME|DIFF)=*})
+if (( ${#gen_lines} == 0 )); then
+    t_skip "cached generators are environment-independent" \
+        "no cached generators in sandbox (no tools)"
+fi
+typeset l gen_name
+for l in "${gen_lines[@]}"; do
+    case "$l" in
+        GEN_SAME=*)
+            t_pass "${l#GEN_SAME=} output does not depend on ambient environment" ;;
+        GEN_DIFF=*)
+            gen_name="${${l#GEN_DIFF=}%%|*}"
+            t_fail "$gen_name output does not depend on ambient environment" \
+                "${${l#*|}//\~/ | }" ;;
+    esac
+done
 
 t_finish
