@@ -354,4 +354,42 @@ else
     t_skip "zoxide init generation-time env" "zoxide not in PATH"
 fi
 
+# ── Suffix alias opener per platform (lib/30-aliases.zsh) ───────────
+# Bug: the image and HTML suffix aliases were hard-coded to `open`, which
+# exists only on macOS: Debian-family Linux ships that name as openvt
+# (console switching) and NixOS has none, so `foo.png` at a Linux prompt
+# ran the wrong program or nothing. The opener is chosen per platform
+# (open on macOS, xdg-open elsewhere) and the aliases are skipped when no
+# opener is installed. Platform is pinned through SYSTEM_OS_TYPE, which
+# is_osx reads, so every branch runs on every host; PATH is pinned to a
+# stub dir so xdg-open's presence is controlled, not inherited.
+typeset xdgdir="$T_SCRATCH/xdgbin" emptydir="$T_SCRATCH/emptybin"
+make_stub "$xdgdir" xdg-open
+mkdir -p "$emptydir"
+sb="$(make_sandbox_home)"
+out=$(run_sandbox_zsh "$sb" '
+typeset -a saved_path=("$path[@]")
+unalias -s gif jpg jpeg png html htm 2>/dev/null
+SYSTEM_OS_TYPE=LINUX
+path=("$EMPTYDIR"); rehash
+source "$SHELL_LIB_DIR/30-aliases.zsh"
+print -r -- "OPENER_LINUX_NONE=${+saliases[png]}${+saliases[html]}"
+unalias -s gif jpg jpeg png html htm 2>/dev/null
+path=("$XDGDIR" "$EMPTYDIR"); rehash
+source "$SHELL_LIB_DIR/30-aliases.zsh"
+print -r -- "OPENER_LINUX_XDG=${saliases[png]}/${saliases[html]}"
+unalias -s gif jpg jpeg png html htm 2>/dev/null
+SYSTEM_OS_TYPE=OSX
+source "$SHELL_LIB_DIR/30-aliases.zsh"
+print -r -- "OPENER_OSX=${saliases[png]}/${saliases[html]}"
+[[ ${saliases[md]} == $EDITOR ]] && print -r -- "OPENER_MD_EDITOR=yes"
+path=("$saved_path[@]")
+' XDGDIR="$xdgdir" EMPTYDIR="$emptydir" 2>/dev/null)
+assert_contains "$out" "OPENER_LINUX_NONE=00" \
+    "Linux without xdg-open defines no image/HTML suffix aliases (regression: bound to macOS open)"
+assert_contains "$out" "OPENER_LINUX_XDG=xdg-open/xdg-open" \
+    "Linux with xdg-open binds image/HTML suffixes to it"
+assert_contains "$out" "OPENER_OSX=open/open" "macOS binds image/HTML suffixes to open"
+assert_contains "$out" "OPENER_MD_EDITOR=yes" "text suffixes open in \$EDITOR on every platform"
+
 t_finish

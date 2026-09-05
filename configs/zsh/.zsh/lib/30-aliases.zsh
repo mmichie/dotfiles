@@ -55,10 +55,22 @@ setup_aliases() {
     alias -- -='cd -'
     alias path='echo -e ${PATH//:/\\n}'
 
-    # Suffix aliases
+    # Suffix aliases: `foo.md` opens in $EDITOR; images and HTML go to the
+    # platform opener. `open` is macOS-only (Debian-family Linux ships the
+    # name as openvt, NixOS has none), so Linux uses xdg-open and defines
+    # nothing when no opener is installed rather than binding `foo.png` to
+    # a command that cannot exist.
     alias -s {txt,md,markdown,rst}=$EDITOR
-    alias -s {gif,jpg,jpeg,png}='open'
-    alias -s {html,htm}='open'
+    local opener=''
+    if is_osx; then
+        opener=open
+    elif (( $+commands[xdg-open] )); then
+        opener=xdg-open
+    fi
+    if [[ -n "$opener" ]]; then
+        alias -s {gif,jpg,jpeg,png}="$opener"
+        alias -s {html,htm}="$opener"
+    fi
 }
 
 # Numeric directory-stack jumps: type `1`, `2`, ..., `5` to cd -1, cd -2, etc.
