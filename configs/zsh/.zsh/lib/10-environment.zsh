@@ -48,7 +48,10 @@ setup_environment() {
     # re-apply on macOS login — that's done directly in .zshrc.
 
     # ── Locale ───────────────────────────────────────────────────
-    export LC_ALL="en_US.UTF-8"
+    # LANG only, never LC_ALL: LC_ALL overrides every LC_* category, so
+    # exporting it made any downstream per-category setting (LC_COLLATE=C
+    # for byte-order sort, LC_TIME) a silent no-op. Functions that need C
+    # byte semantics set a local LC_ALL themselves.
     export LANG="en_US.UTF-8"
     export TZ="America/Los_Angeles"
 
