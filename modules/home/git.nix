@@ -9,6 +9,7 @@
   home.file = {
     ".gitconfig".source = mkLink "git/.gitconfig";
     ".gitignore_global".source = mkLink "git/.gitignore_global";
+    ".config/git/allowed_signers".source = mkLink "git/allowed_signers";
   }
   // lib.optionalAttrs config.my.isWork {
     ".gitconfig-kyusu-local".source = mkLink "git/.gitconfig-kyusu-local";

@@ -30,12 +30,66 @@
 
 [gpg "ssh"]
 	program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
+	# Verification half of signing: verify-commit and log --show-signature
+	# need the signer list; without it every signature is "no principal".
+	# Deployed from configs/git/allowed_signers by modules/home/git.nix.
+	allowedSignersFile = ~/.config/git/allowed_signers
 
 [commit]
 	gpgsign = true
+	# Diff below the message in the editor: catches the wrong hunks staged
+	# before they are committed. No effect on -m / -F commits.
+	verbose = true
 
 [push]
 	autoSetupRemote = true
+	# --force-with-lease (the pf alias) with no explicit expected value trusts
+	# the remote-tracking ref, which any background fetch refreshes; this
+	# additionally requires that the remote tip was integrated locally.
+	useForceIfIncludes = true
+	# submodule.recurse below would otherwise turn push into on-demand
+	# recursion, attempting to push the vendored plugin repos upstream.
+	recurseSubmodules = no
+
+[pull]
+	# `git pull` refuses unless it can fast-forward. The old `pull = pull
+	# --ff-only` alias never applied: git ignores aliases named after
+	# builtins, so pulls ran with no protection at all.
+	ff = only
+
+[rebase]
+	# Interactive rebase aborts if a pick line was deleted, instead of
+	# silently dropping the commit.
+	missingCommitsCheck = error
+	# Stacked branches: refs pointing into the rebased range move with it.
+	updateRefs = true
+	autoSquash = true
+
+[transfer]
+	# Verify objects on fetch and clone. An upstream with historical
+	# malformed objects trips this; whitelist per message id with
+	# fetch.fsck.<id> = ignore rather than switching it off.
+	fsckObjects = true
+
+[fetch]
+	prune = true
+	# Explicit: submodule.recurse would otherwise make every fetch recurse
+	# unconditionally into all vendored plugins; on-demand fetches them only
+	# when the superproject's recorded commit moved.
+	recurseSubmodules = on-demand
+
+[rerere]
+	# Reuse recorded conflict resolutions (repeat rebases onto master, an
+	# aborted and redone rebase, the same fix cherry-picked to a release
+	# branch). autoUpdate stages the replay; git rerere forget <path> undoes
+	# a bad recording.
+	enabled = true
+	autoUpdate = true
+
+[submodule]
+	# checkout, pull, reset and switch keep the vendored tmux plugins at
+	# their recorded commits; the flake needs them present to evaluate.
+	recurse = true
 
 [diff "nodiff"]
 	command = /usr/bin/true
@@ -64,7 +118,10 @@
 
 	# Logging
 	graph = log --branches --pretty=short --decorate --graph
-	history = log --stat --patch --
+	# hist, not history: git history is a builtin (as of git 2.55), and git
+	# ignores aliases named after builtins, so the old name silently ran
+	# the builtin instead of this log.
+	hist = log --stat --patch --
 	l = log --pretty=oneline --abbrev-commit --max-count=18
 	ll = log --pretty=oneline --abbrev-commit
 	gl = log --graph --all --decorate --oneline
@@ -83,8 +140,6 @@
 	po = push origin
 	pu = push upstream
 
-	# Safe pull - fast-forward only
-	pull = pull --ff-only
 	up = merge --ff-only
 	rom = rebase origin/master
 
@@ -95,14 +150,10 @@
 
 [difftool "sourcetree"]
 	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
-	path =
 
 [mergetool "sourcetree"]
 	cmd = /Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
     trustExitCode = true
-
-#[includeIf "gitdir:~/src/Prime/"]
-	path = ~/.gitconfig-prime-local
 
 [includeIf "gitdir:~/src/tensor9.com-v2/"]
 	path = ~/.gitconfig-prime-local

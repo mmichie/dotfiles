@@ -161,6 +161,11 @@
                 # bat arms the `cat` alias in 30-aliases.zsh, which the
                 # clipboard alias-expansion regression exists to exercise.
                 pkgs.bat
+                # git and ssh-keygen drive test_git.zsh: the config must parse
+                # under the deployed git, no alias may shadow a builtin, and ssh
+                # signing must round-trip. git also un-skips the sops gate test.
+                pkgs.git
+                pkgs.openssh
               ];
             }
             ''

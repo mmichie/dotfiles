@@ -1,0 +1,6 @@
+# ssh allowed signers for git signature verification (gpg.ssh.allowedSignersFile).
+# principal = the committer email; namespaces="git" limits the key to git
+# signatures. Public keys only. Keep in step with user.signingkey in
+# .gitconfig and .gitconfig-kyusu-local (tests/test_git.zsh checks that).
+mmichie@gmail.com namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEUwxYQhqytNcE3C2yjoY67vOZcSDEX+o2kWXBPznRNq
+matt@trymoab.com namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGQk+zDMOmeuLZaB47ZXrfphGCMcE3hJQKC+r8cq55CX
