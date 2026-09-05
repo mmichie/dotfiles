@@ -248,15 +248,26 @@ setup_integrations() {
 # function in $SHELL_FUNCTIONS_DIR.
 setup_zoxide() {
     command -v zoxide &>/dev/null || return
-    # Gated on the init, like every other integration here: without the
-    # sourced init there is no zi widget, and an unconditional cdi alias
-    # would answer "command not found: zi" instead of degrading to a clean
-    # absence.
-    _init_from_cache "$SHELL_CACHE_DIR/zoxide-init.zsh" \
-        'zoxide init zsh' "$commands[zoxide]" || return
+    # _ZO_ECHO and _ZO_RESOLVE_SYMLINKS are read by `zoxide init` at
+    # GENERATION time and baked into the script it emits (pwd -P vs -L,
+    # the matched-dir echo after cd); the emitted functions never consult
+    # them. Exported BEFORE the init, and carried in the command string so
+    # the cached script cannot depend on what the ambient environment
+    # happened to inherit and the .dep fingerprint sees them. Exporting
+    # after the init cached the silent pwd -L variant in any shell that
+    # did not already inherit the exports, and the fingerprint (command +
+    # binary path) could not tell the two apart. _ZO_DATA_DIR is read at
+    # call time by the binary, so its position is immaterial.
     export _ZO_ECHO=1                                                  # Print matched dir before cd
     export _ZO_RESOLVE_SYMLINKS=1                                      # Resolve symlinks to true path
     export _ZO_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zoxide"
+    # cdi is gated on the init, like every other integration here: without
+    # the sourced init there is no zi widget, and an unconditional alias
+    # would answer "command not found: zi" instead of degrading to a clean
+    # absence.
+    _init_from_cache "$SHELL_CACHE_DIR/zoxide-init.zsh" \
+        "_ZO_ECHO=$_ZO_ECHO _ZO_RESOLVE_SYMLINKS=$_ZO_RESOLVE_SYMLINKS zoxide init zsh" \
+        "$commands[zoxide]" || return
     alias cdi="zi"                                                     # Interactive directory selection
 }
 

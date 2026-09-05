@@ -1,5 +1,5 @@
 #!/usr/bin/env zsh
-# Regression tests pinning bugs fixed in the 2026-06 and 2026-07 zsh
+# Regression tests pinning bugs fixed in the 2026-06, 2026-07 and 2026-09 zsh
 # correctness reviews.
 # (The _parse_env_file and arrow-binding regressions live in their own files.)
 
@@ -329,5 +329,29 @@ assert_contains     "$out" "ROOT_ECHO_SU=0" \
     "sudo echo su does not mark root (su is a command arg, not interactive)"
 assert_contains     "$out" "ROOT_G_SU=0" \
     "sudo -g su make does not mark root (su is a group value, not interactive)"
+
+# ── zoxide init generation-time env (lib/50-integrations.zsh) ────────
+# Bug: setup_zoxide exported _ZO_ECHO and _ZO_RESOLVE_SYMLINKS AFTER
+# running `zoxide init zsh`, but zoxide reads both while GENERATING its
+# script and bakes them in (pwd -P vs -L, the matched-dir echo after cd);
+# the emitted functions never consult them. A shell that did not already
+# inherit the exports cached the silent pwd -L variant, and the .dep
+# fingerprint (command string + resolved binary) could not tell the two
+# apart, so it stuck until zoxide's store path moved. The sandbox boots
+# under env -i, which is exactly the no-inheritance case; the assertions
+# read the functions the shell actually loaded, not the file on disk.
+if have zoxide; then
+    sb="$(make_sandbox_home)"
+    out=$(run_sandbox_zsh "$sb" '
+        print -r -- "ZO_PWD=${functions[__zoxide_pwd]//[[:space:]]/ }"
+        print -r -- "ZO_CD=${functions[__zoxide_cd]//[[:space:]]/ }"
+    ' 2>/dev/null)
+    assert_contains "$out" '\builtin pwd -P' \
+        "zoxide init sees _ZO_RESOLVE_SYMLINKS at generation (regression: exported after init)"
+    assert_contains "$out" 'cd -- "$@" && __zoxide_pwd' \
+        "zoxide init sees _ZO_ECHO at generation: cd echoes the matched dir (regression)"
+else
+    t_skip "zoxide init generation-time env" "zoxide not in PATH"
+fi
 
 t_finish
