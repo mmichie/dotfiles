@@ -148,6 +148,29 @@ run_sandbox_zsh() {
     env -i "${reply[@]}" "$@" zsh --no-globalrcs -i -c "$cmd" </dev/null
 }
 
+# run_under_pty <argv...>
+# Run argv with a pseudo-terminal on its stdio (zsh/zpty) and print what it
+# wrote, CRs stripped. run_sandbox_zsh captures stdout and feeds /dev/null,
+# so it can never exercise behavior gated on a tty (the banner). argv goes
+# through a global + exec rather than zpty's own command words: zpty joins
+# those with spaces and re-parses the result as shell code, so any quoted
+# command string would be split and re-expanded by the pty child. Returns 1
+# when no pty could be allocated (module missing, a build sandbox denying
+# /dev/ptmx); callers should t_skip on that. Reads block until the child
+# exits and its output is drained; a hung child is bounded by run.zsh's
+# per-file timeout.
+typeset -ga _T_PTY_ARGV
+_t_pty_exec() { exec "${_T_PTY_ARGV[@]}"; }
+run_under_pty() {
+    zmodload zsh/zpty 2>/dev/null || return 1
+    _T_PTY_ARGV=("$@")
+    zpty t_pty _t_pty_exec 2>/dev/null || return 1
+    local chunk out=''
+    while zpty -r t_pty chunk; do out+="$chunk"; done
+    zpty -d t_pty
+    print -rn -- "${out//$'\r'/}"
+}
+
 # make_stub <dir> <name> [body]
 # Create an executable /bin/sh stub. Default body is "exit 0".
 make_stub() {

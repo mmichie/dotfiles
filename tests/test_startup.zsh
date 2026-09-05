@@ -97,45 +97,68 @@ else
     t_fail "reload stderr clean" "${(j: | :)noise}"
 fi
 
-# ── Banner stamp: shown at most once per interval ────────────────────
+# ── Banner stamp: shown at most once per interval, and only on a tty ──
 # Needs gum (the banner gate); skipped on minimal environments. INFLUX_SHOWN
 # is filtered from the env vector rather than overridden — macOS env(1)
 # serves the FIRST of duplicate bindings, so appending INFLUX_SHOWN= would
 # silently lose.
 if have gum; then
     typeset sb2='' out2='' nest=''
+
+    # Captured stdout is not a terminal. The banner is terminal graphics and
+    # the tip is for a human at a prompt, so a scripted `zsh -i` (an editor
+    # plugin, a `zsh -ic` probe) must get its own output back untouched and
+    # must not consume the hourly slot the next real terminal is owed.
+    # Regression: the gate checked only INFLUX_SHOWN, gum and the stamp age;
+    # a captured `zsh -ic` received 1.4MB of kitty-graphics escapes.
     sb2="$(make_sandbox_home)"
-    # The banner boot starts in a nested directory: 30-aliases.zsh once
-    # aliased `:` to "cd ..", which was live when 90-banner.zsh was PARSED,
-    # so writing the stamp with a bare `:` compiled to `cd ..` and moved the
-    # first shell of every hour to the parent of wherever it started. The
-    # alias is gone; this pins PWD stability against any successor (an
-    # earlier-parsed module or ~/.zshrc.local can recreate the hazard).
-    # PWD is compared
-    # through :A on both sides — macOS resolves the sandbox's /var prefix to
+    _sandbox_env_args "$sb2"
+    reply=(${reply:#INFLUX_SHOWN=*})
+    out2=$(env -i "${reply[@]}" zsh --no-globalrcs -i -c 'print -r -- M_NOTTY' 2>/dev/null </dev/null)
+    assert_eq "$out2" "M_NOTTY" "no banner or tip when stdout is not a terminal"
+    if [[ -f "$sb2/.cache/zsh/banner-stamp" ]]; then
+        t_fail "non-tty boot leaves the banner slot unconsumed" \
+            "stamp written by a shell that could not have shown the banner"
+    else
+        t_pass "non-tty boot leaves the banner slot unconsumed"
+    fi
+
+    # The display path proper needs a real terminal: zsh/zpty lends the boot
+    # one (run_under_pty). The banner boot starts in a nested directory:
+    # 30-aliases.zsh once aliased `:` to "cd ..", which was live when
+    # 90-banner.zsh was PARSED, so writing the stamp with a bare `:`
+    # compiled to `cd ..` and moved the first shell of every hour to the
+    # parent of wherever it started. The alias is gone; this pins PWD
+    # stability against any successor (an earlier-parsed module or
+    # ~/.zshrc.local can recreate the hazard). PWD is compared through :A
+    # on both sides — macOS resolves the sandbox's /var prefix to
     # /private/var when the shell fills in $PWD from getcwd().
+    sb2="$(make_sandbox_home)"
     nest="$sb2/nest/deep"
     mkdir -p "$nest"
     _sandbox_env_args "$sb2"
     reply=(${reply:#INFLUX_SHOWN=*})
-    out2=$(cd "$nest" && env -i "${reply[@]}" T_NEST="$nest" zsh --no-globalrcs -i -c \
+    out2=$(cd "$nest" && run_under_pty env -i "${reply[@]}" T_NEST="$nest" zsh --no-globalrcs -i -c \
         'print -r -- "BANNER_PWD=$([[ ${PWD:A} == ${T_NEST:A} ]] && print -rn kept || print -rn "moved to $PWD")"
-         print -r -- "STAMP_AT_EXIT=$([[ -f $HOME/.cache/zsh/banner-stamp ]] && print -rn yes || print -rn no)"' \
-        2>"$T_SCRATCH/banner.err" </dev/null)
-    assert_contains "$out2" "Daily Tip" "banner+tip shown on first shell"
-    assert_contains "$out2" "STAMP_AT_EXIT=yes" "stamp exists inside the boot that wrote it"
-    assert_contains "$out2" "BANNER_PWD=kept" \
-        "the banner boot leaves \$PWD alone (regression: the stamp write cd'd up)"
-    if [[ -f "$sb2/.cache/zsh/banner-stamp" ]]; then
-        t_pass "banner stamp written"
+         print -r -- "STAMP_AT_EXIT=$([[ -f $HOME/.cache/zsh/banner-stamp ]] && print -rn yes || print -rn no)"')
+    if (( $? != 0 )); then
+        t_skip "banner display on a tty" "no pseudo-terminal available (zsh/zpty)"
     else
-        t_fail "banner stamp written" "missing; cache dir: [$(ls -A $sb2/.cache/zsh 2>&1 | tr '\n' ' ')] stderr: [$(<$T_SCRATCH/banner.err)]"
+        assert_contains "$out2" "Daily Tip" "banner+tip shown on first shell with a tty"
+        assert_contains "$out2" "STAMP_AT_EXIT=yes" "stamp exists inside the boot that wrote it"
+        assert_contains "$out2" "BANNER_PWD=kept" \
+            "the banner boot leaves \$PWD alone (regression: the stamp write cd'd up)"
+        if [[ -f "$sb2/.cache/zsh/banner-stamp" ]]; then
+            t_pass "banner stamp written"
+        else
+            t_fail "banner stamp written" "missing; cache dir: [$(ls -A $sb2/.cache/zsh 2>&1 | tr '\n' ' ')]"
+        fi
+        out2=$(run_under_pty env -i "${reply[@]}" zsh --no-globalrcs -i -c exit)
+        assert_not_contains "$out2" "Daily Tip" "banner suppressed while stamp is fresh"
+        touch -t 200001010000 "$sb2/.cache/zsh/banner-stamp"
+        out2=$(run_under_pty env -i "${reply[@]}" zsh --no-globalrcs -i -c exit)
+        assert_contains "$out2" "Daily Tip" "banner returns after stamp expires"
     fi
-    out2=$(env -i "${reply[@]}" zsh --no-globalrcs -i -c exit 2>/dev/null </dev/null)
-    assert_not_contains "$out2" "Daily Tip" "banner suppressed while stamp is fresh"
-    touch -t 200001010000 "$sb2/.cache/zsh/banner-stamp"
-    out2=$(env -i "${reply[@]}" zsh --no-globalrcs -i -c exit 2>/dev/null </dev/null)
-    assert_contains "$out2" "Daily Tip" "banner returns after stamp expires"
 else
     t_skip "banner stamp behavior" "gum not in PATH"
 fi

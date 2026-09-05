@@ -7,7 +7,14 @@
 # (tests, scripted shells). Numbered last: notify_shell_status comes from
 # 60-prompt.zsh, and `tips` relies on the autoload registrations .zshrc
 # does before the module loop.
-if [[ -z "$INFLUX_SHOWN" ]] && command -v gum &>/dev/null; then
+# -t 1: only when stdout is a terminal. The banner is terminal graphics and
+# the tip is for a human at a prompt; an interactive shell with captured
+# stdout (an editor plugin's `zsh -i`, a `zsh -ic` probe) would otherwise
+# get the bytes in its own output (1.4MB of kitty-graphics escapes,
+# observed) and, because the stamp is written before display, consume the
+# hourly slot the next real terminal was owed. Checked ahead of the stamp
+# glob for that reason.
+if [[ -z "$INFLUX_SHOWN" && -t 1 ]] && command -v gum &>/dev/null; then
     _banner_recent=("$SHELL_CACHE_DIR/banner-stamp"(N.ms-${BANNER_INTERVAL:-3600}))
     if (( ${#_banner_recent} == 0 )); then
         # Not exported: this only has to suppress a re-source in THIS shell.
