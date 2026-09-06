@@ -9,6 +9,9 @@
 #   - the safety settings are present with the expected values
 #   - every signing identity has an allowed_signers entry, so signatures
 #     made with the shipped config can also be verified with it
+#   - identity is per tree and never guessed: no global user.*, ~/src gets
+#     the personal identity by includeIf with the work trees overriding it,
+#     and useConfigOnly refuses a commit anywhere unmatched
 #   - ssh signing round-trips: a commit signed through this config verifies
 #     against an allowed_signers naming the key and fails against one
 #     without it
@@ -79,10 +82,76 @@ done
 assert_eq "$(gc --get gpg.ssh.allowedSignersFile 2>/dev/null)" "~/.config/git/allowed_signers" \
     "gpg.ssh.allowedSignersFile points at the deployed allowed_signers"
 
+# ── Identity: per tree, never guessed ────────────────────────────────
+# No global user.*; ~/src/ gets the personal identity via includeIf, the
+# work trees after it override, and useConfigOnly turns a commit anywhere
+# unmatched into "no email was given" instead of a silent user@host guess.
+# Include order is precedence: the personal default must come first.
+typeset PERSONAL="$REPO_ROOT/configs/git/.gitconfig-personal"
+typeset KYUSU="$REPO_ROOT/configs/git/.gitconfig-kyusu-local"
+assert_eq "$(gc --get user.useConfigOnly 2>/dev/null)" "true" "user.useConfigOnly = true"
+typeset -a global_ident
+global_ident=(${(f)"$(gc --get-regexp '^user\.(name|email|signingkey)$' 2>/dev/null)"})
+if (( ${#global_ident} == 0 )); then
+    t_pass "no global user.name/email/signingkey (identity comes from includes)"
+else
+    t_fail "no global user.name/email/signingkey (identity comes from includes)" "${(j: | :)global_ident}"
+fi
+typeset -a incl
+incl=(${(f)"$(gc --get-regexp '^includeif\.gitdir:.*\.path$' 2>/dev/null)"})
+if [[ "${incl[1]}" == 'includeif.gitdir:~/src/.path ~/.gitconfig-personal' ]]; then
+    t_pass "first includeIf is the personal default for ~/src/"
+else
+    t_fail "first includeIf is the personal default for ~/src/" "first: ${incl[1]:-none}"
+fi
+if [[ -f "$PERSONAL" ]]; then
+    t_pass "configs/git/.gitconfig-personal exists"
+else
+    t_fail "configs/git/.gitconfig-personal exists" "missing"
+fi
+
+# Behavioral: a scratch HOME laid out like the real one. HOME is realpath'd
+# (:A) because includeIf compares the pattern's expanded ~ against the
+# discovered .git path, and macOS's /var -> /private/var symlink would
+# otherwise defeat the match. env -i: a GIT_AUTHOR_EMAIL or
+# GIT_COMMITTER_EMAIL inherited from the caller counts as a configured
+# identity and would mask useConfigOnly.
+typeset H="${T_SCRATCH:A}/identhome"
+mkdir -p "$H/src/personal" "$H/src/moab/core" "$H/elsewhere" "$H/nohooks"
+[[ -f "$PERSONAL" ]] && cp "$PERSONAL" "$H/.gitconfig-personal"
+cp "$KYUSU" "$H/.gitconfig-kyusu-local"
+gi() {
+    env -i PATH="$PATH" HOME="$H" GIT_CONFIG_GLOBAL="$GITCONF" GIT_CONFIG_NOSYSTEM=1 \
+        git -c commit.gpgsign=false -c core.hooksPath="$H/nohooks" "$@"
+}
+typeset d
+for d in src/personal src/moab/core elsewhere; do gi init -q "$H/$d" 2>/dev/null; done
+assert_eq "$(gi -C "$H/src/personal" config --get user.email 2>/dev/null)" "mmichie@gmail.com" \
+    "a ~/src tree resolves the personal identity"
+assert_eq "$(gi -C "$H/src/moab/core" config --get user.email 2>/dev/null)" "matt@trymoab.com" \
+    "a ~/src/moab tree resolves the work identity"
+assert_eq "$(gi -C "$H/src/moab/core" config --get user.signingkey 2>/dev/null)" \
+    "$(git config --file "$KYUSU" --get user.signingkey)" "the work tree signs with the work key"
+assert_eq "$(gi -C "$H/elsewhere" config --get user.email 2>/dev/null)" "" "an unmatched tree has no identity"
+if gi -C "$H/src/personal" commit -q --allow-empty -m probe 2>/dev/null; then
+    t_pass "commit in a ~/src tree succeeds on the included identity"
+else
+    t_fail "commit in a ~/src tree succeeds on the included identity" \
+        "$(gi -C "$H/src/personal" commit -q --allow-empty -m probe 2>&1 | head -n 1)"
+fi
+typeset ident_err=''
+ident_err="$(gi -C "$H/elsewhere" commit -q --allow-empty -m probe 2>&1)"
+typeset -i ident_rc=$?
+if (( ident_rc != 0 )) && [[ "$ident_err" == *"auto-detection is disabled"* ]]; then
+    t_pass "commit in an unmatched tree is refused (useConfigOnly)"
+else
+    t_fail "commit in an unmatched tree is refused (useConfigOnly)" "rc=$ident_rc: ${ident_err//$'\n'/ | }"
+fi
+
 # ── Every signing identity is verifiable with the shipped signers ────
 typeset f email key
 if [[ -f "$SIGNERS" ]]; then
-    for f in "$GITCONF" "$REPO_ROOT/configs/git/.gitconfig-kyusu-local"; do
+    for f in "$GITCONF" "$PERSONAL" "$KYUSU"; do
         email="$(git config --file "$f" --get user.email 2>/dev/null)"
         key="$(git config --file "$f" --get user.signingkey 2>/dev/null)"
         [[ -n "$email" && -n "$key" ]] || continue

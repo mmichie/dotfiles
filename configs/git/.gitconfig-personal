@@ -1,0 +1,8 @@
+# Personal identity. Included by .gitconfig for every repository under ~/src
+# (includeIf "gitdir:~/src/"); the work trees include their own file after
+# it and override. Keep the signing key here, not globally, so a work repo
+# is never signed with it.
+[user]
+	name = Matt Michie
+	email = mmichie@gmail.com
+	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEUwxYQhqytNcE3C2yjoY67vOZcSDEX+o2kWXBPznRNq

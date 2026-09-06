@@ -1,7 +1,10 @@
 [user]
-	name = Matt Michie
-	email = mmichie@gmail.com
-	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEUwxYQhqytNcE3C2yjoY67vOZcSDEX+o2kWXBPznRNq
+	# No global identity. Each tree names its own via the includeIf blocks
+	# near the end of this file, and useConfigOnly makes a commit anywhere
+	# unmatched fail with "no email was given" instead of guessing
+	# user@host. The signing key travels with the identity, so a work repo
+	# is never signed with the personal key.
+	useConfigOnly = true
 
 [core]
 	excludesfile = ~/.gitignore_global
@@ -155,6 +158,15 @@
 	cmd = /Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
     trustExitCode = true
 
+# Identity by tree. Later matches win: the personal default covers all of
+# ~/src, the work trees below override it. A tree outside ~/src has no
+# identity and useConfigOnly refuses the commit; add an includeIf here
+# rather than a global user.email.
+[includeIf "gitdir:~/src/"]
+	path = ~/.gitconfig-personal
+
+# Not managed by home-manager (the identity lives only on that host); when
+# the file is absent this tree silently keeps the personal identity above.
 [includeIf "gitdir:~/src/tensor9.com-v2/"]
 	path = ~/.gitconfig-prime-local
 

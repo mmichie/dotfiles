@@ -9,6 +9,7 @@
   home.file = {
     ".gitconfig".source = mkLink "git/.gitconfig";
     ".gitignore_global".source = mkLink "git/.gitignore_global";
+    ".gitconfig-personal".source = mkLink "git/.gitconfig-personal";
     ".config/git/allowed_signers".source = mkLink "git/allowed_signers";
   }
   // lib.optionalAttrs config.my.isWork {
