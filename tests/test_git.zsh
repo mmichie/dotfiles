@@ -68,6 +68,7 @@ typeset -A want=(
     rebase.updateRefs          true
     rebase.autoSquash          true
     transfer.fsckObjects       true
+    safe.bareRepository        explicit
     fetch.prune                true
     fetch.recurseSubmodules    on-demand
     rerere.enabled             true

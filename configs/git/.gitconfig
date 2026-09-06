@@ -68,6 +68,17 @@
 	updateRefs = true
 	autoSquash = true
 
+[safe]
+	# Refuse to treat a bare repository as the current repository unless it
+	# is named explicitly (--git-dir, GIT_DIR). Closes the vector where a
+	# bare repo embedded in a checkout supplies config (core.pager,
+	# core.fsmonitor, hooks) the moment you cd into it. Verified against
+	# dolt's git remotes (beads): dolt addresses its
+	# .dolt/git-remote-cache/*/repo.git mirror by git_dir from outside it,
+	# and a push succeeded under this setting. To work inside a bare repo
+	# by hand: git --git-dir=. <cmd>
+	bareRepository = explicit
+
 [transfer]
 	# Verify objects on fetch and clone. An upstream with historical
 	# malformed objects trips this; whitelist per message id with
