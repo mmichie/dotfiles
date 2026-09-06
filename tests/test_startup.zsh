@@ -22,7 +22,6 @@ print -r -- "M_HISTSIZE=$HISTSIZE"
 print -r -- "M_LL_ALIAS=${+aliases[ll]}"
 print -r -- "M_EXTRACT=$(whence -w extract)"
 print -r -- "M_CORRECT_IGNORE=$CORRECT_IGNORE"
-print -r -- "M_TZ=$TZ"
 print -r -- "M_LC_ALL_SET=${+LC_ALL}"
 print -r -- "M_LANG=$LANG"
 print -r -- "M_CD_COMPLETER=${_comps[cd]}"
@@ -44,7 +43,6 @@ assert_contains "$out" "M_HISTFILE_UNEXPORTED=yes"  "HISTFILE not exported (bash
 assert_contains "$out" "M_LL_ALIAS=1"               "aliases defined"
 assert_contains "$out" "M_EXTRACT=extract: function" "functions dir autoloaded"
 assert_contains "$out" "M_CORRECT_IGNORE=(.*|claude)" "CORRECT_IGNORE set"
-assert_contains "$out" "M_TZ=America/Los_Angeles"   "TZ uses the canonical zone name"
 assert_contains "$out" "M_LC_ALL_SET=0"            "LC_ALL not exported (it overrides every LC_* category; LANG carries the locale)"
 assert_contains "$out" "M_LANG=en_US.UTF-8"        "LANG set"
 assert_contains "$out" "M_CD_COMPLETER=_cd"         "cd keeps stock _cd completer (stack/CDPATH/named dirs)"
@@ -61,6 +59,39 @@ if (( ${#noise} == 0 )); then
 else
     t_fail "startup stderr clean" "${(j: | :)noise}"
 fi
+
+# ── TZ: personal zone only where the system has none ─────────────────
+# _setup_timezone exports America/Los_Angeles when /etc/localtime is missing
+# or resolves to UTC (servers, containers) and leaves TZ alone when the
+# system has a real zone (macOS follows location). The path is a parameter,
+# so the rule runs against scratch symlinks into a fake zoneinfo tree; only
+# the resolved basename matters. Regression: the export was unconditional,
+# so a Mac set to Chicago still stamped Pacific on everything.
+typeset zi="$T_SCRATCH/zoneinfo"
+mkdir -p "$zi/America" "$zi/Etc"
+: > "$zi/UTC"; : > "$zi/Etc/UTC"; : > "$zi/America/Chicago"
+ln -s "$zi/UTC" "$T_SCRATCH/lt-utc"
+ln -s "$zi/Etc/UTC" "$T_SCRATCH/lt-etc-utc"
+ln -s "$zi/America/Chicago" "$T_SCRATCH/lt-chicago"
+: > "$T_SCRATCH/lt-copied"
+out=$(run_sandbox_zsh "$sb" '
+[[ ${functions[setup_environment]} == *_setup_timezone* ]] && print -r -- "TZ_WIRED=yes"
+unset TZ; _setup_timezone "$LT/lt-utc";     print -r -- "TZ_UTC=${TZ-unset}"
+unset TZ; _setup_timezone "$LT/lt-etc-utc"; print -r -- "TZ_ETC_UTC=${TZ-unset}"
+unset TZ; _setup_timezone "$LT/lt-chicago"; print -r -- "TZ_CHICAGO=${TZ-unset}"
+unset TZ; _setup_timezone "$LT/lt-missing"; print -r -- "TZ_MISSING=${TZ-unset}"
+unset TZ; _setup_timezone "$LT/lt-copied";  print -r -- "TZ_COPIED=${TZ-unset}"
+TZ=Europe/Berlin; _setup_timezone "$LT/lt-chicago"; print -r -- "TZ_KEEP=$TZ"
+TZ=UTC; _setup_timezone "$LT/lt-utc";                print -r -- "TZ_OVERRIDE=$TZ"
+' LT="$T_SCRATCH" 2>/dev/null)
+assert_contains "$out" "TZ_WIRED=yes"                    "setup_environment applies the timezone rule"
+assert_contains "$out" "TZ_UTC=America/Los_Angeles"      "UTC system zone: personal zone exported"
+assert_contains "$out" "TZ_ETC_UTC=America/Los_Angeles"  "Etc/UTC system zone: personal zone exported"
+assert_contains "$out" "TZ_CHICAGO=unset"                "real system zone: TZ left to the system"
+assert_contains "$out" "TZ_MISSING=America/Los_Angeles"  "no /etc/localtime: personal zone exported"
+assert_contains "$out" "TZ_COPIED=unset"                 "copied (non-symlink) zone file: TZ left to the system"
+assert_contains "$out" "TZ_KEEP=Europe/Berlin"           "an inherited TZ survives on a system with its own zone"
+assert_contains "$out" "TZ_OVERRIDE=America/Los_Angeles" "an inherited TZ=UTC is overridden on a UTC system"
 
 # Second boot of the same sandbox: warm caches (compinit dump, tool inits)
 # must source cleanly too. This boot once caught a real bug: a manual

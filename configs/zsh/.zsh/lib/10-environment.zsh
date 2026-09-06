@@ -35,6 +35,24 @@ _parse_env_file() {
     done < "$env_file"
 }
 
+# Personal time zone only where the system has none: UTC servers and
+# containers without /etc/localtime. A machine with a real local zone keeps
+# it (macOS follows location; the VM sets its own), so shell timestamps
+# and git offsets agree with the clock wherever the laptop is. The path is
+# a parameter for the test suite. :A resolves the symlink without a fork;
+# only the resolved basename is inspected. A copied (non-symlink) zone file
+# cannot be classified and keeps the system zone.
+_setup_timezone() {
+    local localtime="${1:-/etc/localtime}"
+    if [[ ! -e "$localtime" ]]; then
+        export TZ="America/Los_Angeles"
+        return
+    fi
+    case "${localtime:A:t}" in
+        UTC|UCT|Universal|Zulu|GMT) export TZ="America/Los_Angeles" ;;
+    esac
+}
+
 # Main environment setup function
 setup_environment() {
     # ── XDG directories ──────────────────────────────────────────
@@ -53,7 +71,7 @@ setup_environment() {
     # for byte-order sort, LC_TIME) a silent no-op. Functions that need C
     # byte semantics set a local LC_ALL themselves.
     export LANG="en_US.UTF-8"
-    export TZ="America/Los_Angeles"
+    _setup_timezone
 
     # ── Editors ──────────────────────────────────────────────────
     if command -v nvim &>/dev/null; then
