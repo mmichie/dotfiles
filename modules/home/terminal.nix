@@ -15,6 +15,7 @@
     file = {
       ".wezterm.lua".source = mkLink "wezterm/.wezterm.lua";
       ".ssh/config".source = mkLink "ssh/config";
+      ".ssh/known_hosts.pinned".source = mkLink "ssh/known_hosts.pinned";
 
       # Public key stub — OpenSSH 10.2+ requires a .pub file on disk to offer
       # agent-managed keys (e.g. from 1Password) during authentication.

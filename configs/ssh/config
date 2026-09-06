@@ -25,9 +25,20 @@ Host homelab
     IdentityFile ~/.ssh/1password-twisted.pub
 
 Host *
-    IdentityAgent "/Users/mim/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+    IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
     AddKeysToAgent no
     IdentitiesOnly yes
+    # Keys only. With the agent holding every identity there is never a
+    # password to type, so a spoofed or compromised host cannot prompt for
+    # one. Override per command for a fresh box that has no key yet:
+    #   ssh -o PasswordAuthentication=yes host
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
+    # Host keys for the named hosts above are pinned in known_hosts.pinned
+    # (configs/ssh, linked by home-manager). ssh reads every file listed and
+    # writes new keys to the first, so accept-new still learns unlisted hosts
+    # while a pinned host presenting a different key is refused.
+    UserKnownHostsFile ~/.ssh/known_hosts ~/.ssh/known_hosts.pinned
     ServerAliveInterval 60
     ServerAliveCountMax 3
     StrictHostKeyChecking accept-new
