@@ -11,8 +11,9 @@
     ".gitignore_global".source = mkLink "git/.gitignore_global";
     ".gitconfig-personal".source = mkLink "git/.gitconfig-personal";
     ".config/git/allowed_signers".source = mkLink "git/allowed_signers";
-  }
-  // lib.optionalAttrs config.my.isWork {
+    # Every host, not only work ones: .gitconfig includes this for the moab
+    # tree, and where the file is absent a moab clone silently falls back to
+    # the personal identity (the ~/src include matched first). Public data.
     ".gitconfig-kyusu-local".source = mkLink "git/.gitconfig-kyusu-local";
   };
 
