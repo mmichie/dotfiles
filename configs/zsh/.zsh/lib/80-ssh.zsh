@@ -111,15 +111,25 @@ init_ssh
 # `ssh host uptime`.
 _ssh_title_host() {
     local -a argv=("$@")
-    local -i i=1
-    local a host=""
+    local -i i=1 consumed
+    local a host="" rest c
     while (( i <= ${#argv} )); do
         a="$argv[i]"
         case "$a" in
             --) host="${argv[i+1]:-}"; break ;;
-            -[BbcDEeFIiJLlmOoPpQRSWw]) (( i += 2 )); continue ;;   # flag + value
-            -[BbcDEeFIiJLlmOoPpQRSWw]*) (( i++ )); continue ;;     # joined -p2222
-            -*) (( i++ )); continue ;;                           # boolean flag
+            -*)
+                # Short-flag cluster: booleans may precede one valued flag,
+                # whose value is the rest of the cluster or, when it ends the
+                # cluster, the next argument (-vp 2222, -4p2222, -vi key).
+                rest="${a[2,-1]}"; consumed=1
+                while [[ -n "$rest" ]]; do
+                    c="${rest[1]}"; rest="${rest[2,-1]}"
+                    if [[ "$c" == [BbcDEeFIiJLlmOoPpQRSWw] ]]; then
+                        [[ -z "$rest" ]] && consumed=2
+                        break
+                    fi
+                done
+                (( i += consumed )); continue ;;
             *) host="$a"; break ;;
         esac
     done
@@ -175,24 +185,36 @@ sudo() {
     local is_interactive=0 arg
     local -a sudo_args=("$@")
     local -i i
-    # Valued sudo options that consume the next arg (user, group, role,
-    # cwd, host, etc.).  Their values must not be mistaken for the `su`
-    # command or interactive flags.
-    local -a valued_opts=(-B -b -C -g -D -K -P -R -r -T -t -U -u -p \
-                          --group --user --role --type --other-user --chdir \
-                          --close-from --command-timeout --auth-type --host --prompt)
+    # Valued options consume the next argument (or the rest of their
+    # cluster); their values must not be mistaken for the `su` command or
+    # for -i/-s. Short set from sudo(8): -a type, -C num, -D dir, -g group,
+    # -h host, -p prompt, -R dir, -r role, -t type, -T timeout, -U user,
+    # -u user.
+    local -a valued_long=(--auth-type --close-from --chdir --chroot --group --host \
+                          --prompt --role --type --command-timeout --other-user --user)
+    local rest c
     for (( i = 1; i <= ${#sudo_args}; i++ )); do
         arg="${sudo_args[i]}"
         case "$arg" in
-            -i|--login) is_interactive=1; break ;;
-            -s|--shell) is_interactive=1; break ;;
-            -*) ;;                  # other sudo flags: skip
+            --login|--shell) is_interactive=1; break ;;
+            --*) (( ${valued_long[(Ie)$arg]} )) && (( i++ )) ;;
+            -?*)
+                # Short cluster: booleans may precede -i/-s or one valued
+                # option (-iu root, -Eu root -i, -Es). A valued option ends
+                # the cluster; its value is the rest of it or the next arg.
+                rest="${arg[2,-1]}"
+                while [[ -n "$rest" ]]; do
+                    c="${rest[1]}"; rest="${rest[2,-1]}"
+                    case "$c" in
+                        i|s) is_interactive=1; break 2 ;;
+                        [aCDghpRrtTUu]) [[ -z "$rest" ]] && (( i++ )); break ;;
+                    esac
+                done
+                ;;
             *)  # first bare word is the command; `su` without args is interactive
                 [[ "$arg" == "su" ]] && is_interactive=1
                 break ;;
         esac
-        # Valued option: skip its value so it isn't matched below.
-        (( ${valued_opts[(Ie)$arg]} )) && (( i++ ))
     done
 
     if [[ -z "$TMUX" || $is_interactive -eq 0 ]]; then

@@ -316,6 +316,18 @@ print -r -- "ROOT_ECHO_SU=$_tmux_root_set"
 _tmux_root_set=0
 sudo -g su make
 print -r -- "ROOT_G_SU=$_tmux_root_set"
+_tmux_root_set=0
+sudo -iu root
+print -r -- "ROOT_IU=$_tmux_root_set"
+_tmux_root_set=0
+sudo -Eu root -i
+print -r -- "ROOT_EU_I=$_tmux_root_set"
+_tmux_root_set=0
+sudo -Es
+print -r -- "ROOT_ES=$_tmux_root_set"
+_tmux_root_set=0
+sudo -Eu root make
+print -r -- "ROOT_EU_MAKE=$_tmux_root_set"
 ' TMUX=1 2>/dev/null)
 assert_contains     "$out" "ROOT_SU=0" \
     "sudo -u su make does not mark root (su is a username, not interactive)"
@@ -329,6 +341,17 @@ assert_contains     "$out" "ROOT_ECHO_SU=0" \
     "sudo echo su does not mark root (su is a command arg, not interactive)"
 assert_contains     "$out" "ROOT_G_SU=0" \
     "sudo -g su make does not mark root (su is a group value, not interactive)"
+# Joined clusters: booleans may precede -i/-s or one valued option whose value
+# is the rest of the cluster or the next argument. Bug: -iu root, -Eu root -i
+# and -Es were all read as opaque flags and never marked root.
+assert_contains     "$out" "ROOT_IU=1" \
+    "sudo -iu root marks root (interactive flag inside a cluster)"
+assert_contains     "$out" "ROOT_EU_I=1" \
+    "sudo -Eu root -i marks root (valued option at cluster end consumes root)"
+assert_contains     "$out" "ROOT_ES=1" \
+    "sudo -Es marks root (-s inside a cluster)"
+assert_contains     "$out" "ROOT_EU_MAKE=0" \
+    "sudo -Eu root make does not mark root"
 
 # ── zoxide init generation-time env (lib/50-integrations.zsh) ────────
 # Bug: setup_zoxide exported _ZO_ECHO and _ZO_RESOLVE_SYMLINKS AFTER
