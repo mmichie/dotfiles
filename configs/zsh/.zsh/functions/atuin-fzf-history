@@ -45,7 +45,8 @@ atuin-fzf-history() {
     fi
 
     if [[ -n "$selected" ]]; then
-        LBUFFER="$selected"
+        BUFFER="$selected"
+        CURSOR=${#BUFFER}
         zle redisplay
     fi
     zle reset-prompt

@@ -95,6 +95,8 @@ setup_environment() {
         eval "$_cmd() { _java_home_lazy; unfunction java javac gradle mvn sbt 2>/dev/null; command $_cmd \"\$@\"; }"
     done
     _java_home_lazy() {
+        # Respect a JDK selected by the user or a project environment.
+        [[ -n "$JAVA_HOME" ]] && return 0
         # whence -p: path search only. `command -v javac` would return the
         # lazy wrapper *function* name (it's still defined at this point),
         # which :A would then resolve relative to $PWD — garbage JAVA_HOME.

@@ -22,9 +22,9 @@ claude() {
     fi
 
     # Set terminal title for Ghostty (non-tmux path still wants it)
-    printf '\033]0;claude\007'
+    [[ -t 1 ]] && printf '\033]0;claude\007'
 
-    local cleanup_cmd="printf '\\033]0;zsh\\007'"
+    local cleanup_cmd="[[ -t 1 ]] && printf '\\033]0;zsh\\007'"
     if [[ -n "$TMUX" ]]; then
         cleanup_cmd="_tmux_title_pop '$pane_id' '$window_id'; $cleanup_cmd"
     fi
@@ -36,7 +36,7 @@ claude() {
 
     trap - INT TERM EXIT
     [[ -n "$TMUX" ]] && _tmux_title_pop "$pane_id" "$window_id"
-    printf '\033]0;zsh\007'
+    [[ -t 1 ]] && printf '\033]0;zsh\007'
 
     return $exit_code
 }
