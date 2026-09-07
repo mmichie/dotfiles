@@ -9,7 +9,9 @@ _with_cache_lock() {
     local cache="$1"; shift
     local lock_file="${cache:h}/.cache-lock-${cache:t}" lock_fd
     zmodload zsh/system 2>/dev/null || return 75
-    { command true >> "$lock_file" } 2>/dev/null || return 75
+    # `command true` invokes the PATH binary in zsh (~2-3ms per lock).
+    # The explicit builtin remains alias-immune without a fork/exec.
+    { builtin true >> "$lock_file" } 2>/dev/null || return 75
     zsystem flock -t 5 -i 0.02 -f lock_fd "$lock_file" 2>/dev/null || return 75
     {
         "$@"

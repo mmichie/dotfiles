@@ -86,7 +86,7 @@ _setup_compinit_cache() {
             if (( ${#_reval_recent} == 0 )); then
                 # Stamp before spawning (banner-stamp discipline): a dying
                 # revalidator costs one 120s window, never a spawn storm.
-                command true >| "$ZSH_COMPDUMP.revalidating"
+                builtin true >| "$ZSH_COMPDUMP.revalidating"
                 INFLUX_SHOWN=1 ZSH_CACHE_REVALIDATE=1 zsh -i -c exit </dev/null &>/dev/null &!
             fi
         fi
