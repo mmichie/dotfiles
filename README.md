@@ -85,6 +85,27 @@ Dock, Finder, keyboard, screenshots, spaces, firewall — applied on every `darw
 **Shell** (`configs/zsh/`):
 zsh with a modular library system, [`chevron`](https://github.com/shiprock/chevron) prompt (powerline segments in Rust), atuin history with fzf integration, vivid ls colors, tmux emoji window titles.
 
+Put startup settings in `~/.zshrc.early.local`, which runs before profiling
+and all library modules. For example, `CHEVRON_DISABLE=1` disables the prompt
+renderer and its banner. Modules still apply their own defaults; this file
+is intended for settings they consult at initialization. Keep final function
+and alias overrides in `~/.zshrc.local` or `~/.zshrc-work-local`, which run last.
+Reload normal configuration with `source ~/.zshrc`.
+
+For troubleshooting, start a fresh minimal shell:
+
+```sh
+ZSH_MINIMAL=1 zsh --no-globalrcs -i
+```
+
+This uses a plain prompt and skips both early and late local files, all library
+modules, completion caches, third-party integrations, banners, and SSH agent
+initialization. `.zshenv` still sets PATH; zsh always reads the system zshenv.
+Use `exit` to return to the previous shell. To start another normal shell from
+inside minimal mode, use `env -u ZSH_MINIMAL zsh -i`. Setting `ZSH_MINIMAL=1`
+in the early file also selects minimal mode, but changing it in an already
+initialized shell does not remove existing hooks or integrations.
+
 ## Repo Layout
 
 ```

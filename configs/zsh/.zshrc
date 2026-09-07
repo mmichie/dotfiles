@@ -1,5 +1,20 @@
 #!/bin/zsh
 
+# Early exit for non-interactive shells
+[[ $- != *i* ]] && return
+
+# Recovery shell: bypass even local settings, which may be the broken part.
+# Check again after settings so this mode can also be a machine preference.
+# Start a fresh shell; this does not unload hooks from an existing session.
+if [[ "$ZSH_MINIMAL" != 1 && -f "$HOME/.zshrc.early.local" ]]; then
+    source "$HOME/.zshrc.early.local"
+fi
+if [[ "$ZSH_MINIMAL" == 1 ]]; then
+    PROMPT='%n@%m:%~%# '
+    RPROMPT=''
+    return 0
+fi
+
 # First thing: measure shell startup time if PROFILE_STARTUP is set.
 # Set PROFILE_STARTUP_RESET=1 alongside to force a cold rebuild of the
 # compinit dump (otherwise PROFILE_STARTUP measures the warm fast path,
@@ -10,9 +25,6 @@ if [[ -n "$PROFILE_STARTUP" ]]; then
   fi
   zmodload zsh/zprof
 fi
-
-# Early exit for non-interactive shells
-[[ $- != *i* ]] && return
 
 # Initialize essential variables
 declare -gx SHELL_CONFIG_DIR="$HOME/.zsh"
