@@ -176,8 +176,25 @@ secrets-restore:
     #!/usr/bin/env bash
     set -euo pipefail
     cd {{justfile_directory()}}
+
+    # The age key comes from 1Password first (bin/bin/sops-age-key pull reads
+    # op://Private/dotfiles-sops-age-key). Before the first switch there is no
+    # op on PATH, so it runs through nix from this repo's lock; the 1Password
+    # app must be installed and signed in either way. The tarball is then only
+    # needed for .ssh/.gnupg/.gam, and stays the fallback for the key.
+    if command -v op >/dev/null 2>&1; then
+        bin/bin/sops-age-key pull \
+            || echo "secrets-restore: 1Password pull failed; the tarball (if any) supplies the age key"
+    else
+        nix shell --inputs-from . nixpkgs#_1password-cli -c bin/bin/sops-age-key pull \
+            || echo "secrets-restore: 1Password pull failed; the tarball (if any) supplies the age key"
+    fi
     if [ ! -f backup.tar.gz ]; then
-        echo "secrets-restore: backup.tar.gz not found"
+        if [ -f "$HOME/.config/sops/age/keys.txt" ]; then
+            echo "secrets-restore: no backup.tar.gz; age key in place, .ssh/.gnupg/.gam left as they are"
+            exit 0
+        fi
+        echo "secrets-restore: backup.tar.gz not found and no age key restored"
         exit 1
     fi
 
@@ -194,7 +211,12 @@ secrets-restore:
         exit 1
     fi
 
-    tar -xzvf backup.tar.gz -C "$HOME" 2>&1
+    # A key already in place (from 1Password above) is the source of truth; an
+    # older tarball must not roll it back. ${var:+...} rather than an array:
+    # /bin/bash 3.2 on a fresh Mac faults on an empty array under set -u.
+    keep_key=''
+    if [ -f "$HOME/.config/sops/age/keys.txt" ]; then keep_key='--exclude=.config/sops/age/keys.txt'; fi
+    tar -xzvf backup.tar.gz -C "$HOME" ${keep_key:+"$keep_key"} 2>&1
 
     # tar restores the archived modes; these re-assert them for members that
     # came from a umask-mangled archive. Directories need their x bit, so the
@@ -219,6 +241,14 @@ secrets-restore:
         if [ -f "$HOME/.gam/oauth2.txt" ]; then chmod 600 "$HOME/.gam/oauth2.txt"; fi
     fi
     echo "secrets-restore: done"
+
+# Put the local sops age key into 1Password (op://Private/dotfiles-sops-age-key).
+# A no-op when the item already holds it; a hard stop when it holds a different key.
+secrets-store-1password:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{justfile_directory()}}
+    bin/bin/sops-age-key push
 
 # Open nix repl with all flake outputs pre-loaded (configs, formatter, etc.)
 repl:

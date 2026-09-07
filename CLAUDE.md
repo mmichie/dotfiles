@@ -52,10 +52,13 @@ just fmt
 # Garbage collect old generations
 just gc
 
-# Backup/restore the sops age key + .ssh + .gnupg + .gam for machine migration.
-# The age key leads: without it the sops secrets are undecryptable on a rebuild.
+# Backup/restore .ssh + .gnupg + .gam for machine migration, and the sops age
+# key, which leads: without it the sops secrets are undecryptable on a rebuild.
+# The key itself lives in 1Password (op://Private/dotfiles-sops-age-key);
+# secrets-restore pulls it from there first and uses the tarball for the rest.
 just secrets-backup
 just secrets-restore
+just secrets-store-1password   # put the local age key into 1Password
 ```
 
 ### Fresh Machine Bootstrap
@@ -90,9 +93,12 @@ git clone --recurse-submodules https://github.com/mmichie/dotfiles ~/src/dotfile
 cd ~/src/dotfiles
 
 # 4. Restore secrets, BEFORE the first switch and before opening a new shell.
-#    Copy backup.tar.gz over from `just secrets-backup` on the old machine
-#    first. The sops age key it carries is the root of trust and nothing
-#    regenerates it (secrets.nix sets generateKey = false), and atuin must find
+#    The sops age key is the root of trust and nothing regenerates it
+#    (secrets.nix sets generateKey = false). It comes from 1Password: install
+#    the 1Password app, sign in, and secrets-restore pulls
+#    op://Private/dotfiles-sops-age-key (through nix, since op is not on PATH
+#    yet). backup.tar.gz from `just secrets-backup` on the old machine is the
+#    fallback for the key and the only source for .ssh/.gnupg/.gam. atuin must find
 #    the real key on its first shell, or it writes its own and sync wedges on
 #    the mismatch later. `just` only arrives with the first switch, so run it
 #    from the repo's own lock: `--inputs-from .` resolves nixpkgs out of

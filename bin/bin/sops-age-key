@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# sops-age-key: keep the sops age identity, the root of trust for every sops
+# secret in this repo, in 1Password instead of a hand-carried tarball.
+#
+#   sops-age-key pull   1Password -> key file. Refuses to replace a different key.
+#   sops-age-key push   key file -> 1Password. Creates the item, or verifies
+#                       the existing one holds this key; refuses otherwise.
+#
+# Item op://$SOPS_AGE_1P_VAULT/$SOPS_AGE_1P_ITEM (default
+# Private/dotfiles-sops-age-key) in account $SOPS_AGE_1P_ACCOUNT, with the
+# fields private-key (concealed) and public-key. Key file $SOPS_AGE_KEY_FILE
+# (default ~/.config/sops/age/keys.txt, the path modules/home/options.nix
+# points sops-nix at). Both values are validated as age bech32 strings before
+# they are written anywhere, and the secret is handed to `op item create` on
+# stdin, never in argv.
+set -euo pipefail
+
+vault="${SOPS_AGE_1P_VAULT:-Private}"
+item="${SOPS_AGE_1P_ITEM:-dotfiles-sops-age-key}"
+account="${SOPS_AGE_1P_ACCOUNT:-famfam.1password.com}"
+keyfile="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
+ref="op://$vault/$item"
+
+die() { printf 'sops-age-key: %s\n' "$*" >&2; exit 1; }
+op_() { op --account "$account" "$@"; }
+valid_secret() { [[ "$1" =~ ^AGE-SECRET-KEY-1[A-Z0-9]+$ ]]; }
+valid_public() { [[ "$1" =~ ^age1[a-z0-9]+$ ]]; }
+file_secret() { grep -m1 '^AGE-SECRET-KEY-1' "$1" || true; }
+file_public() { sed -n 's/^# public key: //p' "$1" | head -n 1; }
+
+pull() {
+    local secret public existing
+    secret="$(op_ read "$ref/private-key")" \
+        || die "cannot read $ref/private-key (is op signed in to $account?)"
+    valid_secret "$secret" || die "$ref/private-key is not an age secret key"
+    public="$(op_ read "$ref/public-key")" || die "cannot read $ref/public-key"
+    valid_public "$public" || die "$ref/public-key is not an age public key"
+    if [ -e "$keyfile" ]; then
+        existing="$(file_secret "$keyfile")"
+        if [ "$existing" = "$secret" ]; then
+            echo "sops-age-key: $keyfile already holds the key in $ref"
+            return 0
+        fi
+        die "$keyfile holds a different key; refusing to overwrite it (move it aside first)"
+    fi
+    (
+        umask 077
+        mkdir -p "$(dirname "$keyfile")"
+        printf '# public key: %s\n%s\n' "$public" "$secret" > "$keyfile.tmp"
+    )
+    mv -f "$keyfile.tmp" "$keyfile"
+    chmod 600 "$keyfile"
+    echo "sops-age-key: wrote $keyfile from $ref"
+}
+
+push() {
+    local secret public stored
+    [ -f "$keyfile" ] || die "$keyfile not found"
+    secret="$(file_secret "$keyfile")"
+    valid_secret "$secret" || die "$keyfile holds no age secret key"
+    public="$(file_public "$keyfile")"
+    valid_public "$public" || die "$keyfile has no '# public key:' line"
+    if op_ item get "$item" --vault "$vault" >/dev/null 2>&1; then
+        stored="$(op_ read "$ref/private-key")" || die "$ref exists but private-key is unreadable"
+        if [ "$stored" = "$secret" ]; then
+            echo "sops-age-key: $ref already holds this key"
+            return 0
+        fi
+        die "$ref holds a DIFFERENT key; refusing to overwrite it (rename or delete the item first)"
+    fi
+    # Item JSON on stdin: the secret never appears in argv. Both values were
+    # validated above as bech32 alphanumerics, so no JSON escaping is needed.
+    printf '{"title":"%s","category":"SECURE_NOTE","fields":[{"id":"private-key","label":"private-key","type":"CONCEALED","value":"%s"},{"id":"public-key","label":"public-key","type":"STRING","value":"%s"}]}\n' \
+        "$item" "$secret" "$public" \
+        | op_ item create --vault "$vault" >/dev/null
+    echo "sops-age-key: stored $keyfile as $ref"
+}
+
+case "${1:-}" in
+    pull) pull ;;
+    push) push ;;
+    *) printf 'usage: sops-age-key pull|push\n' >&2; exit 2 ;;
+esac
