@@ -177,10 +177,11 @@ secrets-restore:
     set -euo pipefail
     cd {{justfile_directory()}}
 
-    # The age key comes from 1Password first (bin/bin/sops-age-key pull reads
-    # op://Private/dotfiles-sops-age-key). Before the first switch there is no
-    # op on PATH, so it runs through nix from this repo's lock; the 1Password
-    # app must be installed and signed in either way. The tarball is then only
+    # The age key comes from 1Password first: bin/bin/sops-age-key pull fetches
+    # this host's Document "<host> sops-nix age key (DO NOT DELETE)" from the
+    # Private vault. Before the first switch there is no op on PATH, so it runs
+    # through nix from this repo's lock; the 1Password app must be installed
+    # and signed in either way. The tarball is then only
     # needed for .ssh/.gnupg/.gam, and stays the fallback for the key.
     if command -v op >/dev/null 2>&1; then
         bin/bin/sops-age-key pull \
@@ -242,8 +243,9 @@ secrets-restore:
     fi
     echo "secrets-restore: done"
 
-# Put the local sops age key into 1Password (op://Private/dotfiles-sops-age-key).
-# A no-op when the item already holds it; a hard stop when it holds a different key.
+# Upload the local sops age key to 1Password as this host's Document, "<host>
+# sops-nix age key (DO NOT DELETE)" in the Private vault. A no-op when the item
+# already holds it; a hard stop when it holds a different key.
 secrets-store-1password:
     #!/usr/bin/env bash
     set -euo pipefail
