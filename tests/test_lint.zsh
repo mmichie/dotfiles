@@ -18,6 +18,8 @@
 #   - every `zle -N <name>` widget resolves to an autoload file or an
 #     in-module function (a rename leaves the binding pointing at nothing,
 #     which only explodes when the key is pressed)
+#   - GitHub Actions are pinned by commit, not tag (a tag can be repointed;
+#     dependabot moves the pin and its version comment together)
 
 source "${0:A:h}/lib.zsh"
 setopt extended_glob   # run.zsh's emulate -R turns it off; the ## patterns below need it
@@ -130,6 +132,31 @@ if (( ${#widgets_declared} > 0 )); then
 else
     t_fail "all zle -N widgets resolve to a function source" \
         "lint found no zle -N declarations at all — extraction pattern broke"
+fi
+
+# ── GitHub Actions pinned by commit ──────────────────────────────────
+# A tag such as @v5 is a moving pointer the action's maintainers, or anyone
+# holding their credentials, can repoint; a 40-hex commit is not. Dependabot
+# keeps the pin current and bumps the version comment with it.
+typeset -a wf_uses unpinned
+typeset wf_line=''
+for f in "$REPO_ROOT"/.github/workflows/*.yml(N); do
+    while IFS= read -r wf_line; do
+        [[ "$wf_line" == *'uses:'* ]] || continue
+        wf_uses+=("$wf_line")
+        [[ "$wf_line" == *'@'[0-9a-f](#c40)' #'* ]] || unpinned+=("${f:t}: ${wf_line##*uses: }")
+    done < "$f"
+done
+if (( ${#wf_uses} > 0 )); then
+    if (( ${#unpinned} == 0 )); then
+        t_pass "all ${#wf_uses} workflow action(s) pinned by commit with a version comment"
+    else
+        t_fail "all ${#wf_uses} workflow action(s) pinned by commit with a version comment" \
+            "${(j:, :)unpinned}"
+    fi
+else
+    t_fail "all workflow actions pinned by commit" \
+        "lint found no uses: lines in .github/workflows — extraction pattern broke"
 fi
 
 t_finish

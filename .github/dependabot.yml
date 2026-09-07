@@ -1,0 +1,10 @@
+# Actions are pinned by commit (tests/test_lint.zsh enforces it). Dependabot
+# proposes each bump as a PR that moves the commit and its version comment
+# together, so the existing check workflow gates it.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday
