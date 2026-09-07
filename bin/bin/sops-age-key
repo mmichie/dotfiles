@@ -21,7 +21,10 @@ account="${SOPS_AGE_1P_ACCOUNT:-famfam.1password.com}"
 keyfile="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
 ref="op://$vault/$item"
 
-die() { printf 'sops-age-key: %s\n' "$*" >&2; exit 1; }
+die() {
+    printf 'sops-age-key: %s\n' "$*" >&2
+    exit 1
+}
 op_() { op --account "$account" "$@"; }
 valid_secret() { [[ "$1" =~ ^AGE-SECRET-KEY-1[A-Z0-9]+$ ]]; }
 valid_public() { [[ "$1" =~ ^age1[a-z0-9]+$ ]]; }
@@ -30,8 +33,8 @@ file_public() { sed -n 's/^# public key: //p' "$1" | head -n 1; }
 
 pull() {
     local secret public existing
-    secret="$(op_ read "$ref/private-key")" \
-        || die "cannot read $ref/private-key (is op signed in to $account?)"
+    secret="$(op_ read "$ref/private-key")" ||
+        die "cannot read $ref/private-key (is op signed in to $account?)"
     valid_secret "$secret" || die "$ref/private-key is not an age secret key"
     public="$(op_ read "$ref/public-key")" || die "cannot read $ref/public-key"
     valid_public "$public" || die "$ref/public-key is not an age public key"
@@ -46,7 +49,7 @@ pull() {
     (
         umask 077
         mkdir -p "$(dirname "$keyfile")"
-        printf '# public key: %s\n%s\n' "$public" "$secret" > "$keyfile.tmp"
+        printf '# public key: %s\n%s\n' "$public" "$secret" >"$keyfile.tmp"
     )
     mv -f "$keyfile.tmp" "$keyfile"
     chmod 600 "$keyfile"
@@ -71,13 +74,16 @@ push() {
     # Item JSON on stdin: the secret never appears in argv. Both values were
     # validated above as bech32 alphanumerics, so no JSON escaping is needed.
     printf '{"title":"%s","category":"SECURE_NOTE","fields":[{"id":"private-key","label":"private-key","type":"CONCEALED","value":"%s"},{"id":"public-key","label":"public-key","type":"STRING","value":"%s"}]}\n' \
-        "$item" "$secret" "$public" \
-        | op_ item create --vault "$vault" >/dev/null
+        "$item" "$secret" "$public" |
+        op_ item create --vault "$vault" >/dev/null
     echo "sops-age-key: stored $keyfile as $ref"
 }
 
 case "${1:-}" in
     pull) pull ;;
     push) push ;;
-    *) printf 'usage: sops-age-key pull|push\n' >&2; exit 2 ;;
+    *)
+        printf 'usage: sops-age-key pull|push\n' >&2
+        exit 2
+        ;;
 esac

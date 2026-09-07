@@ -49,7 +49,10 @@ if [ "$match_count" -eq 0 ]; then
 fi
 
 read -rp "Type 'rewrite' to proceed (this CANNOT be undone without a backup): " confirm
-[ "$confirm" = "rewrite" ] || { echo "aborted"; exit 1; }
+[ "$confirm" = "rewrite" ] || {
+    echo "aborted"
+    exit 1
+}
 
 export FILTER_OLD_EMAIL="$OLD_EMAIL"
 export FILTER_NEW_EMAIL="$NEW_EMAIL"
