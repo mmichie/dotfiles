@@ -26,15 +26,25 @@ assert_contains "$out" "viins" "main keymap is viins"
 
 # fzf-dependent bindings — gate on fzf as seen from *inside* the sandbox
 # shell (the runner's view can differ, e.g. under nix builds).
-typeset sandbox_fzf=''
-sandbox_fzf=$(run_sandbox_zsh "$sb" 'print -rn -- $+commands[fzf]' 2>/dev/null)
-if [[ "$sandbox_fzf" == 1 ]]; then
+# Startup notices are legitimate stdout; use exit status for the capability
+# probe so SSH-agent messages cannot silently skip these assertions.
+if run_sandbox_zsh "$sb" '(( $+commands[fzf] ))' >/dev/null 2>&1; then
     out=$(run_sandbox_zsh "$sb" 'bindkey -M viins "^R"; bindkey -M vicmd "^R"; bindkey -M viins "^T"' 2>/dev/null)
     assert_contains "$out" '"^R" atuin-fzf-history' "viins ^R is atuin-fzf-history"
     assert_contains "$out" '"^R" redo'              "vicmd ^R restored to redo"
     assert_contains "$out" '"^T" fzf-file-widget'   "viins ^T is fzf file widget"
 else
-    t_skip "fzf bindings" "fzf not visible in sandbox (probe=${(qq)sandbox_fzf})"
+    t_skip "fzf bindings" "fzf not visible in sandbox"
+fi
+
+# Pin the noisy-startup case even on hosts where a real agent is available.
+typeset noisy="$(make_sandbox_home)"
+make_stub "$noisy/tools" fzf
+print -r -- 'path=("$HOME/tools" $path); print -r -- "Starting new SSH agent..."' > "$noisy/.zshrc.early.local"
+if run_sandbox_zsh "$noisy" '(( $+commands[fzf] ))' >/dev/null 2>&1; then
+    t_pass "fzf capability probe tolerates startup stdout"
+else
+    t_fail "fzf capability probe tolerates startup stdout"
 fi
 
 t_finish

@@ -17,34 +17,38 @@ atuin-fzf-history() {
     fi
 
     local selected
-    if command -v atuin &>/dev/null; then
-        selected=$(atuin search --cmd-only --limit 10000 2>/dev/null | \
-            fzf --height 40% \
-                --reverse \
-                --tac \
-                --no-sort \
-                --exact \
-                --query="${LBUFFER}" \
-                --preview 'echo {}' \
-                --preview-window down:3:wrap \
-                --bind "ctrl-y:execute-silent(echo -n {} | $copy)+abort" \
-                --header 'Press CTRL-Y to copy command to clipboard')
-    else
-        selected=$(fc -rl 1 | \
-            fzf --height 40% \
-                --reverse \
-                --tac \
-                --no-sort \
-                --exact \
-                --query="${LBUFFER}" \
-                --preview 'echo {}' \
-                --preview-window down:3:wrap \
-                --bind "ctrl-y:execute-silent(echo -n {2..} | $copy)+abort" \
-                --header 'Press CTRL-Y to copy command to clipboard' | \
-            sed 's/^ *[0-9]* *//')
-    fi
+    # NUL-delimited records preserve multiline commands, including trailing
+    # newlines that command substitution would otherwise strip from output.
+    # The fallback uses zsh's history array so no event numbers or multiline
+    # display formatting from fc can become part of the selected command.
+    selected=$(
+        setopt pipefail
+        {
+            if command -v atuin &>/dev/null; then
+                atuin search --cmd-only --print0 --limit 10000 2>/dev/null
+            else
+                zmodload zsh/parameter || return 1
+                local event
+                for event in ${(Onk)history}; do
+                    print -rn -- "${history[$event]}"$'\0'
+                done
+            fi
+        } | fzf --read0 --print0 \
+            --height 40% \
+            --reverse \
+            --tac \
+            --no-sort \
+            --exact \
+            --query="${LBUFFER}" \
+            --preview 'printf %s {}' \
+            --preview-window down:3:wrap \
+            --bind "ctrl-y:execute-silent(printf %s {} | $copy)+abort" \
+            --header 'Press CTRL-Y to copy command to clipboard'
+    )
+    local selection_rc=$?
+    selected="${selected%$'\0'}"
 
-    if [[ -n "$selected" ]]; then
+    if (( selection_rc == 0 )) && [[ -n "$selected" ]]; then
         BUFFER="$selected"
         CURSOR=${#BUFFER}
         zle redisplay

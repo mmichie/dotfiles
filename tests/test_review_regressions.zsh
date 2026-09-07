@@ -43,8 +43,8 @@ done
 # history and selection. zle-line-init drives the widget without keystrokes.
 cat > "$inner" <<'EOF'
 source "$1/.zsh/functions/atuin-fzf-history"
-atuin() { print -r -- 'echo selected'; }
-fzf() { local line; while IFS= read -r line; do print -r -- "$line"; done; }
+atuin() { print -rn -- 'echo selected'$'\0'; }
+fzf() { local line; while IFS= read -r -d '' line; do print -rn -- "$line"$'\0'; done; }
 probe() {
     BUFFER='ec --old-argument'
     CURSOR=2
