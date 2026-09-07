@@ -106,6 +106,14 @@ inside minimal mode, use `env -u ZSH_MINIMAL zsh -i`. Setting `ZSH_MINIMAL=1`
 in the early file also selects minimal mode, but changing it in an already
 initialized shell does not remove existing hooks or integrations.
 
+Completion and tool-init caches use per-cache process locks, so simultaneous
+tabs share one rebuild. Locks cover reading the cache and updating its source,
+compiled form, and dependency metadata. A wait is capped at five seconds per
+cache: completion falls back to initialization without a dump, and a tool whose
+cache cannot be locked is skipped for that shell. Locks release automatically
+when their owner exits; the hidden `.cache-lock-*` files stay in place and
+should not be deleted while shells are starting.
+
 ## Repo Layout
 
 ```

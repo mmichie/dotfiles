@@ -7,6 +7,9 @@
 # cache. `eval $(tool init zsh)` ran ~50-100ms per shell; sourcing a
 # cached file is closer to 1ms.
 
+# Also support standalone module loading by tests and diagnostic shells.
+(( $+functions[_with_cache_lock] )) || source "${${(%):-%x}:A:h}/24-cache-lock.zsh"
+
 # Re-run `cmd` and write its output to $cache_path when the command
 # string or any of $invalidators... changed since the cache was written.
 # Otherwise leave it alone. Returns nonzero when the cache could not be
@@ -33,6 +36,10 @@
 # scripts) are zcompiled so later shells load wordcode; a missing .zwc next
 # to an existing cache is backfilled once (post-deploy).
 _refresh_cache() {
+    _with_cache_lock "$1" _refresh_cache_locked "$@"
+}
+
+_refresh_cache_locked() {
     local cache_path="$1"
     shift
     local cmd="$1"
@@ -141,10 +148,14 @@ _source_cache() {
 # the next one. Bounded: _write_cache validates what it installs, so the
 # retry cannot loop.
 _init_from_cache() {
+    _with_cache_lock "$1" _init_from_cache_locked "$@"
+}
+
+_init_from_cache_locked() {
     local cache_path="$1"
-    _refresh_cache "$@" || return 1
+    _refresh_cache_locked "$@" || return 1
     _source_cache "$cache_path" && return 0
-    _refresh_cache "$@" && _source_cache "$cache_path"
+    _refresh_cache_locked "$@" && _source_cache "$cache_path"
 }
 
 # Fork-free stand-in for `atuin uuid`, which atuin's init runs once per
