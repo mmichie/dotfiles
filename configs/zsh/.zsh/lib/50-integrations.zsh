@@ -148,7 +148,14 @@ _source_cache() {
 # the next one. Bounded: _write_cache validates what it installs, so the
 # retry cannot loop.
 _init_from_cache() {
+    # Diagnostics record what this shell attempted, rather than guessing
+    # initialization from a binary or a cache left behind by another shell.
+    typeset -gA _SHELL_INIT_STATUS _SHELL_INIT_COMMAND
+    _SHELL_INIT_COMMAND[$1]="$2"
     _with_cache_lock "$1" _init_from_cache_locked "$@"
+    local init_rc=$?
+    _SHELL_INIT_STATUS[$1]="${init_rc}"
+    return $init_rc
 }
 
 _init_from_cache_locked() {

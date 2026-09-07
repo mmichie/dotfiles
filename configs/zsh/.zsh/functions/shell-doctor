@@ -1,0 +1,152 @@
+# Read-only diagnostics. Run in the shell being inspected; do not initialize
+# tools, source caches, repair permissions, or print environment/cache values.
+shell-doctor() (
+    # Subshell keeps compaudit, module loading, and command hashing out of the
+    # caller's state while retaining its functions, hooks, and local settings.
+    emulate -L zsh
+    if (( $# )); then
+        print -r -- 'Usage: shell-doctor'
+        [[ $# == 1 && "$1" == (--help|-h) ]] && return 0
+        return 2
+    fi
+    local cache_dir="${SHELL_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/zsh}"
+    local tool binary cache state dep lock_fd item recorded='' audit=''
+    local -a deps resolved stamps mtimes
+    local -i issues=0
+    local -A files=(fzf fzf-init.zsh atuin atuin-init.zsh direnv direnv-hook.zsh
+                    zoxide zoxide-init.zsh chevron chevron-init.zsh vivid vivid-ls-colors)
+    _doctor_read_lock() {
+        local lock_file="${1:h}/.cache-lock-${1:t}"
+        lock_fd=''
+        [[ -e "$lock_file" ]] || return 0
+        zmodload zsh/system 2>/dev/null &&
+            zsystem flock -r -t 0 -f lock_fd "$lock_file" 2>/dev/null
+    }
+    print -r -- "Shell: zsh $ZSH_VERSION; minimal=${ZSH_MINIMAL:-0}"
+    print -r -- 'Cache checks compare dependency metadata; cached code is never executed or validated.'
+    print -r -- 'Integrations (loaded means init script sourced, not a daemon health check):'
+    for tool in fzf atuin direnv zoxide chevron vivid; do
+        binary=$(whence -p -- "$tool")
+        cache="$cache_dir/$files[$tool]"
+        state='not attempted in this shell'
+        if [[ "$tool" == vivid ]]; then
+            [[ -n "$LS_COLORS" ]] && state='colors set (origin not verified)'
+        elif (( ${+_SHELL_INIT_STATUS[$cache]} )); then
+            if [[ "${_SHELL_INIT_STATUS[$cache]}" == 0 ]]; then
+                state='loaded'
+            else
+                state="init failed (status ${_SHELL_INIT_STATUS[$cache]})"
+                (( issues++ ))
+            fi
+        elif [[ "$tool" == chevron && -n "$CHEVRON_DISABLE" ]]; then
+            state='disabled by CHEVRON_DISABLE'
+        fi
+        print -r -- "  $tool: ${binary:-not on PATH}; $state"
+        [[ -n "$binary" ]] && print -r -- "    resolved: ${binary:A}"
+        if [[ -z "$binary" ]]; then
+            print -r -- '    Optional: add the tool to your managed packages/PATH if you want this integration.'
+            continue
+        fi
+        [[ "$state" == disabled* || "$ZSH_MINIMAL" == 1 ]] && continue
+        if [[ "$state" == 'not attempted in this shell' || "$state" == 'init failed'* ]]; then
+            print -r -- '    Run source ~/.zshrc to retry initialization; inspect any errors.'
+            [[ "$state" == 'not attempted in this shell' ]] && (( issues++ ))
+        fi
+
+        # Observe the same transaction boundary as startup, but never create
+        # a lock file or wait behind a writer. A busy cache is inconclusive.
+        if ! _doctor_read_lock "$cache"; then
+            print -r -- '    cache: busy or unreadable; retry shell-doctor after startup finishes.'
+            (( issues++ ))
+            continue
+        fi
+        {
+            state=current
+            if [[ ! -r "$cache" ]]; then
+                state='missing or unreadable'
+            elif [[ ! -r "$cache.dep" ]]; then
+                state='missing dependency metadata'
+            else
+                local -a lines=("${(@f)$(<"$cache.dep")}")
+                deps=("$binary")
+                [[ "$tool" == atuin ]] && deps+=("$HOME/.config/atuin/config.toml")
+                resolved=()
+                for dep in "${deps[@]}"; do
+                    [[ -e "$dep" ]] && resolved+=("${dep:A}")
+                    [[ -e "$dep" && "$dep" -nt "$cache" ]] && state='stale (dependency modified)'
+                done
+                [[ "${(F)resolved}" != "${(F)lines[2,-1]}" ]] && state='stale (dependency paths changed)'
+                if (( ${+_SHELL_INIT_COMMAND[$cache]} )) && \
+                    [[ "$lines[1]" != "${_SHELL_INIT_COMMAND[$cache]}" ]]; then
+                    state='stale (init command changed)'
+                fi
+            fi
+            print -r -- "    cache: $state — $cache"
+            if [[ "$state" != current ]]; then
+                (( issues++ ))
+                print -r -- '    Run source ~/.zshrc to retry initialization and refresh the cache; inspect any errors.'
+            fi
+        } always {
+            [[ -n "$lock_fd" ]] && zsystem flock -u "$lock_fd"
+        }
+    done
+
+    print -r -- 'Executable resolution (all PATH matches, first wins):'
+    for tool in zsh git ssh sudo java javac nvim; do
+        print -r -- "  $tool:"
+        whence -pa -- "$tool" || print -r -- '    not on PATH'
+        (( ${+functions[$tool]} )) && print -r -- '    shell function takes precedence over PATH'
+        (( ${+aliases[$tool]} )) && print -r -- '    alias takes precedence over PATH'
+    done
+
+    print -r -- "Completion: ${#_comps} registered commands"
+    if [[ "$ZSH_MINIMAL" != 1 ]] && (( ${#_comps} == 0 )); then
+        print -r -- '  Completion is not initialized in this shell; run source ~/.zshrc and inspect any errors.'
+        (( issues++ ))
+    fi
+    cache="${ZSH_COMPDUMP:-$cache_dir/.zcompdump}"
+    if [[ "$ZSH_MINIMAL" == 1 ]]; then
+        print -r -- '  Startup intentionally skipped completion and integrations in minimal mode.'
+    elif ! _doctor_read_lock "$cache"; then
+        print -r -- '  Completion cache busy or unreadable; retry after startup finishes.'
+        (( issues++ ))
+    else
+        {
+            if zmodload -F zsh/stat b:zstat 2>/dev/null; then
+                stamps=()
+                for item in $fpath; do
+                    zstat -A mtimes +mtime -- "$item" 2>/dev/null || mtimes=(none)
+                    stamps+=("${item:A}:$mtimes[1]")
+                done
+                recorded=''
+                [[ -r "$cache.fpath" ]] && recorded="$(<"$cache.fpath")"
+                if [[ ! -r "$cache" || "$recorded" != "${(F)stamps}" ]]; then
+                    print -r -- '  Dump missing, unreadable, or stale; open a fresh shell to rebuild/revalidate it.'
+                    (( issues++ ))
+                else
+                    print -r -- '  Dump fingerprint matches current fpath (content integrity not checked).'
+                fi
+            else
+                print -r -- '  Completion fingerprint check unavailable: zsh/stat could not load.'
+                (( issues++ ))
+            fi
+        } always {
+            [[ -n "$lock_fd" ]] && zsystem flock -u "$lock_fd"
+        }
+    fi
+    autoload -Uz compaudit
+    if ! autoload +X compaudit 2>/dev/null; then
+        print -r -- '  Completion permission audit unavailable: compaudit not found in fpath.'
+        (( issues++ ))
+    elif audit=$(compaudit 2>/dev/null); then
+        print -r -- '  Completion permission audit: clean.'
+    else
+        print -r -- '  Completion permission audit: flagged paths (compinit -i may omit them):'
+        print -r -- "$audit"
+        print -r -- '  Inspect ownership and group/world write permissions with ls -ld on these paths.'
+        print -r -- '  Fix the owning package/configuration, then start a fresh shell; do not chmod shared paths blindly.'
+        (( issues++ ))
+    fi
+    print -r -- "Findings: $issues (optional missing tools are informational)."
+    (( issues == 0 ))
+)

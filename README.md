@@ -114,6 +114,24 @@ cache cannot be locked is skipped for that shell. Locks release automatically
 when their owner exits; the hidden `.cache-lock-*` files stay in place and
 should not be deleted while shells are starting.
 
+Run `shell-doctor` in the shell you want to inspect. It reports integration
+binaries and initialization results, PATH precedence, stale/missing cache
+metadata, and completion permission findings, with suggested next steps.
+Missing optional tools are informational. Exit status is 0 for no findings,
+1 when attention or a retry is needed, and 2 for invalid arguments.
+It does not execute integrations or cached code, repair files, or alter the
+calling shell. Cache checks compare dependency metadata, not content integrity;
+an init reported as loaded is not a daemon health check. Busy caches are
+reported without waiting for their writer.
+
+After updating the configuration, use `source ~/.zshrc` to register the command
+and record initialization results. In minimal mode, load just the diagnostic:
+
+```sh
+source ~/.zsh/functions/shell-doctor
+shell-doctor
+```
+
 ## Repo Layout
 
 ```
