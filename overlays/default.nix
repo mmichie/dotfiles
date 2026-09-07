@@ -36,18 +36,27 @@ final: prev: {
   # 89bce54, which moved nixpkgs to a rev already carrying 2.26.4. Its
   # self-expiring assert fired exactly as intended, which is the argument for
   # writing them.
-  codeql = prev.codeql.overrideAttrs (old: {
-    nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ final.autoPatchelfHook ];
-    buildInputs = (old.buildInputs or [ ]) ++ [
-      final.stdenv.cc.cc.lib
-      final.zlib
-    ];
-    # The bundle carries binaries for languages and helper tools whose shared
-    # deps are not all present; the Go extractor path is what this override
-    # exists for, and a missing dep on some unrelated tool must not fail the
-    # build.
-    autoPatchelfIgnoreMissingDeps = true;
-  });
+  # Linux only. The interpreter problem is NixOS's and autoPatchelfHook is an
+  # ELF tool; applied on darwin it broke the build of the whole system
+  # closure (CI red on macos-latest since this landed, and `darwin-rebuild
+  # switch` would have failed the same way). Darwin gets stock codeql, whose
+  # Go extractor has no such problem.
+  codeql =
+    if prev.stdenv.hostPlatform.isLinux then
+      prev.codeql.overrideAttrs (old: {
+        nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ final.autoPatchelfHook ];
+        buildInputs = (old.buildInputs or [ ]) ++ [
+          final.stdenv.cc.cc.lib
+          final.zlib
+        ];
+        # The bundle carries binaries for languages and helper tools whose shared
+        # deps are not all present; the Go extractor path is what this override
+        # exists for, and a missing dep on some unrelated tool must not fail the
+        # build.
+        autoPatchelfIgnoreMissingDeps = true;
+      })
+    else
+      prev.codeql;
 
   # nixpkgs only packages beads 1.0.3 (embedded-Dolt era); bump to v1.1.2 for
   # the matured `dolt sql-server` + remote model (`bd dolt remote/push/pull`).
