@@ -93,10 +93,33 @@ _:
       # ── Spaces ─────────────────────────────────────────────────────────
       spaces.spans-displays = true;
 
+      # ── Software updates ──────────────────────────────────────────────
+      # Declared so a fresh machine matches this one: check, download and
+      # install macOS updates (including the background security and XProtect
+      # configuration data) and App Store updates without waiting to be asked.
+      SoftwareUpdate.AutomaticallyInstallMacOSUpdates = true;
+      CustomSystemPreferences = {
+        "com.apple.SoftwareUpdate" = {
+          AutomaticCheckEnabled = true;
+          AutomaticDownload = true;
+          CriticalUpdateInstall = true;
+          ConfigDataInstall = true;
+        };
+        "com.apple.commerce" = {
+          AutoUpdate = true;
+        };
+      };
+
       # ── Custom preferences ─────────────────────────────────────────────
       CustomUserPreferences = {
         "com.apple.LaunchServices" = {
-          LSQuarantine = false;
+          # Quarantine ON. Downloads keep their quarantine tag, so the first
+          # open of a downloaded app still gets Gatekeeper's signature and
+          # notarization check behind the "downloaded from the Internet"
+          # prompt. This was false (a copied default that removed that check);
+          # written explicitly rather than deleted because nix-darwin never
+          # unsets a key it stops declaring.
+          LSQuarantine = true;
         };
         "com.apple.ActivityMonitor" = {
           ShowCategory = 109;
