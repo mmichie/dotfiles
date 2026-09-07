@@ -58,49 +58,6 @@ final: prev: {
     else
       prev.codeql;
 
-  # nixpkgs only packages beads 1.0.3 (embedded-Dolt era); bump to v1.1.2 for
-  # the matured `dolt sql-server` + remote model (`bd dolt remote/push/pull`).
-  # Source + vendor hashes updated together. Drop this override once nixpkgs
-  # ships beads >= 1.1.2.
-  #
-  # This is the only override here that pins a VERSION rather than patching a
-  # build, so it is the only one whose staleness is dangerous: once nixpkgs
-  # passes 1.1.2 the pin silently becomes a downgrade. The assert converts that
-  # into a hard eval failure on the next flake update instead.
-  #
-  # 2026-08-05: 1.1.0 -> 1.1.2, a hotfix release cut from 1.1.0. Its one real
-  # change (upstream #4380) survives dolthub/dolt#11131 encoding drift in the
-  # aux row re-key, which otherwise PANICS on reads or writes touching the
-  # events/comments aux tables. The other three commits are release chores, and
-  # vendorHash is unchanged from 1.1.0 because no dependency moved.
-  #
-  # Explicitly NOT a fix for the `bd dolt push` "must be run in a work tree"
-  # failure - that is upstream #3724/#4272, caused by client-side git hooks
-  # firing inside dolt's BARE cache-mirror repo. This machine triggers it via a
-  # GLOBAL core.hooksPath (~/.config/git/hooks, lefthook) rather than the
-  # init.templateDir in the upstream report. bd neutralises hooks for its own
-  # push, but only on the CLI shell-out path, not the CALL DOLT_PUSH SQL path
-  # embedded mode uses. Workaround until upstream fixes it - prefix pushes with:
-  #   LEFTHOOK=0 GIT_CONFIG_PARAMETERS="'core.hooksPath=/dev/null'" bd dolt push
-  beads =
-    assert prev.lib.assertMsg (prev.lib.versionOlder prev.beads.version "1.1.2")
-      "beads override obsolete: nixpkgs now ships beads ${prev.beads.version} (>= 1.1.2). Delete the beads override in overlays/default.nix.";
-    prev.beads.overrideAttrs (_: {
-      version = "1.1.2";
-      src = final.fetchFromGitHub {
-        owner = "gastownhall";
-        repo = "beads";
-        tag = "v1.1.2";
-        hash = "sha256-5oDI2MunHrOKx1m5mC0ZaIqZ9+f1YBQotMBUj6U5H1I=";
-      };
-      vendorHash = "sha256-WWEwGpCwMPD7jaz02zN745RQQqYTQttehbcT3J9hayM=";
-      # The upstream cmd/bd suite fails inside the x86_64-linux build sandbox
-      # (nix keeps only the log tail, so the failing cases are not named in
-      # CI). The override exists for the binary; upstream CI owns the test
-      # suite, and the assert above bounds this override's life.
-      doCheck = false;
-    });
-
   # nixpkgs rclone 1.74.2 always builds with the cmount tag on Darwin but
   # supplies no fuse headers, so cgofuse fails on <fuse.h>. Disable cmount
   # on macOS until upstream fixes the derivation.
