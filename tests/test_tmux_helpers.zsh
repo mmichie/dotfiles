@@ -7,6 +7,13 @@ typeset sessionizer="$REPO_ROOT/bin/bin/tmux-sessionizer"
 typeset stubdir="$T_SCRATCH/sessionizer-bin"
 typeset call_log="$T_SCRATCH/tmux-calls.log"
 
+# The scripts are run through `bash` rather than executed: their shebang is
+# #!/usr/bin/env bash, and the Linux nix build sandbox has no /usr/bin/env, so
+# executing them there failed silently and left every assertion below empty
+# (the flake check was red on x86_64-linux for weeks while the same file
+# passed on darwin, whose relaxed sandbox exposes /usr/bin). The behavior
+# under test is the scripts', not the kernel's shebang resolution.
+
 # `pgrep tmux` used to decide whether switch-client was legal. Simulate an
 # existing server while the caller itself is outside tmux; switch-client has
 # no client in that situation and must be attach-session instead.
@@ -21,7 +28,7 @@ typeset project="$T_SCRATCH/projects/example"
 mkdir -p "$project"
 : > "$call_log"
 TMUX= FAKE_HAS_SESSION_RC=0 TMUX_CALL_LOG="$call_log" \
-    PATH="$stubdir:$PATH" "$sessionizer" "$project"
+    PATH="$stubdir:$PATH" bash "$sessionizer" "$project"
 typeset calls="$(<"$call_log")"
 assert_contains "$calls" "attach-session -t" \
     "sessionizer attaches when called outside tmux with an existing server"
@@ -35,9 +42,9 @@ typeset project_b="$T_SCRATCH/work/api"
 mkdir -p "$project_a" "$project_b"
 : > "$call_log"
 TMUX=fake FAKE_HAS_SESSION_RC=0 TMUX_CALL_LOG="$call_log" \
-    PATH="$stubdir:$PATH" "$sessionizer" "$project_a"
+    PATH="$stubdir:$PATH" bash "$sessionizer" "$project_a"
 TMUX=fake FAKE_HAS_SESSION_RC=0 TMUX_CALL_LOG="$call_log" \
-    PATH="$stubdir:$PATH" "$sessionizer" "$project_b"
+    PATH="$stubdir:$PATH" bash "$sessionizer" "$project_b"
 typeset -a switch_targets
 switch_targets=(${(f)"$(sed -n 's/^switch-client -t //p' "$call_log")"})
 if (( ${#switch_targets} == 2 )) && [[ "$switch_targets[1]" != "$switch_targets[2]" ]]; then
@@ -65,7 +72,7 @@ make_stub "$chtbin" tmux 'if [ "$1" = neww ]; then
 fi
 exit 64'
 print -r -- "log pretty" | HOME="$chthome" FZF_SELECTION=git \
-    CURL_ARG_LOG="$curl_log" PATH="$chtbin:$PATH" "$cht" >/dev/null
+    CURL_ARG_LOG="$curl_log" PATH="$chtbin:$PATH" bash "$cht" >/dev/null
 assert_eq "$(<"$curl_log")" "<-s><--><cht.sh/git~log+pretty>" \
     "tmux-cht sends a multiword command query as one URL"
 
