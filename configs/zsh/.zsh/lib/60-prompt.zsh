@@ -16,27 +16,36 @@ notify_shell_status() {
 # Percent-encode a path per RFC 3986 (unreserved + / pass through).
 # Keeps OSC 7 URLs valid for paths with spaces or other specials.
 _urlencode_path() {
+    local REPLY
+    _urlencode_path_reply "$1"
+    print -rn -- "$REPLY"
+}
+
+# Return through the caller's REPLY so precmd needs no command substitution.
+_urlencode_path_reply() {
     emulate -L zsh
     # Byte-wise, not character-wise: percent-encoding works on UTF-8 bytes
     # (é -> %C3%A9). Under a UTF-8 locale, $str[i] yields whole characters
     # and "'$c" the codepoint, producing invalid one-byte escapes.
     local LC_ALL=C
-    local str="$1" out="" c i
+    local str="$1" out="" c encoded i
     for (( i=1; i<=${#str}; i++ )); do
         c=${str[i]}
         if [[ $c == [A-Za-z0-9._~/-] ]]; then
             out+=$c
         else
-            out+=$(printf '%%%02X' "'$c")
+            printf -v encoded '%%%02X' "'$c"
+            out+="$encoded"
         fi
     done
-    print -rn -- "$out"
+    REPLY="$out"
 }
 
 # OSC 7 directory tracking
 osc7_cwd() {
-    local hostname=${HOST:-$(hostname)}
-    printf '\e]7;file://%s%s\a' "$hostname" "$(_urlencode_path "$PWD")"
+    local hostname=${HOST:-$(hostname)} REPLY
+    _urlencode_path_reply "$PWD"
+    printf '\e]7;file://%s%s\a' "$hostname" "$REPLY"
 }
 
 # Initialize prompt
