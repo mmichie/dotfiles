@@ -51,6 +51,7 @@
 
     # ── Network & Security ─────────────────────────────────────────────
     _1password-cli
+    gitleaks
     nmap
     socat
     mtr
