@@ -20,11 +20,11 @@
     };
 
     chevron = {
-      # Track the unstable branch so this dotfiles checkout exercises
-      # in-flight chevron work continuously. Pin to a tag
+      # Track master: chevron's single trunk since September 2026, when
+      # unstable was reconciled into it and retired. Pin to a tag
       # (github:shiprock/chevron/v0.6.0) on machines that need a known
       # quiet build.
-      url = "github:shiprock/chevron/unstable";
+      url = "github:shiprock/chevron/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
