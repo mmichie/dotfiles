@@ -8,10 +8,21 @@ typeset -g ONEPASSWORD_SOCKET_MACOS="$HOME/Library/Group Containers/2BUA8C4S2C.c
 typeset -g ONEPASSWORD_SOCKET_LINUX="$HOME/.1password/agent.sock"
 # Stable indirection for a forwarded agent. A forwarded SSH_AUTH_SOCK is
 # per-login and ephemeral, so a tmux pane that outlives the login that spawned
-# it is left pointing at a dead socket after re-attach. ~/.ssh/rc repoints this
-# symlink at each login's socket (see .ssh/rc); shells just consume it, so a
-# pane follows the newest agent without re-exporting SSH_AUTH_SOCK by hand.
+# it is left pointing at a dead socket after re-attach. Every shell exports
+# this one path and handle_ssh_agent keeps it pointed at the best agent, so a
+# pane follows the newest login without re-exporting SSH_AUTH_SOCK by hand.
+# (~/.ssh/rc repoints it as well, but only sshd runs rc: Tailscale SSH spawns
+# login(1) directly, so the shell cannot leave this to rc.)
 typeset -g AGENT_STABLE_LINK="$HOME/.ssh/ssh_auth_sock"
+# Where servers put forwarded-agent sockets: sshd since OpenSSH 10.1, sshd
+# before that, Tailscale SSH (gliderlabs/ssh NewAgentListener under the
+# daemon's /tmp). Patterns, so a test can confine them to its scratch dir.
+typeset -ga AGENT_FORWARDED_GLOBS=(
+    "$HOME/.ssh/agent/s.*.sshd.*"
+    "/tmp/ssh-*/agent.*"
+    "/tmp/auth-agent*/listener.sock"
+)
+zmodload zsh/net/socket
 
 # Export SSH_AUTH_SOCK pointing at a 1Password agent if one is running.
 # Returns 0 on hit, 1 on miss.
@@ -26,36 +37,75 @@ _use_1password_socket_if_present() {
     return 1
 }
 
+# Is an agent listening at $1? A connect, not -S: a socket file outlives
+# its listener (sshd leftovers after a crash) and a dangling link fails
+# -S and connect alike. No fork: zsocket is a builtin.
+_agent_alive() {
+    local fd
+    zsocket "$1" 2>/dev/null || return 1
+    fd=$REPLY
+    exec {fd}>&-
+}
+
+_is_forwarded_socket() {
+    local pattern
+    for pattern in "${AGENT_FORWARDED_GLOBS[@]}"; do
+        [[ "$1" == ${~pattern} ]] && return 0
+    done
+    return 1
+}
+
+# Newest live forwarded socket of any login still alive, in $REPLY.
+_find_live_forwarded_socket() {
+    local pattern sock
+    for pattern in "${AGENT_FORWARDED_GLOBS[@]}"; do
+        for sock in ${~pattern}(N=om); do
+            if _agent_alive "$sock"; then
+                REPLY="$sock"
+                return 0
+            fi
+        done
+    done
+    return 1
+}
+
+# The local ssh-agent at $AGENT_SOCKET, started if nothing listens there.
+# A connect, not ssh-add -l: a keyless agent is alive, and restarting on
+# one leaked a fresh agent per shell on machines with no id_* keys to add.
+_ensure_local_agent() {
+    [[ -s "$AGENT_INFO" ]] && source "$AGENT_INFO"
+    _agent_alive "$AGENT_SOCKET" || restart_ssh_agent
+}
+
 # Pick an SSH agent in preference order:
 #   1. 1Password (macOS or Linux)
-#   2. Forwarded / externally-set SSH_AUTH_SOCK (ssh -A, systemd user socket)
-#   3. Traditional ssh-agent (Linux boxes without 1Password)
+#   2. The forwarded socket this login arrived with (ssh -A, through sshd
+#      or Tailscale SSH): the newest login wins the stable link
+#   3. The stable link, while the login behind it is alive
+#   4. An externally-set live SSH_AUTH_SOCK (systemd user socket)
+#   5. Any other login's live forwarded socket, once the link's login ended
+#   6. Traditional ssh-agent (Linux boxes without 1Password)
+# All but 1 and 4 export the link itself, never its target, so a pane heals
+# the moment the next login repoints it.
 handle_ssh_agent() {
     _use_1password_socket_if_present && return 0
 
-    # Forwarded agent (ssh -A). Prefer the stable link (repointed at login by
-    # ~/.ssh/rc) so a tmux pane that outlived its login follows the newest
-    # forwarded socket. Cheap -S only -- no agent round-trip at shell startup.
-    if [[ -S "$AGENT_STABLE_LINK" ]]; then
-        export SSH_AUTH_SOCK="$AGENT_STABLE_LINK"
-        return 0
+    if _is_forwarded_socket "$SSH_AUTH_SOCK" && _agent_alive "$SSH_AUTH_SOCK"; then
+        ln -snf "$SSH_AUTH_SOCK" "$AGENT_STABLE_LINK"
+    elif ! _agent_alive "$AGENT_STABLE_LINK"; then
+        # The local agent's own path is not "external": a pane that
+        # inherited it from tmux must still move to the link, or it would
+        # miss the next login.
+        if [[ "$SSH_AUTH_SOCK" != "$AGENT_SOCKET" ]] && _agent_alive "$SSH_AUTH_SOCK"; then
+            return 0
+        elif _find_live_forwarded_socket; then
+            ln -snf "$REPLY" "$AGENT_STABLE_LINK"
+        else
+            _ensure_local_agent
+            ln -snf "$AGENT_SOCKET" "$AGENT_STABLE_LINK"
+        fi
     fi
-
-    if [[ -n "$SSH_AUTH_SOCK" ]] && [[ -S "$SSH_AUTH_SOCK" ]]; then
-        return 0
-    fi
-
-    if [[ -s "$AGENT_INFO" ]]; then
-        source "$AGENT_INFO"
-    fi
-
-    # ssh-add -l exit codes: 0 = agent has keys, 1 = agent alive but
-    # keyless, 2 = agent unreachable. Restarting on 1 leaked a fresh agent
-    # per shell on machines with no id_* keys to add.
-    ssh-add -l &>/dev/null
-    if (( $? == 2 )) || [[ ! -S "$AGENT_SOCKET" ]]; then
-        restart_ssh_agent
-    fi
+    export SSH_AUTH_SOCK="$AGENT_STABLE_LINK"
 }
 
 restart_ssh_agent() {

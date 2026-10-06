@@ -28,11 +28,12 @@
       # Repoint a stable path at each login's forwarded agent socket. Forwarded
       # sockets are per-login and ephemeral, so a tmux pane that outlives its SSH
       # login is otherwise left pointing at a dead socket after re-attach; the
-      # zsh agent handling consumes this stable link
-      # (configs/zsh/.zsh/lib/80-ssh.zsh). sshd runs ~/.ssh/rc once per
-      # connection with the fresh SSH_AUTH_SOCK in the environment. (Having
-      # ~/.ssh/rc disables the default X11 cookie handling, which this headless
-      # box does not use.)
+      # zsh agent handling consumes this stable link and repoints it itself
+      # (configs/zsh/.zsh/lib/80-ssh.zsh), because only sshd runs ~/.ssh/rc:
+      # Tailscale SSH spawns login(1) directly. rc still covers sshd sessions
+      # that start no shell; sshd runs it once per connection with the fresh
+      # SSH_AUTH_SOCK in the environment. (Having ~/.ssh/rc disables the
+      # default X11 cookie handling, which this headless box does not use.)
       ".ssh/rc".text = ''
         if [ -n "$SSH_AUTH_SOCK" ] && [ "$SSH_AUTH_SOCK" != "$HOME/.ssh/ssh_auth_sock" ]; then
           ln -snf "$SSH_AUTH_SOCK" "$HOME/.ssh/ssh_auth_sock"

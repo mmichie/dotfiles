@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 # Regression tests pinning bugs fixed in the 2026-06, 2026-07 and 2026-09 zsh
-# correctness reviews.
+# correctness reviews and the 2026-10 forwarded-agent fix.
 # (The _parse_env_file and arrow-binding regressions live in their own files.)
 
 source "${0:A:h}/lib.zsh"
@@ -414,5 +414,93 @@ assert_contains "$out" "OPENER_LINUX_XDG=xdg-open/xdg-open" \
     "Linux with xdg-open binds image/HTML suffixes to it"
 assert_contains "$out" "OPENER_OSX=open/open" "macOS binds image/HTML suffixes to open"
 assert_contains "$out" "OPENER_MD_EDITOR=yes" "text suffixes open in \$EDITOR on every platform"
+
+# ── Forwarded-agent link follows any login path (lib/80-ssh.zsh) ─────
+# Bug: ~/.ssh/ssh_auth_sock, the one SSH_AUTH_SOCK every pane exports, was
+# repointed only by ~/.ssh/rc, which sshd runs and Tailscale SSH does not
+# (it spawns login(1) directly). A Tailscale login never published its
+# forwarded socket, and once the sshd login that had last pointed the link
+# ended, every pane sat on a dead path while another login's live socket
+# went unused. The shell now owns the link: a login adopts the forwarded
+# socket it arrived with, a dead link is repaired from any other live
+# forwarded socket, and with none it is parked on the local agent, so a
+# pane keeps one path and follows the next login. Liveness is a connect
+# (zsocket), not -S: a socket file outlives its listener.
+#
+# Two listeners stand in for two logins' forwarded sockets. zsocket -l
+# listens with a backlog of one and never accepts, so a second probe of
+# the same socket would block in connect(2): a background job drains each
+# listener, and ending a login means killing its drain job as well as
+# closing the fd. The scan patterns are confined to the scratch dir so a
+# real forwarded login on the test machine cannot be adopted, and the stub
+# dir is prepended inside the shell (.zshenv demotes an env-level prepend
+# below the real ssh-agent).
+_t_drain() {
+    local fd
+    while zsocket -a "$1" 2>/dev/null; do
+        fd=$REPLY
+        exec {fd}>&-
+    done
+}
+if [[ -n "$T_AGENT_SOCK" ]]; then
+    typeset fwd="$T_SCRATCH/fwd" login_sock='' other_sock=''
+    typeset -i login_fd=0 other_fd=0 login_drain=0 other_drain=0
+    mkdir -p "$fwd"
+    login_sock="$fwd/s.a.sshd.login"
+    other_sock="$fwd/s.b.sshd.other"
+    zsocket -l "$login_sock"; login_fd=$REPLY
+    _t_drain "$login_fd" & login_drain=$!
+    zsocket -l "$other_sock"; other_fd=$REPLY
+    _t_drain "$other_fd" & other_drain=$!
+    sb="$(make_sandbox_home)"
+    # Without the 1Password sockets the real agent logic runs.
+    rm -f "$sb/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" "$sb/.1password/agent.sock"
+    out=$(run_sandbox_zsh "$sb" '
+        link="$HOME/.ssh/ssh_auth_sock"
+        print -r -- "BOOT=$SSH_AUTH_SOCK"
+        AGENT_FORWARDED_GLOBS=("$FWD/s.*.sshd.*")
+        SSH_AUTH_SOCK="$LOGIN_SOCK"; handle_ssh_agent
+        print -r -- "ADOPT=$SSH_AUTH_SOCK:$(readlink "$link")"
+        handle_ssh_agent
+        print -r -- "PANE=$SSH_AUTH_SOCK:$(readlink "$link")"
+        SSH_AUTH_SOCK="$AGENT_SOCKET"; handle_ssh_agent
+        print -r -- "INHERITED=$SSH_AUTH_SOCK:$(readlink "$link")"
+    ' FWD="$fwd" LOGIN_SOCK="$login_sock" 2>/dev/null)
+    assert_contains "$out" "BOOT=$T_AGENT_SOCK" \
+        "an externally provided live agent is kept as is (systemd user socket)"
+    assert_contains "$out" "ADOPT=$sb/.ssh/ssh_auth_sock:$login_sock" \
+        "a login publishes its forwarded socket through the link without ~/.ssh/rc (regression: Tailscale SSH)"
+    assert_contains "$out" "PANE=$sb/.ssh/ssh_auth_sock:$login_sock" \
+        "a pane on a live link is left alone"
+    assert_contains "$out" "INHERITED=$sb/.ssh/ssh_auth_sock:$login_sock" \
+        "a pane that inherited the local agent path moves to the live link (regression)"
+
+    # The login behind the link ends; its socket file stays behind, dead.
+    # The other login is still up, so the boot finds a live link and the
+    # sandbox never touches the harness dummy again (it is never drained).
+    kill "$login_drain" 2>/dev/null; wait "$login_drain" 2>/dev/null
+    exec {login_fd}>&-
+    ln -snf "$other_sock" "$sb/.ssh/ssh_auth_sock"
+    out=$(run_sandbox_zsh "$sb" '
+        path=("$STUBS" $path); rehash
+        link="$HOME/.ssh/ssh_auth_sock"
+        AGENT_FORWARDED_GLOBS=("$FWD/s.*.sshd.*")
+        ln -snf "$HOME/gone" "$link"
+        SSH_AUTH_SOCK="$link"; handle_ssh_agent
+        print -r -- "REPAIR=$SSH_AUTH_SOCK:$(readlink "$link")"
+        ln -snf "$HOME/gone" "$link"
+        AGENT_FORWARDED_GLOBS=("$HOME/none/*")
+        SSH_AUTH_SOCK="$link"; handle_ssh_agent >/dev/null
+        print -r -- "LOCAL=$SSH_AUTH_SOCK:$(readlink "$link"):$(whence -p ssh-agent)"
+    ' FWD="$fwd" STUBS="$T_AGENT_STUBS" 2>/dev/null)
+    assert_contains "$out" "REPAIR=$sb/.ssh/ssh_auth_sock:$other_sock" \
+        "a dead link is repaired from another login still alive, skipping the dead socket file (regression)"
+    assert_contains "$out" "LOCAL=$sb/.ssh/ssh_auth_sock:$sb/.ssh/.ssh-agent-socket:$T_AGENT_STUBS/ssh-agent" \
+        "with nothing forwarded the link parks on the (stubbed) local agent, still the one path panes export"
+    kill "$other_drain" 2>/dev/null; wait "$other_drain" 2>/dev/null
+    exec {other_fd}>&-
+else
+    t_skip "forwarded-agent link follows any login path" "no unix socket listener (zsocket)"
+fi
 
 t_finish
