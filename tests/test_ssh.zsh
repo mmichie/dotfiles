@@ -102,6 +102,20 @@ else
     t_fail "configs/ssh/known_hosts.pinned exists" "missing: first connections are trust-on-first-use"
 fi
 
+# ── wintermute: reached over the tailnet, by either server ───────────
+# Bug: HostName was the LAN address, so `ssh wintermute` away from home
+# dialed 192.168.1.178 and hung. The tailnet name resolves wherever
+# Tailscale is up. Tailscale SSH answers it with its own ecdsa host key, so
+# that is pinned next to sshd's ed25519 one (checked above).
+typeset wm_host="$(sg wintermute hostname)"
+assert_eq "$wm_host" "wintermute.risk-basking.ts.net" \
+    "wintermute: HostName is the tailnet name (regression: LAN address)"
+if awk -v h="$wm_host" '{ n = split($1, a, ","); for (k = 1; k <= n; k++) if (a[k] == h && $2 == "ecdsa-sha2-nistp256") found = 1 } END { exit !found }' "$PINNED"; then
+    t_pass "wintermute: Tailscale SSH's ecdsa host key is pinned"
+else
+    t_fail "wintermute: Tailscale SSH's ecdsa host key is pinned" "no ecdsa entry for $wm_host"
+fi
+
 # ── Agent socket resolves under the same home ssh uses for ~ ─────────
 typeset pwdir="${ukhf[1]%/.ssh/known_hosts}"
 assert_eq "$(sg wintermute identityagent)" \

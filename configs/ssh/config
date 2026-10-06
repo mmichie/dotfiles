@@ -5,8 +5,12 @@ Host vm
     User mim
     IdentityFile ~/.ssh/personal.pub
 
+# The tailnet name, not the LAN address: it resolves wherever Tailscale is
+# up, so this works from a hotel as well as from home. Tailscale SSH answers
+# it (its host key and sshd's are both pinned) and runs no ~/.ssh/rc, so the
+# forwarded agent is published by the shell (.zsh/lib/80-ssh.zsh).
 Host wintermute
-    HostName 192.168.1.178
+    HostName wintermute.risk-basking.ts.net
     User mim
     IdentityFile ~/.ssh/personal.pub
     ForwardAgent yes
