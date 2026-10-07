@@ -21,7 +21,11 @@ autoload -Uz compinit
 autoload +X compinit
 functions[_test_real_compinit]=$functions[compinit]
 compinit() {
-    if [[ "$1" == -i ]]; then
+    # Count dump rewrites only. A shell that times out on the cache lock
+    # falls back to `compinit -i -D`, which initializes in memory and writes
+    # nothing shared (25-completion.zsh). Loaded CI runners hit that timeout,
+    # and counting the fallback failed this test with no shell racing the dump.
+    if [[ "$1" == -i && "$2" == -d ]]; then
         print -r -- rebuild >> "$HOME/comp-builds"
         sleep 0.3
     fi
