@@ -8,6 +8,8 @@
       # builds outside nix.
       binutils
       keybase
+      # macOS gets samba from Homebrew instead (modules/darwin/homebrew.nix).
+      samba
       xclip
       xsel
     ];

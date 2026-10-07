@@ -47,6 +47,12 @@ _:
       # Ornith-1.5-35B-A3B 8-bit, against 16 tok/s CPU-only for a 0.5B model.
       "mlx-lm"
       "mas" # Mac App Store CLI — required for the masApps below
+      # smbclient and friends. nixpkgs' aarch64-darwin samba (4.23.10) is broken
+      # at runtime: its binaries and dylibs record install names inside the nix
+      # build directory, so every binary dies with "Library not loaded:
+      # /nix/var/nix/builds/.../libsecrets3-private-samba.dylib". Linux keeps
+      # nix's (hostclass/linux-workstation.nix).
+      "samba"
       # tensor9ine/tensor9/tensor9 is declared in extraConfig below — it needs
       # `trusted: true`, which the brews list can't express.
     ];

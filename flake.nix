@@ -7,7 +7,6 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-25.05";
 
     nix-darwin = {
       url = "github:LnL7/nix-darwin";
@@ -38,7 +37,6 @@
     {
       self,
       nixpkgs,
-      nixpkgs-stable,
       nix-darwin,
       home-manager,
       chevron,
@@ -49,7 +47,6 @@
       mkHost = import ./lib/mkHost.nix {
         inherit
           nixpkgs
-          nixpkgs-stable
           nix-darwin
           home-manager
           chevron

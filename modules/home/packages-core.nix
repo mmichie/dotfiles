@@ -62,7 +62,8 @@
     testssl
     ipmitool
     sshpass
-    stable.samba
+    # samba: Homebrew on macOS (modules/darwin/homebrew.nix), nix on Linux
+    # (hostclass/linux-workstation.nix).
     doggo
 
     # ── AI ────────────────────────────────────────────────────────────

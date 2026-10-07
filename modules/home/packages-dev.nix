@@ -112,7 +112,7 @@
     pandoc
     poppler-utils
     texliveSmall
-    stable.yt-dlp
+    yt-dlp
 
     # ── Fonts ─────────────────────────────────────────────────────────
     nerd-fonts.departure-mono

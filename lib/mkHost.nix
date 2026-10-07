@@ -1,6 +1,5 @@
 {
   nixpkgs,
-  nixpkgs-stable,
   nix-darwin,
   home-manager,
   chevron,
@@ -9,10 +8,6 @@
 }:
 
 let
-  stableOverlay = system: final: prev: {
-    stable = nixpkgs-stable.legacyPackages.${system};
-  };
-
   chevronOverlay = system: final: prev: {
     chevron = chevron.packages.${system}.default;
   };
@@ -20,7 +15,6 @@ let
   customPackagesOverlay = import ../overlays;
 
   overlays = system: [
-    (stableOverlay system)
     (chevronOverlay system)
     customPackagesOverlay
   ];
@@ -31,7 +25,6 @@ let
   flakeInputs = nixpkgs.lib.filterAttrs (_: nixpkgs.lib.isType "flake") {
     inherit
       nixpkgs
-      nixpkgs-stable
       nix-darwin
       home-manager
       chevron
