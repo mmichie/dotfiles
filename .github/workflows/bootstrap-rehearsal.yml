@@ -40,8 +40,9 @@ jobs:
     runs-on: ubuntu-latest
     # Nothing is cached inside the container on purpose — that is what "fresh
     # machine" means. Everything substitutes from cache.nixos.org except the
-    # overlay/flake-input derivations (chevron via crane, the beads and statix
-    # overrides), which build from source every week.
+    # derivations this repo defines or patches (chevron via crane, and recs,
+    # obliviate, gremlins and the codeql patch from overlays/default.nix),
+    # which build from source every week.
     timeout-minutes: 60
 
     steps:

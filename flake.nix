@@ -60,9 +60,9 @@
         "aarch64-linux"
         "x86_64-linux"
       ];
-      # Apply the custom-packages overlay here too so every flake-output
-      # consumer (devShells, packages) sees the same fixups the hosts get —
-      # otherwise `nix develop` builds the un-overlaid, upstream-broken statix.
+      # Apply the custom-packages overlay here too, so a fixup added there
+      # reaches every flake output (devShells, packages, checks), not just the
+      # hosts.
       forAllSystems =
         f:
         nixpkgs.lib.genAttrs systems (
@@ -113,16 +113,16 @@
       packages = forAllSystems (pkgs: {
         recs = pkgs.callPackage ./pkgs/recs { };
         obliviate = pkgs.callPackage ./pkgs/obliviate { };
-        # Overlay-fixed statix, surfaced so lefthook's pre-commit hook can run
+        # statix, surfaced so lefthook's pre-commit hook can run
         # `nix run .#statix` — pinning the linter to the repo's nixpkgs instead
         # of the floating registry that `nixpkgs#statix` would resolve.
         inherit (pkgs) statix;
       });
 
       # ── Overlays ──────────────────────────────────────────────────
-      # The custom-packages overlay (recs + rclone/pipx fixups) that every
-      # host applies, re-exported so other flakes can pull it in via
-      # `inputs.dotfiles.overlays.default`.
+      # The custom-packages overlay (recs, obliviate, gremlins, and the Linux
+      # codeql fix) that every host applies, re-exported so other flakes can
+      # pull it in via `inputs.dotfiles.overlays.default`.
       overlays.default = import ./overlays;
 
       # ── Formatter ─────────────────────────────────────────────────
