@@ -5,7 +5,7 @@
     # ── Core CLI & Shell ───────────────────────────────────────────────
     coreutils
     findutils
-    binutils
+    # binutils is Linux-only: hostclass/linux-workstation.nix.
     moreutils
     gnupg
     git

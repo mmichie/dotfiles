@@ -2,6 +2,11 @@
 {
   home = {
     packages = with pkgs; [
+      # Linux-only on purpose. On macOS GNU binutils' unprefixed ar, nm, strip
+      # and ranlib shadow Apple's, and Apple's ld rejects static archives built
+      # with GNU ar ("64-bit mach-o not 8-byte aligned"), which breaks native
+      # builds outside nix.
+      binutils
       keybase
       xclip
       xsel
