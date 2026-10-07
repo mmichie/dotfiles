@@ -20,6 +20,10 @@
 #     which only explodes when the key is pressed)
 #   - GitHub Actions are pinned by commit, not tag (a tag can be repointed;
 #     dependabot moves the pin and its version comment together)
+#   - no installer blocks in the config (~/.zshrc and friends are symlinks
+#     into this repo, so an installer's append lands in the working tree;
+#     Docker Desktop's slipped through until only the sandboxed suite caught
+#     it)
 
 source "${0:A:h}/lib.zsh"
 setopt extended_glob   # run.zsh's emulate -R turns it off; the ## patterns below need it
@@ -67,6 +71,58 @@ lint_absent 'no $(command -v ...) value captures (function-shadow trap)' \
     '\$\(command -v'
 lint_absent 'no hardcoded cache dir outside .zshrc' \
     '.cache/zsh' .zshrc
+
+# ── no installer blocks ───────────────────────────────────────────────
+# Installers append to the rc file they find, and here that file is this
+# repo's: Docker Desktop added a PATH line to .zprofile and a second,
+# unfingerprinted compinit to .zshrc. Their blocks give themselves away two
+# ways: marker comments ("added by ...", conda's ">>> ... >>>", "End of ...
+# section", Amazon Q's "keep at the top of this file") and the installing
+# user's home written out literally, where this config always says $HOME.
+# Comments are scanned too, since the markers are comments. Matching is
+# case-insensitive.
+typeset -g foreign_re='added by|>>> .* >>>|<<< .* <<<|end of .* section'
+foreign_re+='|keep at the (top|bottom) of this file|/(Users|home)/[A-Za-z0-9._-]'
+
+# foreign_lines <file ...> — print file:line for each line matching foreign_re.
+foreign_lines() {
+    local f hit
+    for f in "$@"; do
+        for hit in ${(f)"$(grep -inE "$foreign_re" "$f")"}; do
+            print -r -- "${f:t}:${hit%%:*}"
+        done
+    done
+}
+
+# The detector must flag the blocks that prompted it, verbatim, or a clean
+# result below means nothing.
+cat > "$T_SCRATCH/docker-zprofile" <<'EOF'
+# The following lines were added by Docker Desktop to add commands to your PATH.
+export PATH="$PATH:/Users/mim/.docker/bin"
+# End of Docker Desktop section.
+EOF
+cat > "$T_SCRATCH/docker-zshrc" <<'EOF'
+# The following lines have been added by Docker Desktop to enable Docker CLI completions.
+fpath=(/Users/mim/.docker/completions $fpath)
+autoload -Uz compinit
+(( ${+_comps[docker]} )) || compinit
+# End of Docker CLI completions
+EOF
+typeset -a foreign
+foreign=(${(f)"$(foreign_lines "$T_SCRATCH/docker-zprofile")"})
+assert_eq "${foreign[*]}" 'docker-zprofile:1 docker-zprofile:2 docker-zprofile:3' \
+    "installer detector flags Docker Desktop's .zprofile PATH block"
+foreign=(${(f)"$(foreign_lines "$T_SCRATCH/docker-zshrc")"})
+assert_eq "${foreign[*]}" 'docker-zshrc:1 docker-zshrc:2' \
+    "installer detector flags Docker Desktop's .zshrc completions block"
+
+foreign=(${(f)"$(foreign_lines "${cfg_files[@]}")"})
+if (( ${#foreign} == 0 )); then
+    t_pass "no installer blocks or literal home paths in the config"
+else
+    t_fail "no installer blocks or literal home paths in the config" \
+        "${(j:, :)foreign} (remove the block, or use \$HOME)"
+fi
 
 # ── lib module naming: two-digit prefix, lowercase, .zsh ──────────────
 typeset -a badnames
