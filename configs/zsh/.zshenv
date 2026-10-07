@@ -59,6 +59,24 @@ setup_path() {
 
 setup_path
 
+# Home Manager's session variables: home.sessionVariables, plus the
+# TERMINFO_DIRS its darwin target adds so macOS's own ncurses finds terminfo
+# from nix packages (wezterm). Home Manager does not manage zsh here, so this
+# is the only place the file gets sourced; HM's zsh module would source it
+# from the startup files it generates. It returns early once
+# __HM_SESS_VARS_SOURCED is in the environment, so child shells skip it.
+# nix-darwin/NixOS install it under /etc/profiles/per-user, standalone
+# home-manager under ~/.nix-profile.
+for _hm_vars in \
+    "/etc/profiles/per-user/${USERNAME}/etc/profile.d/hm-session-vars.sh" \
+    "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh"; do
+    if [[ -r "$_hm_vars" ]]; then
+        source "$_hm_vars"
+        break
+    fi
+done
+unset _hm_vars
+
 # Route chevron weather's location lookup through the Go CoreLocation bridge
 # (macOS only; on other platforms chevron falls back to IP geolocation).
 [[ "$OSTYPE" == darwin* ]] && export CHEVRON_WEATHER_LOCATION_CMD="wifi-location --latlon"
