@@ -28,18 +28,16 @@ _:
 
     brews = [
       "dosbox-x" # nixpkgs build broken on aarch64-darwin (SCREEN_METAL undeclared in render.cpp)
-      # Muse Glimmer needs llama.cpp >= b10353, which the pinned nixpkgs does
-      # not have. Pinned to HEAD rather than the stable bottle: architectures
-      # ship in llama.cpp master well before a tagged release, and the current
-      # stable (0.3.0, build 10621) knows nothing of `qwen4exp` — the arch
-      # behind Qwen3.8-Flash-Next. master carries it. HEAD is a source build
-      # and is unreleased by definition, so if Glimmer or an existing GGUF
-      # breaks after an upgrade, drop the args and take the bottle again.
-      # brew will not re-pull master on later runs without --fetch-HEAD.
-      {
-        name = "llama.cpp";
-        args = [ "HEAD" ];
-      }
+      # llama.cpp for the local models, which need the muse-glimmer, qwen4exp
+      # and deepseek4 archs. From Homebrew because its bottle runs ahead of
+      # nixpkgs (0.6.0 against nixpkgs' 0.5.0 when this was written). Not
+      # HEAD: the formula compiles HEAD against Homebrew's released ggml, so
+      # master breaks whenever it adopts ggml API ahead of a ggml release, and
+      # brew rebuilds HEAD each time the stable version moves, --fetch-HEAD or
+      # not. A host still holding a HEAD keg keeps getting HEAD, since brew
+      # takes the spec from the installed keg; clear it there once with
+      # `brew uninstall --force llama.cpp`.
+      "llama.cpp"
       # MLX with working Metal. nixpkgs pins -DMLX_BUILD_METAL=FALSE because
       # compiling Metal shaders needs the Xcode toolchain, which the nix build
       # sandbox does not have; its mlx_lm therefore falls back to the CPU and a

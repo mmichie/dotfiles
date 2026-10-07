@@ -77,8 +77,8 @@
 
     # ── Local AI agents ────────────────────────────────────────────────
     # Pi is the coding-agent harness for the local Muse Glimmer model.
-    # llama.cpp is temporarily supplied by Homebrew because the pinned
-    # nixpkgs build predates Glimmer support.
+    # On macOS llama.cpp comes from Homebrew; modules/darwin/homebrew.nix
+    # says why.
     pi-coding-agent
 
     # ── Infrastructure & Cloud ─────────────────────────────────────────
