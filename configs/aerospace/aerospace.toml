@@ -179,6 +179,12 @@ run = ['move-node-to-workspace 6']
 if.app-id = 'com.jetbrains.datagrip'
 run = ['move-node-to-workspace 6']
 
+# Spotify goes to the laptop screen when it is attached. With the lid closed no
+# monitor matches, the callback's error is discarded, and Spotify stays put.
+[[on-window-detected]]
+if.app-id = 'com.spotify.client'
+run = ['move-node-to-monitor built-in']
+
 # Float common utilities, dialogs, and media apps by display name.
 # Verbose regex ((?x)): whitespace is ignored; use \  for a literal space.
 # To add an app: insert a new `| Name` line below, alphabetized.
