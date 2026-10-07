@@ -6,8 +6,9 @@
 # /nix/store, so HOME is irrelevant there. Deliberately NOT on darwin-rebuild:
 # activation runs home-manager, where HOME must stay the invoking user's.
 # The trailing zsh -i absorbs the first-shell init-cache/compdump regen a
-# switch triggers, so the next real shell opens fast.
-switch:
+# switch triggers, so the next real shell opens fast. rc-drift runs after a
+# successful switch.
+switch: && rc-drift
     @if [ "$(uname)" = "Darwin" ]; then \
         sudo "$(command -v darwin-rebuild)" switch --flake ".#$(hostname -s)" \
             && sudo -H "$(command -v nix-collect-garbage)" --delete-older-than 3d \
@@ -19,6 +20,23 @@ switch:
     fi
     @echo "warming shell caches..."
     @ZSH_CACHE_REVALIDATE=1 zsh -i -c exit >/dev/null 2>&1 || true
+
+# Warn when the shell rc files differ from HEAD. ~/.zshrc, ~/.zprofile and
+# ~/.zshenv are symlinks into this repo, so an installer that appends to one
+# (Docker Desktop did) edits the working tree, and a switch is a natural
+# moment to notice. Warning only, never a failure: your own uncommitted edits
+# trip it too, and a switch should not fail over those. What fails, at commit
+# time, is the installer-block check in tests/test_lint.zsh.
+rc-drift:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{justfile_directory()}}
+    rc=(configs/zsh/.zshrc configs/zsh/.zprofile configs/zsh/.zshenv)
+    if ! git diff --quiet HEAD -- "${rc[@]}"; then
+        echo "warning: shell rc files differ from HEAD; if you did not make these edits, an installer did:"
+        git diff --stat HEAD -- "${rc[@]}"
+        echo "review them with: git diff HEAD -- configs/zsh"
+    fi
 
 # Install git hooks. The repo sets core.hooksPath globally (configs/git/
 # .gitconfig), so git ignores .git/hooks and nothing wires lefthook in per
