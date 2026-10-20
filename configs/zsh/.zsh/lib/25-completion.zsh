@@ -36,10 +36,14 @@ _setup_compinit_cache() {
     #   - resolved dir LIST moved  -> a rebuild flipped the generation. The old
     #     dump describes the same tools at old paths, so serve it via -C
     #     (stale completions for this one shell) and hand the ~0.9s full
-    #     rebuild to a background revalidation shell. Guards: the spawned
-    #     shell carries ZSH_CACHE_REVALIDATE=1 and takes the synchronous path
-    #     (else it would spawn its own child forever), and a stamp file
-    #     age-gates the spawn so a burst of post-rebuild tabs cannot stampede.
+    #     rebuild to a forked background subshell. A fork, not a fresh zsh:
+    #     it is this binary with this fpath, so it records the fingerprint
+    #     this kind of shell checks. `zsh` on PATH can be another build (nix
+    #     zsh vs the macOS login shell /bin/zsh) that never matches it, and a
+    #     fresh interactive zsh in the background was stopped by job control.
+    #     A stamp file age-gates the spawn so a burst of post-rebuild tabs
+    #     cannot stampede. ZSH_CACHE_REVALIDATE=1 forces the synchronous path
+    #     (the post-switch cache warm-up in the justfile).
     #   - same dirs, mtime moved   -> a completion file just landed in a live
     #     dir. The stale dump genuinely lacks it, so rebuild in THIS shell —
     #     same-boot registration is the guarantee that motivated the mtime
@@ -87,16 +91,25 @@ _setup_compinit_cache() {
                 # Stamp before spawning (banner-stamp discipline): a dying
                 # revalidator costs one 120s window, never a spawn storm.
                 builtin true >| "$ZSH_COMPDUMP.revalidating"
-                INFLUX_SHOWN=1 ZSH_CACHE_REVALIDATE=1 zsh -i -c exit </dev/null &>/dev/null &!
+                # The fork does not hold this shell's fcntl lock; it waits
+                # for the release that follows this function's return.
+                ( _with_cache_lock "$ZSH_COMPDUMP" _rebuild_compdump "$_fpath_fingerprint" ) \
+                    </dev/null &>/dev/null &!
             fi
         fi
     fi
     if (( _compinit_rebuild )); then
-        command rm -f "$ZSH_COMPDUMP" "$ZSH_COMPDUMP.zwc"
-        compinit -i -d "$ZSH_COMPDUMP"
-        zcompile "$ZSH_COMPDUMP" 2>/dev/null
-        print -r -- "$_fpath_fingerprint" >| "$ZSH_COMPDUMP.fpath"
+        _rebuild_compdump "$_fpath_fingerprint"
     fi
+}
+
+# Full rebuild under the caller's cache lock. The fingerprint is passed in so
+# the sidecar records exactly the list the caller compared against.
+_rebuild_compdump() {
+    command rm -f "$ZSH_COMPDUMP" "$ZSH_COMPDUMP.zwc"
+    compinit -i -d "$ZSH_COMPDUMP"
+    zcompile "$ZSH_COMPDUMP" 2>/dev/null
+    print -r -- "$1" >| "$ZSH_COMPDUMP.fpath"
 }
 
 # Recheck the fingerprint after acquiring the lock, including on warm reads.

@@ -6,8 +6,10 @@
 # /nix/store, so HOME is irrelevant there. Deliberately NOT on darwin-rebuild:
 # activation runs home-manager, where HOME must stay the invoking user's.
 # The trailing zsh -i absorbs the first-shell init-cache/compdump regen a
-# switch triggers, so the next real shell opens fast. rc-drift runs after a
-# successful switch.
+# switch triggers, so the next real shell opens fast. It runs $SHELL, the
+# zsh terminals start: the dump's fingerprint covers the binary's own fpath,
+# and warming nix's zsh from PATH (where the login shell is /bin/zsh) left
+# every terminal on a stale dump. rc-drift runs after a successful switch.
 switch: && rc-drift
     @if [ "$(uname)" = "Darwin" ]; then \
         sudo "$(command -v darwin-rebuild)" switch --flake ".#$(hostname -s)" \
@@ -19,7 +21,8 @@ switch: && rc-drift
         home-manager switch --flake .#mim@linux; \
     fi
     @echo "warming shell caches..."
-    @ZSH_CACHE_REVALIDATE=1 zsh -i -c exit >/dev/null 2>&1 || true
+    @case "$SHELL" in */zsh) z="$SHELL" ;; *) z=zsh ;; esac; \
+        ZSH_CACHE_REVALIDATE=1 "$z" -i -c exit >/dev/null 2>&1 || true
 
 # Warn when the shell rc files differ from HEAD. ~/.zshrc, ~/.zprofile and
 # ~/.zshenv are symlinks into this repo, so an installer that appends to one

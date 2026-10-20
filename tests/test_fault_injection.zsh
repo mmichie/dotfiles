@@ -207,10 +207,9 @@ assert_contains "$(<$settletrace.out)" "M_SOMECMD=[_somecmd]" \
 # ── Generation flip (resolved fpath LIST moved): stale-while-revalidate ─
 # A rebuild moves store paths without adding completion files, so blocking
 # ~1s on a full compinit buys nothing: the stale dump must be served on the
-# -C path, the fingerprint left alone for a background revalidation shell
-# (ZSH_CACHE_REVALIDATE=1) to re-stamp, and the spawn age-gated by the
-# .revalidating stamp. Distinct from the mtime-only case above, which keeps
-# its same-boot rebuild.
+# -C path, the fingerprint left alone for the background rebuild to
+# re-stamp, and the spawn age-gated by the .revalidating stamp. Distinct from
+# the mtime-only case above, which keeps its same-boot rebuild.
 sb="$(make_sandbox_home)"
 run_sandbox_zsh "$sb" 'exit' >/dev/null 2>&1
 dump="$sb/.cache/zsh/.zcompdump"
@@ -242,7 +241,8 @@ if [[ -s "$dump" && -s "$dump.fpath" ]]; then
     else
         t_fail "fingerprint untouched by the stale boot (revalidation deferred)"
     fi
-    # The revalidation shell itself takes the synchronous path and re-stamps.
+    # ZSH_CACHE_REVALIDATE=1 (the post-switch warm-up) forces the
+    # synchronous path, which rebuilds and re-stamps.
     run_sandbox_zsh "$sb" 'exit' ZSH_CACHE_REVALIDATE=1 >/dev/null 2>&1
     if grep -qF '/nonexistent-old-generation' "$dump.fpath"; then
         t_fail "revalidation shell rebuilds and re-stamps the fingerprint"
@@ -261,6 +261,42 @@ if [[ -s "$dump" && -s "$dump.fpath" ]]; then
     fi
 else
     t_fail "generation-flip stale-while-revalidate" \
+        "precondition: cold boot wrote no dump or fingerprint"
+fi
+
+# ── Generation flip under a terminal: the background rebuild finishes ─
+# The flip test above re-stamps through the synchronous path, so the
+# background rebuild was never exercised. It used to spawn a fresh
+# `zsh -i -c exit`, which failed twice over in a real terminal: job control
+# stopped it in its background process group (ps state T), and the zsh it
+# found on PATH could be another build than the login shell (nix's vs macOS
+# /bin/zsh), whose fpath already matched the old fingerprint, so it never
+# rebuilt. Either way every later shell served the stale dump. The pty boot
+# models the first; a stub zsh first on PATH ($HOME/bin) models the second.
+sb="$(make_sandbox_home)"
+run_sandbox_zsh "$sb" 'exit' >/dev/null 2>&1
+dump="$sb/.cache/zsh/.zcompdump"
+if [[ -s "$dump" && -s "$dump.fpath" ]]; then
+    print -r -- '/nonexistent-old-generation:none' >> "$dump.fpath"
+    command rm -f "$dump.revalidating"
+    make_stub "$sb/bin" zsh
+    # The boot shell waits for the re-stamp itself: the session must stay
+    # open as a terminal's does, since a leader exiting revokes the tty out
+    # from under background work that is still running.
+    typeset waitcmd="for _i in {1..100}; do grep -qF /nonexistent-old-generation ${(q)dump}.fpath || break; sleep 0.1; done"
+    _sandbox_env_args "$sb"
+    if run_under_pty env -i "${reply[@]}" zsh --no-globalrcs -i -c "$waitcmd" >/dev/null; then
+        if grep -qF '/nonexistent-old-generation' "$dump.fpath"; then
+            t_fail "background rebuild re-stamps the fingerprint under a terminal" \
+                "fingerprint still stale 10s after the boot"
+        else
+            t_pass "background rebuild re-stamps the fingerprint under a terminal"
+        fi
+    else
+        t_skip "background rebuild re-stamps the fingerprint under a terminal" "no pty"
+    fi
+else
+    t_fail "background rebuild re-stamps the fingerprint under a terminal" \
         "precondition: cold boot wrote no dump or fingerprint"
 fi
 
