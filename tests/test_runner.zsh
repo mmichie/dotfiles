@@ -4,7 +4,7 @@
 # itself). Pinned:
 #   - any failing file makes the run exit 1; the summary carries the count
 #   - output is replayed per file, in name order, each under its header
-#   - files run concurrently: two files sleeping 2s finish in well under 4s
+#   - files run concurrently: the two files' 2s sleeps overlap in time
 #   - TEST_JOBS=1 restores serial execution (the two sleeps take >= 4s)
 #   - TEST_TIMEOUT cuts a hung file off: status 124 and a TIMED OUT line
 
@@ -16,8 +16,13 @@ mkdir -p "$fake"
 cp "$T_LIB_DIR/run.zsh" "$fake/run.zsh"
 print -r -- 'print -r -- "  ok - a"; exit 0' > "$fake/test_a.zsh"
 print -r -- 'print -r -- "  not ok - b1"; print -r -- "  not ok - b2"; exit 2' > "$fake/test_b.zsh"
-print -r -- 'sleep 2; print -r -- "  ok - c slept"; exit 0' > "$fake/test_c.zsh"
-print -r -- 'sleep 2; print -r -- "  ok - d slept"; exit 0' > "$fake/test_d.zsh"
+# The sleepers record when they ran, so concurrency is judged by overlap.
+# Total wall time is not a usable signal: under the full suite, 30 sibling
+# files boot at once and runner startup alone ate the margin below 4s.
+typeset sleeper='zmodload zsh/datetime; print -r -- $EPOCHREALTIME > ${0:r}.start; sleep 2
+print -r -- $EPOCHREALTIME > ${0:r}.end'
+print -r -- "$sleeper"'; print -r -- "  ok - c slept"; exit 0' > "$fake/test_c.zsh"
+print -r -- "$sleeper"'; print -r -- "  ok - d slept"; exit 0' > "$fake/test_d.zsh"
 
 # run_fake [VAR=val ...]: run the copied runner with a clean knob environment;
 # leaves RUN_OUT, RUN_RC, RUN_ELAPSED.
@@ -52,10 +57,13 @@ if in_order "-- test_a.zsh" "  ok - a" "-- test_b.zsh" "  not ok - b1" "  not ok
 else
     t_fail "output is replayed per file in name order" "${RUN_OUT//$'\n'/ | }"
 fi
-if (( RUN_ELAPSED < 3.5 )); then
-    t_pass "files run concurrently (two 2s sleeps finished in ${RUN_ELAPSED%.*}s)"
+typeset c_start="$(<$fake/test_c.start)" c_end="$(<$fake/test_c.end)"
+typeset d_start="$(<$fake/test_d.start)" d_end="$(<$fake/test_d.end)"
+if (( c_start < d_end && d_start < c_end )); then
+    t_pass "files run concurrently (the two 2s sleeps overlapped)"
 else
-    t_fail "files run concurrently (two 2s sleeps finished in ${RUN_ELAPSED%.*}s)" "expected < 3.5s; the serial runner needs >= 4s"
+    t_fail "files run concurrently (the two 2s sleeps overlapped)" \
+        "c ran $c_start..$c_end, d ran $d_start..$d_end"
 fi
 
 run_fake "$fake" TEST_JOBS=1
