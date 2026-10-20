@@ -76,4 +76,41 @@ print -r -- "log pretty" | HOME="$chthome" FZF_SELECTION=git \
 assert_eq "$(<"$curl_log")" "<-s><--><cht.sh/git~log+pretty>" \
     "tmux-cht sends a multiword command query as one URL"
 
+# claude-tmux-state: Claude Code hooks record session state on the hook's own
+# pane ($TMUX_PANE), which the window-status marks read back.
+typeset state="$REPO_ROOT/bin/bin/claude-tmux-state"
+typeset statebin="$T_SCRATCH/state-bin"
+make_stub "$statebin" tmux 'printf "%s\n" "$*" >> "$TMUX_CALL_LOG"'
+: > "$call_log"
+TMUX_PANE=%7 TMUX_CALL_LOG="$call_log" PATH="$statebin:$PATH" sh "$state" waiting
+TMUX_PANE=%7 TMUX_CALL_LOG="$call_log" PATH="$statebin:$PATH" sh "$state" clear
+assert_eq "$(<"$call_log")" $'set-option -p -t %7 @claude_state waiting\nset-option -p -t %7 -u @claude_state' \
+    "claude-tmux-state sets and clears the state on its own pane"
+: > "$call_log"
+TMUX_PANE= TMUX_CALL_LOG="$call_log" PATH="$statebin:$PATH" sh "$state" done
+assert_eq "$(<"$call_log")" "" "claude-tmux-state does nothing outside tmux"
+
+# The hook wiring: every event that drives the marks, and the state it sets.
+if have python3; then
+    typeset wiring=''
+    wiring=$(python3 -I - "$REPO_ROOT/configs/claude/settings.json" <<'PY'
+import json, sys
+settings = json.load(open(sys.argv[1]))
+for event, groups in sorted(settings.get("hooks", {}).items()):
+    for group in groups:
+        for hook in group["hooks"]:
+            words = hook.get("command", "").split()
+            if words and words[0] == "~/bin/claude-tmux-state":
+                matcher = group.get("matcher", "")
+                print(event + (f"[{matcher}]" if matcher else ""), *words[1:])
+PY
+)
+    # Notification stays matched to prompts that wait on you: idle_prompt
+    # would turn every finished session back into "waiting" after a minute.
+    assert_eq "$wiring" $'Notification[permission_prompt|elicitation_dialog|elicitation_url_dialog] waiting\nPermissionRequest waiting\nPostToolUse working\nPostToolUseFailure working\nSessionEnd clear\nStop done\nStopFailure done\nUserPromptSubmit working' \
+        "Claude Code hooks drive the tmux state marks"
+else
+    t_skip "Claude Code hooks drive the tmux state marks" "python3 not in PATH"
+fi
+
 t_finish

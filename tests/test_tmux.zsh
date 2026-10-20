@@ -143,6 +143,28 @@ typeset sleft=''
 sleft=$(tm show -gv status-left)
 assert_not_contains "$sleft" '#( ' "status-left has no broken #() command (regression)"
 
+# ── Status line: Claude Code state marks ─────────────────────────────
+# Hooks set @claude_state per pane; each window-status format shows one mark
+# per Claude pane in its window.
+typeset mwin=''
+typeset -a mpanes
+mwin=$(tm new-window -d -P -F '#{window_id}')
+tm split-window -d -t "$mwin"
+mpanes=(${(f)"$(tm list-panes -t "$mwin" -F '#{pane_id}')"})
+marks() { tm display -p -t "$mwin" "#{E:window-status-$1format}"; }
+assert_not_contains "$(marks)" "✓" "no mark without Claude state"
+tm set -p -t "$mpanes[1]" @claude_state waiting
+tm set -p -t "$mpanes[2]" @claude_state done
+assert_contains "$(marks)" "#[fg=colour220]#[bold]!#[default] ✓" \
+    "window marks a waiting pane and a finished pane"
+tm set -p -t "$mpanes[1]" @claude_state working
+assert_contains "$(marks)" " … ✓" "window marks a working pane"
+assert_contains "$(marks current-)" " … ✓" "current-window format carries the marks too"
+tm set -p -t "$mpanes[1]" -u @claude_state
+tm set -p -t "$mpanes[2]" -u @claude_state
+assert_not_contains "$(marks)" "…" "marks clear with the state"
+tm kill-window -t "$mwin"
+
 # ── Keybindings: dwm + nested toggle ─────────────────────────────────
 typeset rootkeys='' offkeys=''
 rootkeys=$(tm list-keys -T root 2>/dev/null)

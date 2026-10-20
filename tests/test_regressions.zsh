@@ -149,6 +149,21 @@ typeset tmux_trap_probe="$T_SCRATCH/tmux-wrap-traps"
 out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$tmux_trap_probe" 2>&1)
 assert_contains "$out" "TMUX_WRAP_TRAPS=preserved" "tmux title wrapper preserves caller signal and exit traps"
 
+# ── tmux title pop clears the Claude Code state mark ──────────────────
+# The claude wrapper pops on exit, including after a crash or kill that
+# skipped the session's SessionEnd hook; a leftover mark flags a shell pane.
+inner="$T_SCRATCH/tmux_title_pop_inner.zsh"
+cat > "$inner" <<'EOF'
+source "$1/.zsh/lib/70-tmux-title.zsh"
+typeset -g pop_log="$2"
+tmux() { print -r -- "$*" >> "$pop_log"; return 0 }
+_tmux_title_pop %1 @1
+EOF
+typeset pop_probe="$T_SCRATCH/tmux-pop.log"
+zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$pop_probe" >/dev/null 2>&1
+assert_contains "$(<"$pop_probe")" "set-option -t %1 -p @claude_state" \
+    "title pop clears the Claude Code state mark"
+
 # ── git_cleanup literal branch filtering (functions/git_cleanup) ────────
 # Bug: default/current branch names were interpolated into grep -E. A valid
 # name such as release+prod was treated as a regex and reached git branch -d.

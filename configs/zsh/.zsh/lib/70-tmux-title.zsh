@@ -32,6 +32,9 @@ _tmux_title_pop() {
     [[ -z "$pane_id" || -z "$window_id" ]] && return
     tmux set-option -t "$pane_id" -p @custom_title ""
     tmux set-option -t "$pane_id" -p @is_root ""
+    # Claude Code's hooks set this mark and its SessionEnd hook clears it, but
+    # a crashed or killed session never runs that hook.
+    tmux set-option -t "$pane_id" -p @claude_state ""
     tmux set-option -t "$window_id" -w @priority_title ""
     local dir_title=${PWD:t}
     tmux set-option -t "$pane_id" -p @dir_title "$dir_title"
