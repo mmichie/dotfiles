@@ -78,6 +78,16 @@ assert_contains "$envlist" "CHEVRON_WEATHER_LOCATION_CMD" "chevron weather var f
 assert_contains "$envlist" "PATH"                         "PATH forwarded"
 assert_contains "$envlist" "SSH_AUTH_SOCK"                "default entries retained after reset"
 
+# ── terminal-features: idempotent, and modified keys requested ───────
+# Read after the reload above, so a bare -ga shows up as a duplicate entry.
+typeset -a tfeat rgbfeat
+tfeat=(${(f)"$(tm show -s terminal-features)"})
+rgbfeat=(${(M)tfeat:#*:RGB:usstyle:overline})
+assert_eq "${#rgbfeat}" "1" "terminal-features does not grow across config reloads"
+assert_contains "${(F)tfeat}" "xterm*:extkeys" \
+    "extended keys requested from xterm-like terminals (Shift+Enter in Claude Code)"
+assert_contains "${(F)tfeat}" "xterm-ghostty:sync" "synchronized updates enabled for Ghostty"
+
 # ── Title protocol (zsh<->tmux contract) ─────────────────────────────
 # tmux 3.6 quirk: a bare `show-hooks -g` does not list set hooks — they
 # must be queried by name (hooks are arrays; entries show as name[0]).
