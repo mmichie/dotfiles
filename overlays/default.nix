@@ -8,6 +8,9 @@ final: prev: {
   # was chosen over go-mutesting (that one has been dormant since 2021).
   gremlins = final.callPackage ../pkgs/gremlins { };
 
+  # Nordwand Mono: a font, also absent from nixpkgs. See pkgs/nordwand-mono.
+  nordwand-mono = final.callPackage ../pkgs/nordwand-mono { };
+
   # CodeQL's Go extractor cannot run on NixOS as nixpkgs packages it. The release
   # zip's tools/linux64/ binaries keep the generic interpreter
   # /lib64/ld-linux-x86-64.so.2, which NixOS refuses to exec:

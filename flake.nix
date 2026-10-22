@@ -120,9 +120,9 @@
       });
 
       # ── Overlays ──────────────────────────────────────────────────
-      # The custom-packages overlay (recs, obliviate, gremlins, and the Linux
-      # codeql fix) that every host applies, re-exported so other flakes can
-      # pull it in via `inputs.dotfiles.overlays.default`.
+      # The custom-packages overlay (recs, obliviate, gremlins, nordwand-mono,
+      # and the Linux codeql fix) that every host applies, re-exported so other
+      # flakes can pull it in via `inputs.dotfiles.overlays.default`.
       overlays.default = import ./overlays;
 
       # ── Formatter ─────────────────────────────────────────────────

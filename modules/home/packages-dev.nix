@@ -115,6 +115,11 @@
     yt-dlp
 
     # ── Fonts ─────────────────────────────────────────────────────────
+    # Upstream Iosevka, unpatched: the "Iosevka", "Iosevka Term" and "Iosevka
+    # Fixed" families, next to the patched Nerd Font builds below. -bin installs
+    # the release build that typeof.net links to; nixpkgs' from-source `iosevka`
+    # trails it (34.7.0 against 34.9.0 at this pin).
+    iosevka-bin
     nerd-fonts.departure-mono
     nerd-fonts.fira-code
     nerd-fonts.hack
@@ -122,5 +127,7 @@
     nerd-fonts.iosevka-term
     nerd-fonts.jetbrains-mono
     nerd-fonts.zed-mono
+    # Not in nixpkgs (see pkgs/nordwand-mono).
+    nordwand-mono
   ];
 }
