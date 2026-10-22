@@ -118,7 +118,7 @@
     # Upstream Iosevka, unpatched: the "Iosevka", "Iosevka Term" and "Iosevka
     # Fixed" families, next to the patched Nerd Font builds below. -bin installs
     # the release build that typeof.net links to; nixpkgs' from-source `iosevka`
-    # trails it (34.7.0 against 34.9.0 at this pin).
+    # can trail it (34.7.0 against 34.9.0 when this was added).
     iosevka-bin
     nerd-fonts.departure-mono
     nerd-fonts.fira-code

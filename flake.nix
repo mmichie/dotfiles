@@ -121,8 +121,9 @@
 
       # ── Overlays ──────────────────────────────────────────────────
       # The custom-packages overlay (recs, obliviate, gremlins, nordwand-mono,
-      # and the Linux codeql fix) that every host applies, re-exported so other
-      # flakes can pull it in via `inputs.dotfiles.overlays.default`.
+      # the Linux codeql fix and the fabric fix azure-cli needs) that every host
+      # applies, re-exported so other flakes can pull it in via
+      # `inputs.dotfiles.overlays.default`.
       overlays.default = import ./overlays;
 
       # ── Formatter ─────────────────────────────────────────────────
