@@ -16,7 +16,8 @@ window-padding-y = 1
 window-decoration = auto
 window-theme = auto
 window-inherit-working-directory = true
-title = " "
+# No static `title`: the hidden titlebar already keeps it off screen, and a
+# static title makes Ghostty ignore the window names tmux sends (set-titles).
 
 # Colors - Simple black/white/green terminal theme
 background = #000000
@@ -73,17 +74,20 @@ cursor-text = #000000
 # Shell command - attach to existing session or create new one
 command = $HOME/bin/tmux-attach-or-new
 
-# Shell integration - keep sudo for Touch ID, disable cursor/title (tmux manages these)
-shell-integration = detect
-shell-integration-features = no-cursor,no-title,sudo,ssh-env,ssh-terminfo
+# Off: Ghostty injects shell integration only into a shell it launches and
+# recognizes, and `command` is a tmux wrapper, so it never loaded anyway.
+# ssh TERM fallback lives in .zsh/lib/80-ssh.zsh; Touch ID for sudo is pam
+# (modules/darwin/workstation-base.nix), not Ghostty's sudo feature.
+shell-integration = none
 
-# Scrollback (in bytes - 10MB, tmux handles main scrollback with 10k lines)
-scrollback-limit = 10000000
+# Scrollback in bytes (10MB); tmux keeps the real history (history-limit).
+scrollback-limit-bytes = 10000000
 
 # Mouse/Selection
 mouse-hide-while-typing = true
 mouse-shift-capture = never
-mouse-scroll-multiplier = 1.5
+# Trackpad only: a bare value also replaces the wheel default (3 lines/notch)
+mouse-scroll-multiplier = precision:1.5
 cursor-click-to-move = true
 
 # macOS specific settings
