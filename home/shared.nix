@@ -51,4 +51,8 @@ in
   # Pi coding agent — local Muse Glimmer provider and laptop-sized context.
   home.file.".pi/agent/models.json".source = mkLink "pi/models.json";
   home.file.".pi/agent/settings.json".source = mkLink "pi/settings.json";
+
+  # Codex hooks: the same tmux window marks as Claude Code, through
+  # ~/bin/claude-tmux-state. Codex runs them only once trusted in /hooks.
+  home.file.".codex/hooks.json".source = mkLink "codex/hooks.json";
 }

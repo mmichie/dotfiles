@@ -1,8 +1,9 @@
 #!/bin/sh
-# Claude Code hook: record this session's state on its tmux pane for the
-# window-status marks in tmux.conf (@claude_marks). States are working,
-# waiting and done; "clear" removes the mark. Wired up in
-# configs/claude/settings.json. Outside tmux there is no pane to mark.
+# Claude Code and Codex hook: record this session's state on its tmux pane
+# for the window-status marks in tmux.conf (@claude_marks). States are
+# working, waiting and done; "clear" removes the mark. Wired up in
+# configs/claude/settings.json and configs/codex/hooks.json. Outside tmux
+# there is no pane to mark.
 [ -n "$TMUX_PANE" ] || exit 0
 if [ "$1" = clear ]; then
     exec tmux set-option -p -t "$TMUX_PANE" -u @claude_state
