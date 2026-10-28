@@ -7,8 +7,15 @@
 # Source OPEN_WEATHER_API_KEY etc. for chevron weather in the status bar
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
 
-TMUX=$(command -v tmux)
-if [ -z "$TMUX" ]; then
+# Drop tmux's own variables. A Ghostty window never starts inside tmux, but
+# one launched from a tmux pane (`open -na Ghostty.app`) inherits them: tmux
+# reads TMUX as its socket path, and the shell below would think it was in
+# tmux. The binary goes in tmux_bin for the same reason; assigned to the
+# inherited, exported TMUX, it became tmux's socket and every call failed.
+unset TMUX TMUX_PANE
+
+tmux_bin=$(command -v tmux)
+if [ -z "$tmux_bin" ]; then
     echo "tmux not found in PATH"
     exit 1
 fi
@@ -16,10 +23,10 @@ fi
 # List sessions with no clients currently attached. Skipping attached
 # sessions avoids the "two Ghostty windows mirroring the same panes"
 # trap that plain `attach-session` falls into.
-detached=$($TMUX list-sessions -F "#{?session_attached,,#{session_name}}" 2>/dev/null | grep -v '^$')
+detached=$($tmux_bin list-sessions -F "#{?session_attached,,#{session_name}}" 2>/dev/null | grep -v '^$')
 
 if [ -z "$detached" ]; then
-    if $TMUX list-sessions >/dev/null 2>&1; then
+    if $tmux_bin list-sessions >/dev/null 2>&1; then
         # Sessions exist but all are attached — we're already in tmux in
         # another window. Escape hatch: plain shell instead of a second
         # tmux session (run `tmux` in it if you do want another session).
@@ -30,13 +37,13 @@ if [ -z "$detached" ]; then
     # Ghostty was launched by launchd (which spawns it with cwd=/).
     startdir="$PWD"
     [ "$startdir" = "/" ] && startdir="$HOME"
-    exec $TMUX new-session -c "$startdir"
+    exec $tmux_bin new-session -c "$startdir"
 fi
 
 detached_count=$(printf '%s\n' "$detached" | wc -l | tr -d ' ')
 
 if [ "$detached_count" -eq 1 ]; then
-    exec $TMUX attach-session -t "$detached"
+    exec $tmux_bin attach-session -t "$detached"
 fi
 
 # Multiple detached sessions — menu. The list becomes an array so an answer is
@@ -77,4 +84,4 @@ while [[ -z $session_name ]]; do
     fi
 done
 
-exec $TMUX attach-session -t "$session_name"
+exec $tmux_bin attach-session -t "$session_name"
