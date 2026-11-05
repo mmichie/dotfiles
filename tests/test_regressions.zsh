@@ -466,7 +466,9 @@ if [[ -n "$T_AGENT_SOCK" ]]; then
     zsocket -l "$login_sock"; login_fd=$REPLY
     _t_drain "$login_fd" & login_drain=$!
     zsocket -l "$other_sock"; other_fd=$REPLY
-    _t_drain "$other_fd" & other_drain=$!
+    # Forked with login_fd open: without closing that copy, this job would
+    # keep the login's listener up after the login ends below.
+    { exec {login_fd}>&-; _t_drain "$other_fd"; } & other_drain=$!
     sb="$(make_sandbox_home)"
     # Without the 1Password sockets the real agent logic runs.
     rm -f "$sb/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" "$sb/.1password/agent.sock"
@@ -495,6 +497,11 @@ if [[ -n "$T_AGENT_SOCK" ]]; then
     # sandbox never touches the harness dummy again (it is never drained).
     kill "$login_drain" 2>/dev/null; wait "$login_drain" 2>/dev/null
     exec {login_fd}>&-
+    # Make it the newest file: the scan goes newest first, so it reaches the
+    # dead socket before the live one and has to reject it on the connect.
+    # Creation order alone would put the live socket first or, where a coarse
+    # clock gives both one mtime, leave the order to the directory.
+    touch "$login_sock"
     ln -snf "$other_sock" "$sb/.ssh/ssh_auth_sock"
     out=$(run_sandbox_zsh "$sb" '
         path=("$STUBS" $path); rehash
