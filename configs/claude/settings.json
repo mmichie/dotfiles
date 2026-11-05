@@ -129,7 +129,7 @@
       "mcp__claude-in-chrome__tabs_create_mcp"
     ]
   },
-  "model": "opus[1m]",
+  "model": "opus",
   "statusLine": {
     "type": "command",
     "command": "bash ~/.claude/statusline-command.sh"
