@@ -65,6 +65,7 @@ _:
       "ghostty"
 
       # Development
+      "chatgpt"
       "claude"
       "docker-desktop"
       # "vmware-fusion"  # Broadcom download server broken
