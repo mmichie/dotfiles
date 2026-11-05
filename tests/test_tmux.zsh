@@ -25,7 +25,10 @@ ln -s "$REPO_ROOT/configs/tmux" "$thome/.config/tmux"
 # Kill test servers on any exit; keep lib.zsh's scratch cleanup.
 trap 'tmux -L "$SOCK" kill-server 2>/dev/null; tmux -L "$SOCK2" kill-server 2>/dev/null; rm -rf "$T_SCRATCH"' EXIT
 
-tm() { tmux -L "$SOCK" "$@"; }
+# -u: some assertions read UTF-8 back (the ✓ and … Claude marks). Without it,
+# tmux treats the client as UTF-8 only when LC_ALL/LC_CTYPE/LANG says so (the
+# nix build sandbox sets none) and prints _ for each non-ASCII character.
+tm() { tmux -u -L "$SOCK" "$@"; }
 
 # ── Boot: parse gate ─────────────────────────────────────────────────
 # TMUX_LEVEL= explicitly: the test runner may itself live inside a tmux
