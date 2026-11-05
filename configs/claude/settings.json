@@ -233,5 +233,6 @@
   "skipWorkflowUsageWarning": true,
   "theme": "dark-daltonized",
   "editorMode": "vim",
+  "switchModelsOnFlag": true,
   "agentPushNotifEnabled": true
 }
