@@ -115,6 +115,27 @@ else
     t_fail "focus hook checks @dir_title before @custom_title (stale-title regression)" \
         "dir@$dir_pos custom@$custom_pos"
 fi
+# An external tool titles windows through @fleet_title, which must outrank
+# the shell wrappers' @priority_title in the rename format and in the focus
+# hook alike. set-hook -R runs the global hook now, as if the pane named by
+# -t had gained focus.
+typeset twin='' tpane=''
+twin=$(tm new-window -d -P -F '#{window_id}')
+tpane=$(tm list-panes -t "$twin" -F '#{pane_id}')
+tm set -w -t "$twin" @priority_title "wrapper title"
+tm set -w -t "$twin" @fleet_title "external title"
+assert_eq "$(tm display -p -t "$twin" '#{E:automatic-rename-format}')" "external title" \
+    "rename format prefers @fleet_title to @priority_title"
+tm set-hook -R -t "$tpane" pane-focus-in
+assert_eq "$(tm display -p -t "$twin" '#{window_name}')" "external title" \
+    "focus hook prefers @fleet_title to @priority_title"
+tm set -w -t "$twin" -u @fleet_title
+assert_eq "$(tm display -p -t "$twin" '#{E:automatic-rename-format}')" "wrapper title" \
+    "rename format falls back to @priority_title without @fleet_title"
+tm set-hook -R -t "$tpane" pane-focus-in
+assert_eq "$(tm display -p -t "$twin" '#{window_name}')" "wrapper title" \
+    "focus hook falls back to @priority_title without @fleet_title"
+tm kill-window -t "$twin"
 
 # ── Plugins: declared implies vendored, and yank owns drag-copy ──────
 typeset -a declared missing
