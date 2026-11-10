@@ -18,9 +18,11 @@ pre-commit:
     stylua:
       glob: "*.lua"
       run: nix run nixpkgs#stylua -- {staged_files} && git add {staged_files}
+    # git hands hooks this repo's GIT_DIR and GIT_INDEX_FILE; any git a
+    # test runs elsewhere would act on this repo through them.
     zsh-tests:
       glob: "{configs/zsh/**,configs/tmux/**,configs/nvim/**,secrets/**,.sops.yaml,tests/**}"
-      run: zsh --no-globalrcs tests/run.zsh
+      run: unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_PREFIX; zsh --no-globalrcs tests/run.zsh
     gitleaks:
       run: nix run nixpkgs#gitleaks -- git --staged --no-banner --redact -c .gitleaks.toml
     sops-check:
@@ -38,6 +40,7 @@ pre-push:
     # update walking a plugin off lazy-lock.json, e.g. nvim-treesitter onto the
     # `main` rewrite) would slip through — no tracked file changed. Running the
     # nvim boot/treesitter probes here catches it before it leaves the machine.
-    # </dev/null keeps headless nvim off any tty lefthook may allocate.
+    # </dev/null keeps headless nvim off any tty lefthook may allocate. The
+    # unset is zsh-tests': nvim's plugin manager runs git too.
     nvim-tests:
-      run: zsh --no-globalrcs tests/test_nvim.zsh </dev/null
+      run: unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_PREFIX; zsh --no-globalrcs tests/test_nvim.zsh </dev/null
