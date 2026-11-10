@@ -15,6 +15,7 @@ fi
 typeset TMUX_CONF="$REPO_ROOT/configs/tmux/tmux.conf"
 typeset SOCK="tmuxtest-$$"
 typeset SOCK2="tmuxtest2-$$"
+typeset SOCK3="tmuxtest3-$$"
 
 # Sandbox HOME: ~/.config/tmux must resolve for source-file/tpm paths.
 typeset thome=''
@@ -23,7 +24,7 @@ mkdir -p "$thome/.config"
 ln -s "$REPO_ROOT/configs/tmux" "$thome/.config/tmux"
 
 # Kill test servers on any exit; keep lib.zsh's scratch cleanup.
-trap 'tmux -L "$SOCK" kill-server 2>/dev/null; tmux -L "$SOCK2" kill-server 2>/dev/null; rm -rf "$T_SCRATCH"' EXIT
+trap 'tmux -L "$SOCK" kill-server 2>/dev/null; tmux -L "$SOCK2" kill-server 2>/dev/null; tmux -L "$SOCK3" kill-server 2>/dev/null; rm -rf "$T_SCRATCH"' EXIT
 
 # -u: some assertions read UTF-8 back (the ✓ and … Claude marks). Without it,
 # tmux treats the client as UTF-8 only when LC_ALL/LC_CTYPE/LANG says so (the
@@ -212,6 +213,34 @@ if [[ "$(uname)" == Darwin ]]; then
 else
     assert_not_contains "$prefixkeys" "pbpaste" "prefix-P/Y clipboard binds guarded off on Linux"
 fi
+
+# ── tmux.d: drop-in snippets ─────────────────────────────────────────
+# tmux holds a config error from boot until a client attaches, so the boot
+# checks above never see one; a control client gets each as %config-error.
+# XDG_DATA_HOME keeps resurrect's directory in the sandbox too.
+typeset dhome='' snippetkey=''
+dhome="$(mktemp -d "$T_SCRATCH/tmuxdhome.XXXXXX")"
+mkdir -p "$dhome/.config"
+ln -s "$REPO_ROOT/configs/tmux" "$dhome/.config/tmux"
+# boot_errors: boot a fresh $SOCK3 against $dhome; print its config errors.
+boot_errors() {
+    tmux -L "$SOCK3" kill-server 2>/dev/null
+    HOME="$dhome" XDG_DATA_HOME="$dhome/.local/share" TMUX_LEVEL= \
+        tmux -L "$SOCK3" -f "$TMUX_CONF" new-session -d -x 80 -y 24 2>&1
+    tmux -L "$SOCK3" run-shell true 2>/dev/null # sync barrier, as above
+    tmux -L "$SOCK3" -C attach-session </dev/null 2>&1 | grep '^%config-error'
+}
+assert_eq "$(boot_errors)" "" "the config boots without errors when ~/.config/tmux.d is absent"
+mkdir -p "$dhome/.config/tmux.d"
+print -r -- 'bind b display-message "tmux.d snippet"' > "$dhome/.config/tmux.d/probe.conf"
+print -r -- 'not tmux syntax' > "$dhome/.config/tmux.d/notes.txt"
+assert_eq "$(boot_errors)" "" "a file in ~/.config/tmux.d not named *.conf is not sourced"
+# Read after TPM, which loads after the snippets. ${=...} re-joins the
+# fields: list-keys pads the key column.
+snippetkey=$(tmux -L "$SOCK3" list-keys -T prefix b 2>/dev/null)
+assert_eq "${${=snippetkey}[*]}" 'bind-key -T prefix b display-message "tmux.d snippet"' \
+    "a ~/.config/tmux.d snippet loads, and its binding outlasts TPM's plugins"
+tmux -L "$SOCK3" kill-server 2>/dev/null
 
 # ── Nested branch: %if TMUX_LEVEL styles with orange accent ──────────
 typeset boot2_err=''
