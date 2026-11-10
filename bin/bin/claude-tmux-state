@@ -1,10 +1,20 @@
 #!/bin/sh
-# Claude Code and Codex hook: record this session's state on its tmux pane
-# for the window-status marks in tmux.conf (@claude_marks). States are
-# working, waiting and done; "clear" removes the mark. Wired up in
-# configs/claude/settings.json and configs/codex/hooks.json. Outside tmux
-# there is no pane to mark.
+# Claude Code and Codex hook, wired up in configs/claude/settings.json and
+# configs/codex/hooks.json:
+#   claude-tmux-state <working|waiting|done|clear> [agent] < payload
+# Runs each executable in ${XDG_CONFIG_HOME:-~/.config}/agent-hooks.d as
+# `<hook> <agent> <state>`, agent defaulting to claude, payload on stdin,
+# then marks this tmux pane for @claude_marks in tmux.conf. A hook's stdout
+# is dropped (a UserPromptSubmit hook's would become model context) and its
+# status ignored (2 would block the agent).
 [ -n "$TMUX_PANE" ] || exit 0
+payload=
+for hook in "${XDG_CONFIG_HOME:-$HOME/.config}"/agent-hooks.d/*; do
+    [ -f "$hook" ] && [ -x "$hook" ] || continue
+    # Read once, for every hook; the x keeps trailing newlines.
+    [ -n "$payload" ] || payload=$(cat && echo x)
+    printf %s "${payload%x}" | "$hook" "${2:-claude}" "$1" >/dev/null || :
+done
 if [ "$1" = clear ]; then
     exec tmux set-option -p -t "$TMUX_PANE" -u @claude_state
 fi

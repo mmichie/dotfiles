@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/bin/claude-tmux-state waiting"
+            "command": "~/bin/claude-tmux-state waiting codex"
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/bin/claude-tmux-state working"
+            "command": "~/bin/claude-tmux-state working codex"
           }
         ]
       }
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/bin/claude-tmux-state clear"
+            "command": "~/bin/claude-tmux-state clear codex"
           }
         ]
       }
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/bin/claude-tmux-state working"
+            "command": "~/bin/claude-tmux-state working codex"
           }
         ]
       }
@@ -45,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/bin/claude-tmux-state done"
+            "command": "~/bin/claude-tmux-state done codex"
           }
         ]
       }
@@ -55,7 +55,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/bin/claude-tmux-state done"
+            "command": "~/bin/claude-tmux-state done codex"
           }
         ]
       }

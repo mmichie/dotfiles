@@ -76,24 +76,90 @@ print -r -- "log pretty" | HOME="$chthome" FZF_SELECTION=git \
 assert_eq "$(<"$curl_log")" "<-s><--><cht.sh/git~log+pretty>" \
     "tmux-cht sends a multiword command query as one URL"
 
-# claude-tmux-state: Claude Code hooks record session state on the hook's own
-# pane ($TMUX_PANE), which the window-status marks read back.
+# claude-tmux-state: Claude Code and Codex hooks run the executables in
+# agent-hooks.d, then record session state on the hook's own pane
+# ($TMUX_PANE), which the window-status marks read back. Every run below
+# names a scratch HOME and XDG_CONFIG_HOME, so no installed hook can run.
 typeset state="$REPO_ROOT/bin/bin/claude-tmux-state"
 typeset statebin="$T_SCRATCH/state-bin"
+typeset bare_home="$T_SCRATCH/state-bare"   # no agent-hooks.d at all
+typeset hooks_xdg="$T_SCRATCH/state-xdg"    # agent-hooks.d with hooks
+typeset hooks_home="$T_SCRATCH/state-home"  # ~/.config is $hooks_xdg
+typeset hook_stdin="$T_SCRATCH/state-stdin" # what each hook read
+typeset payload="$T_SCRATCH/state-payload.json"
+mkdir -p "$bare_home" "$hooks_home" "$hook_stdin"
+ln -s "$hooks_xdg" "$hooks_home/.config"
 make_stub "$statebin" tmux 'printf "%s\n" "$*" >> "$TMUX_CALL_LOG"'
-: > "$call_log"
-TMUX_PANE=%7 TMUX_CALL_LOG="$call_log" PATH="$statebin:$PATH" sh "$state" waiting
-TMUX_PANE=%7 TMUX_CALL_LOG="$call_log" PATH="$statebin:$PATH" sh "$state" clear
-assert_eq "$(<"$call_log")" $'set-option -p -t %7 @claude_state waiting\nset-option -p -t %7 -u @claude_state' \
-    "claude-tmux-state sets and clears the state on its own pane"
-: > "$call_log"
-TMUX_PANE= TMUX_CALL_LOG="$call_log" PATH="$statebin:$PATH" sh "$state" done
-assert_eq "$(<"$call_log")" "" "claude-tmux-state does nothing outside tmux"
+# Hooks a and b log their arguments, keep their stdin, print the output that
+# would block Claude Code, and exit $HOOK_RC. off is not executable.
+typeset hook_body='printf "%s %s\n" "${0##*/}" "$*" >> "$TMUX_CALL_LOG"
+cat > "$HOOK_STDIN_DIR/${0##*/}"
+printf "%s\n" "{\"decision\":\"block\"}"
+exit "${HOOK_RC:-0}"'
+typeset f=''
+for f in a b off; do make_stub "$hooks_xdg/agent-hooks.d" "$f" "$hook_body"; done
+chmod -x "$hooks_xdg/agent-hooks.d/off"
+# The blank last line would not survive a bare command substitution.
+printf '%s\n\n' '{"hook_event_name":"UserPromptSubmit","session_id":"s1"}' > "$payload"
 
-# The hook wiring: every event that drives the marks, and the state it sets.
-if have python3; then
-    typeset wiring=''
-    wiring=$(python3 -I - "$REPO_ROOT/configs/claude/settings.json" <<'PY'
+# state_hook <home> <xdg|''> <state> [agent]: the hook on pane %7, with
+# XDG_CONFIG_HOME unset when <xdg> is empty.
+state_hook() {
+    local home=$1 xdg=$2
+    shift 2
+    HOME="$home" TMUX_PANE=%7 TMUX_CALL_LOG="$call_log" HOOK_STDIN_DIR="$hook_stdin" \
+        PATH="$statebin:$PATH" env -u XDG_CONFIG_HOME ${xdg:+XDG_CONFIG_HOME=$xdg} sh "$state" "$@"
+}
+
+: > "$call_log"
+state_hook "$bare_home" '' waiting </dev/null
+state_hook "$bare_home" '' clear </dev/null
+assert_eq "$(<"$call_log")" $'set-option -p -t %7 @claude_state waiting\nset-option -p -t %7 -u @claude_state' \
+    "claude-tmux-state without agent-hooks.d sets and clears the mark exactly as before"
+: > "$call_log"
+state_hook "$hooks_home" "$bare_home" waiting <"$payload" >/dev/null
+assert_eq "$(<"$call_log")" 'set-option -p -t %7 @claude_state waiting' \
+    "XDG_CONFIG_HOME, when set, replaces ~/.config as the hooks' home"
+: > "$call_log"
+state_hook "$hooks_home" '' done <"$payload" >/dev/null
+assert_eq "$(<"$call_log")" $'a claude done\nb claude done\nset-option -p -t %7 @claude_state done' \
+    "without XDG_CONFIG_HOME the hooks come from ~/.config/agent-hooks.d"
+
+typeset hook_out='' hook_err=''
+typeset -i hook_rc
+: > "$call_log"
+rm -f "$hook_stdin"/*(N)
+hook_out=$(state_hook "$bare_home" "$hooks_xdg" done <"$payload" 2>"$T_SCRATCH/state-stderr")
+hook_err=$(<"$T_SCRATCH/state-stderr")
+assert_eq "$(<"$call_log")" $'a claude done\nb claude done\nset-option -p -t %7 @claude_state done' \
+    "each executable in agent-hooks.d runs as <hook> claude <state>, then the mark is set"
+if cmp -s "$payload" "$hook_stdin/a" && cmp -s "$payload" "$hook_stdin/b"; then
+    t_pass "every hook reads the whole payload on stdin"
+else
+    t_fail "every hook reads the whole payload on stdin" \
+        "a: ${(qq)$(<"$hook_stdin/a")}, b: ${(qq)$(<"$hook_stdin/b")}"
+fi
+assert_eq "$hook_out" "" "the hooks' stdout never reaches the agent"
+assert_eq "$hook_err" "" "a non-executable file in agent-hooks.d is skipped, not tried"
+: > "$call_log"
+state_hook "$bare_home" "$hooks_xdg" working codex <"$payload" >/dev/null
+assert_eq "$(<"$call_log")" $'a codex working\nb codex working\nset-option -p -t %7 @claude_state working' \
+    "the second argument names the agent to the hooks"
+: > "$call_log"
+HOOK_RC=2 state_hook "$bare_home" "$hooks_xdg" waiting <"$payload" >/dev/null
+hook_rc=$?
+assert_eq "$hook_rc" "0" "a hook that exits 2 (block) does not fail the agent's hook"
+assert_eq "$(<"$call_log")" $'a claude waiting\nb claude waiting\nset-option -p -t %7 @claude_state waiting' \
+    "a failing hook stops neither the next hook nor the mark"
+: > "$call_log"
+HOME="$hooks_home" XDG_CONFIG_HOME="$hooks_xdg" TMUX_PANE= TMUX_CALL_LOG="$call_log" \
+    HOOK_STDIN_DIR="$hook_stdin" PATH="$statebin:$PATH" sh "$state" done <"$payload"
+assert_eq "$(<"$call_log")" "" "claude-tmux-state runs neither the hooks nor tmux outside tmux"
+
+# The hook wiring: every event that drives the marks, the state it sets and,
+# for Codex, the agent it names to the hooks (Claude Code's is the default).
+hook_wiring() {
+    python3 -I - "$1" <<'PY'
 import json, sys
 settings = json.load(open(sys.argv[1]))
 for event, groups in sorted(settings.get("hooks", {}).items()):
@@ -104,13 +170,17 @@ for event, groups in sorted(settings.get("hooks", {}).items()):
                 matcher = group.get("matcher", "")
                 print(event + (f"[{matcher}]" if matcher else ""), *words[1:])
 PY
-)
+}
+if have python3; then
     # Notification stays matched to prompts that wait on you: idle_prompt
     # would turn every finished session back into "waiting" after a minute.
-    assert_eq "$wiring" $'Notification[permission_prompt|elicitation_dialog|elicitation_url_dialog] waiting\nPermissionRequest waiting\nPostToolUse working\nPostToolUseFailure working\nSessionEnd clear\nStop done\nStopFailure done\nUserPromptSubmit working' \
+    assert_eq "$(hook_wiring "$REPO_ROOT/configs/claude/settings.json")" $'Notification[permission_prompt|elicitation_dialog|elicitation_url_dialog] waiting\nPermissionRequest waiting\nPostToolUse working\nPostToolUseFailure working\nSessionEnd clear\nStop done\nStopFailure done\nUserPromptSubmit working' \
         "Claude Code hooks drive the tmux state marks"
+    assert_eq "$(hook_wiring "$REPO_ROOT/configs/codex/hooks.json")" $'Interrupt done codex\nPermissionRequest waiting codex\nPostToolUse working codex\nSessionEnd clear codex\nStop done codex\nUserPromptSubmit working codex' \
+        "Codex hooks drive the tmux state marks and name their agent"
 else
     t_skip "Claude Code hooks drive the tmux state marks" "python3 not in PATH"
+    t_skip "Codex hooks drive the tmux state marks and name their agent" "python3 not in PATH"
 fi
 
 t_finish
