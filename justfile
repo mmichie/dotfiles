@@ -10,13 +10,32 @@
 # zsh terminals start: the dump's fingerprint covers the binary's own fpath,
 # and warming nix's zsh from PATH (where the login shell is /bin/zsh) left
 # every terminal on a stale dump. rc-drift runs after a successful switch.
+# With DOTFILES_FLAKE set, the configuration comes from that flake, with this
+# checkout as its dotfiles input. It builds as you, since root's keys may not
+# fetch that flake's inputs; only activation runs as root, and on macOS those
+# are darwin-rebuild switch's own steps (untested there).
 switch: && rc-drift
     @if [ "$(uname)" = "Darwin" ]; then \
-        sudo "$(command -v darwin-rebuild)" switch --flake ".#$(hostname -s)" \
+        if [ -n "${DOTFILES_FLAKE:-}" ]; then \
+            sys=$(nix build --no-link --print-out-paths --override-input dotfiles "$PWD" \
+                "$DOTFILES_FLAKE#darwinConfigurations.$(hostname -s).system") \
+            && sudo -H env NIX_REMOTE=daemon "$(command -v nix-env)" \
+                -p /nix/var/nix/profiles/system --set "$sys" \
+            && sudo "$sys/activate"; \
+        else \
+            sudo "$(command -v darwin-rebuild)" switch --flake ".#$(hostname -s)"; \
+        fi \
             && sudo -H "$(command -v nix-collect-garbage)" --delete-older-than 3d \
             && sudo -H "$(command -v nix-store)" --optimise; \
     elif [ -f /etc/NIXOS ] && [ -d "hosts/$(hostname -s)" ]; then \
-        sudo "$(command -v nixos-rebuild)" switch --flake ".#$(hostname -s)"; \
+        if [ -n "${DOTFILES_FLAKE:-}" ]; then \
+            nixos-rebuild switch --sudo --override-input dotfiles "$PWD" \
+                --flake "$DOTFILES_FLAKE#$(hostname -s)"; \
+        else \
+            sudo "$(command -v nixos-rebuild)" switch --flake ".#$(hostname -s)"; \
+        fi; \
+    elif [ -n "${DOTFILES_FLAKE:-}" ]; then \
+        home-manager switch --override-input dotfiles "$PWD" --flake "$DOTFILES_FLAKE#mim@linux"; \
     else \
         home-manager switch --flake .#mim@linux; \
     fi
