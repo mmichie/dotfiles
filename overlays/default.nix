@@ -60,4 +60,29 @@ final: prev: {
       })
     else
       prev.codeql;
+
+  # pre-commit's test suite exercises its .NET hook support, so nixpkgs puts
+  # the source-built .NET 8 SDK (dotnetCorePackages.sdk_8_0-source) in its
+  # check inputs and DOTNET_ROOT. Usually cache.nixos.org serves a prebuilt
+  # pre-commit and those tests never run here. It had no aarch64-darwin build
+  # for nixpkgs 4fe25e1, and the local build compiled .NET from source twice
+  # (stage0, then the final VMR): hours, for a test-only dependency the
+  # installed pre-commit never references. Without its tests and the env they
+  # set, pre-commit has no .NET in its build closure and builds in seconds.
+  # doCheck = false alone still ran pytest, and failed for want of the test
+  # inputs it had dropped: identify propagates pytestCheckHook, which queues
+  # its phase whenever it is present, so dontUsePytestCheck switches it off.
+  # Darwin only: Linux hosts keep the cached, tested build.
+  pre-commit =
+    if prev.stdenv.hostPlatform.isDarwin then
+      prev.pre-commit.overridePythonAttrs (old: {
+        doCheck = false;
+        dontUsePytestCheck = true;
+        env = builtins.removeAttrs (old.env or { }) [
+          "DOTNET_ROOT"
+          "NuGetAudit"
+        ];
+      })
+    else
+      prev.pre-commit;
 }
