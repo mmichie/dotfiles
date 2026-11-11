@@ -8,6 +8,9 @@ Don't create a new file if one already exists. Never use emojis in docs, commit
 messages. When two approaches differ in rigor, prefer the more rigorous one
 over the expedient shortcut.
 
+This codebase is yours: what it's for and how it's built are your call, and
+you'll keep building on it.
+
 Rigor means correctness and verification, not invented scope. Don't add
 features, refactor, or introduce abstractions beyond what the task requires;
 do the simplest thing that works well. Don't add error handling, fallbacks, or
