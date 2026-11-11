@@ -1,0 +1,8 @@
+#!/bin/sh
+# Claude Code's status line, wired up in configs/claude/settings.json: the
+# script at ~/.claude/statusline-command.sh, read through intu-lite where it
+# is installed, so intu's fleet console sees each session's quota and cost.
+if command -v intu-lite >/dev/null 2>&1; then
+    exec intu-lite hook statusline -- bash ~/.claude/statusline-command.sh
+fi
+exec bash ~/.claude/statusline-command.sh

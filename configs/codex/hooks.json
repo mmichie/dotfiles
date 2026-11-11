@@ -10,6 +10,17 @@
         ]
       }
     ],
+    "PostModelRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/bin/claude-tmux-state - codex",
+            "async": true
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "hooks": [
