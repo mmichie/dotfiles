@@ -126,7 +126,10 @@
       "Bash(curl:*)",
       "Bash(wget:*)",
       "mcp__claude-in-chrome__navigate",
-      "mcp__claude-in-chrome__tabs_create_mcp"
+      "mcp__claude-in-chrome__tabs_create_mcp",
+      "mcp__intu__ask_operator",
+      "mcp__intu__operator_decisions",
+      "mcp__intu__workstream_page"
     ]
   },
   "model": "opus",
@@ -141,6 +144,17 @@
           {
             "type": "command",
             "command": "~/bin/claude-tmux-state working"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/bin/claude-tmux-state -"
           }
         ]
       }
