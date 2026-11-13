@@ -146,6 +146,10 @@ state_hook "$bare_home" "$hooks_xdg" working codex <"$payload" >/dev/null
 assert_eq "$(<"$call_log")" $'a codex working\nb codex working\nset-option -p -t %7 @claude_state working' \
     "the second argument names the agent to the hooks"
 : > "$call_log"
+state_hook "$bare_home" "$hooks_xdg" - <"$payload" >/dev/null
+assert_eq "$(<"$call_log")" $'a claude -\nb claude -' \
+    "state - runs the hooks but leaves the mark alone"
+: > "$call_log"
 HOOK_RC=2 state_hook "$bare_home" "$hooks_xdg" waiting <"$payload" >/dev/null
 hook_rc=$?
 assert_eq "$hook_rc" "0" "a hook that exits 2 (block) does not fail the agent's hook"
@@ -156,8 +160,10 @@ HOME="$hooks_home" XDG_CONFIG_HOME="$hooks_xdg" TMUX_PANE= TMUX_CALL_LOG="$call_
     HOOK_STDIN_DIR="$hook_stdin" PATH="$statebin:$PATH" sh "$state" done <"$payload"
 assert_eq "$(<"$call_log")" "" "claude-tmux-state runs neither the hooks nor tmux outside tmux"
 
-# The hook wiring: every event that drives the marks, the state it sets and,
-# for Codex, the agent it names to the hooks (Claude Code's is the default).
+# The hook wiring: every event that runs claude-tmux-state, the state it sets
+# (- for the events that only feed the hooks: quota auto-resume notices, each
+# Bash call, Codex's async PostModelRequest) and, for Codex, the agent it
+# names to the hooks (Claude Code's is the default).
 hook_wiring() {
     python3 -I - "$1" <<'PY'
 import json, sys
@@ -174,9 +180,9 @@ PY
 if have python3; then
     # Notification stays matched to prompts that wait on you: idle_prompt
     # would turn every finished session back into "waiting" after a minute.
-    assert_eq "$(hook_wiring "$REPO_ROOT/configs/claude/settings.json")" $'Notification[permission_prompt|elicitation_dialog|elicitation_url_dialog] waiting\nPermissionRequest waiting\nPostToolUse working\nPostToolUseFailure working\nSessionEnd clear\nStop done\nStopFailure done\nUserPromptSubmit working' \
+    assert_eq "$(hook_wiring "$REPO_ROOT/configs/claude/settings.json")" $'Notification[permission_prompt|elicitation_dialog|elicitation_url_dialog] waiting\nNotification[quota_auto_resume_fired|quota_auto_resume_stale|quota_auto_resume_disabled] -\nPermissionRequest waiting\nPostToolUse working\nPostToolUseFailure working\nPreToolUse[Bash] -\nSessionEnd clear\nStop done\nStopFailure done\nUserPromptSubmit working' \
         "Claude Code hooks drive the tmux state marks"
-    assert_eq "$(hook_wiring "$REPO_ROOT/configs/codex/hooks.json")" $'Interrupt done codex\nPermissionRequest waiting codex\nPostToolUse working codex\nSessionEnd clear codex\nStop done codex\nUserPromptSubmit working codex' \
+    assert_eq "$(hook_wiring "$REPO_ROOT/configs/codex/hooks.json")" $'Interrupt done codex\nPermissionRequest waiting codex\nPostModelRequest - codex\nPostToolUse working codex\nSessionEnd clear codex\nStop done codex\nUserPromptSubmit working codex' \
         "Codex hooks drive the tmux state marks and name their agent"
 else
     t_skip "Claude Code hooks drive the tmux state marks" "python3 not in PATH"
