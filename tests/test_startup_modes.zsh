@@ -46,4 +46,16 @@ assert_contains "$out" 'EARLY_MODULE=0' "early settings run before environment i
 assert_contains "$out" 'FIRST=1/late' "late settings retain final precedence"
 assert_contains "$out" 'RELOAD=2/late' "reload re-reads early and late settings"
 
+# Profiling: PROFILE_STARTUP prints zprof's table once startup is done, and
+# PROFILE_STARTUP_RESET first deletes the completion dumps so the profile
+# includes a cold compinit. The legacy ~/.zcompdump is the one dump the
+# boot does not write back, so its absence shows the reset ran.
+sb="$(make_sandbox_home)"
+print -r -- stale > "$sb/.zcompdump"
+out=$(run_sandbox_zsh "$sb" 'print -r -- BOOTED' PROFILE_STARTUP=1 PROFILE_STARTUP_RESET=1 2>/dev/null)
+assert_contains "$out" 'num  calls' "PROFILE_STARTUP prints zprof's table"
+assert_contains "$out" 'setup_environment' "the table covers the startup modules"
+[[ ! -e "$sb/.zcompdump" ]] && t_pass "PROFILE_STARTUP_RESET deletes the completion dumps" \
+    || t_fail "PROFILE_STARTUP_RESET deletes the completion dumps" "$sb/.zcompdump still exists"
+
 t_finish

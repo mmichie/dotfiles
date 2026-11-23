@@ -65,6 +65,32 @@ done
 assert_eq "$malformed" "0" "500 consecutive mints all well-formed"
 assert_eq "$dups" "0" "500 consecutive mints all unique"
 
+# ── fallback: the real atuin uuid ──────────────────────────────────
+# Where zsh/system cannot load (or /dev/urandom cannot be read), the mint
+# asks atuin itself. zmodload and atuin are stand-in functions. This runs in
+# a child shell sourcing the module afresh: code run in the test process
+# itself is invisible to `just coverage`, which traces only the shells the
+# tests start.
+typeset fallback_inner="$T_SCRATCH/fallback.zsh" fallback=''
+cat > "$fallback_inner" <<'EOF'
+export SHELL_CACHE_DIR="$2"
+HOME="$3"
+source "$1/.zsh/lib/50-integrations.zsh" 2>/dev/null
+zmodload() { return 1; }
+atuin() { [[ "$1" == uuid ]] && print -r -- 0191c0ffee0000007000800000000000; }
+_atuin_session_uuid && print -r -- "FROM_ATUIN=$REPLY"
+atuin() { return 1; }
+_atuin_session_uuid
+print -r -- "EMPTY_RC=$? REPLY=$REPLY"
+EOF
+mkdir -p "$T_SCRATCH/fallback-cache" "$T_SCRATCH/fallback-home"
+fallback=$(zsh --no-globalrcs -f "$fallback_inner" "$ZSH_CONF" \
+    "$T_SCRATCH/fallback-cache" "$T_SCRATCH/fallback-home" 2>/dev/null)
+assert_contains "$fallback" "FROM_ATUIN=0191c0ffee0000007000800000000000" \
+    "without zsh/system the session id comes from atuin uuid"
+assert_contains "$fallback" "EMPTY_RC=1 REPLY=" \
+    "when atuin uuid yields nothing, the mint fails rather than export an empty id"
+
 # ── filter rewrites the mint line, preserves everything else ───────
 typeset upstream='	export ATUIN_SESSION=$(atuin uuid)'
 typeset rewritten=''

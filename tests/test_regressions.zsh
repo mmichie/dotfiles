@@ -345,6 +345,12 @@ print -r -- "ROOT_ES=$_tmux_root_set"
 _tmux_root_set=0
 sudo -Eu root make
 print -r -- "ROOT_EU_MAKE=$_tmux_root_set"
+_tmux_root_set=0
+sudo --user su make
+print -r -- "ROOT_USER_SU=$_tmux_root_set"
+_tmux_root_set=0
+sudo --non-interactive su
+print -r -- "ROOT_NONVALUED_SU=$_tmux_root_set"
 ' TMUX=1 2>/dev/null)
 assert_contains     "$out" "ROOT_SU=0" \
     "sudo -u su make does not mark root (su is a username, not interactive)"
@@ -369,6 +375,12 @@ assert_contains     "$out" "ROOT_ES=1" \
     "sudo -Es marks root (-s inside a cluster)"
 assert_contains     "$out" "ROOT_EU_MAKE=0" \
     "sudo -Eu root make does not mark root"
+# Long options: a valued one (--user) consumes the next word, a boolean one
+# (--non-interactive) does not.
+assert_contains     "$out" "ROOT_USER_SU=0" \
+    "sudo --user su make does not mark root (su is the --user value)"
+assert_contains     "$out" "ROOT_NONVALUED_SU=1" \
+    "sudo --non-interactive su marks root (a boolean long option takes no value)"
 
 # ── zoxide init generation-time env (lib/50-integrations.zsh) ────────
 # Bug: setup_zoxide exported _ZO_ECHO and _ZO_RESOLVE_SYMLINKS AFTER

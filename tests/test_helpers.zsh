@@ -30,6 +30,33 @@ assert_contains "$out" "T3=/p%26q"          "ampersand percent-encoded"
 assert_contains "$out" "T4=/p%25q"          "percent itself percent-encoded"
 assert_contains "$out" "T5=/tmp/caf%C3%A9"  "multibyte UTF-8 encoded per byte"
 
+# ── notify_shell_status (lib/60-prompt.zsh) ───────────────────────────
+# The banner is chevron's. Sandboxed shells set CHEVRON_DISABLE and never
+# reach it; here it is unset, and chevron is a stub that only logs.
+typeset bannerbin="$T_SCRATCH/bannerbin" nobanner="$T_SCRATCH/nobanner" bannerlog="$T_SCRATCH/banner.log"
+make_stub "$bannerbin" chevron 'printf "chevron %s\n" "$*" >> "$BANNER_LOG"'
+mkdir -p "$nobanner"
+inner="$T_SCRATCH/banner_inner.zsh"
+cat > "$inner" <<'EOF'
+source "$1/.zsh/lib/60-prompt.zsh" 2>/dev/null
+unset CHEVRON_DISABLE
+path=("$2")
+notify_shell_status
+print -r -- "WITH_RC=$?"
+path=("$3")
+notify_shell_status
+print -r -- "WITHOUT_RC=$?"
+CHEVRON_DISABLE=1 notify_shell_status
+print -r -- "DISABLED_RC=$?"
+EOF
+: > "$bannerlog"
+out=$(BANNER_LOG="$bannerlog" PATH="$stubdir:$PATH" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$bannerbin" "$nobanner" 2>&1)
+assert_eq "$(<"$bannerlog")" "chevron banner 2" "the banner is chevron banner 2, drawn once"
+assert_contains "$out" "WITH_RC=0" "drawing the banner succeeds"
+assert_contains "$out" "Warning: chevron not found; skipping banner." "without chevron, startup says the banner is skipped"
+assert_contains "$out" "WITHOUT_RC=1" "without chevron, notify_shell_status fails"
+assert_contains "$out" "DISABLED_RC=0" "CHEVRON_DISABLE skips the banner quietly"
+
 # ── _tmux_emoji_get_command (lib/75-tmux-emoji.zsh) ──────────────────
 # Returns via $REPLY (fork-free preexec hot path), not stdout.
 inner="$T_SCRATCH/emoji_inner.zsh"
@@ -85,6 +112,24 @@ assert_contains "$out" "C19=make"   "multi-space after wrapper (sudo  make)"
 assert_contains "$out" "C20=cargo"  "multi-space after wrapper (time  cargo)"
 assert_contains "$out" "C21=cargo"  "multi-space after wrapper (nice  -n 5 cargo)"
 assert_contains "$out" "C22=cargo"  "multi-space after valued option (nice -n  5 cargo)"
+
+# ── _tmux_emoji_preexec (lib/75-tmux-emoji.zsh) ──────────────────────
+# A mapped command sets the pane's custom title and the window name in one
+# tmux call. ssh and claude have their own title handling, and a title
+# pinned by _tmux_title_push is left alone.
+inner="$T_SCRATCH/emoji_preexec_inner.zsh"
+cat > "$inner" <<'EOF'
+source "$1/.zsh/lib/75-tmux-emoji.zsh"
+tmux() { print -r -- "TMUX_CALL $*"; }
+TMUX=/tmp/fake,1,0
+_tmux_emoji_preexec 'nvim notes.md'
+_tmux_emoji_preexec 'ssh somehost'
+_tmux_emoji_preexec 'claude --resume'
+_TMUX_TITLE_PINNED=1 _tmux_emoji_preexec 'nvim pinned.md'
+EOF
+out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+assert_eq "$out" "TMUX_CALL set-option -p @custom_title 📝 nvim ; rename-window 📝 nvim" \
+    "a mapped command titles the pane and window; ssh, claude and a pinned title are skipped"
 
 # ── _refresh_cache (lib/50-integrations.zsh) ─────────────────────────
 # Deterministic mtime ordering via touch -t (no sleeps, no same-second races).
@@ -217,6 +262,38 @@ assert_contains "$out" "TERM_SEEN=tmux-256color"  "other TERM values pass throug
 assert_contains "$out" "RC=42"    "ssh exit code survives the wrapper"
 assert_contains "$out" "MODES=ok" "reset payload covers mouse, motion, focus, SGR, cursor"
 assert_not_contains "$out" $'\e[?1000l' "no escape spill when stdout is not a tty"
+
+# ── add_ssh_keys (lib/80-ssh.zsh) ─────────────────────────────────────
+# A freshly started local agent gets every private key in ~/.ssh it does
+# not already hold. Public keys are skipped, and so is a key whose
+# fingerprint cannot be computed (an empty one would match every loaded
+# key and hide the key forever). ssh-keygen and ssh-add are stubs keyed
+# on the file name; ssh-add -l reports the RSA key as already loaded.
+typeset keybin="$T_SCRATCH/keybin" keylog="$T_SCRATCH/ssh-add.log" sb_keys='' key=''
+make_stub "$keybin" ssh-keygen 'case "$2" in
+    *id_broken) exit 1 ;;
+    *id_rsa) echo "3072 SHA256:loadedRSA user@host (RSA)" ;;
+    *) echo "256 SHA256:newED25519 user@host (ED25519)" ;;
+esac'
+make_stub "$keybin" ssh-add 'if [ "$1" = -l ]; then
+    echo "3072 SHA256:loadedRSA user@host (RSA)"
+else
+    echo "$1" >> "$KEY_LOG"
+fi'
+sb_keys="$(make_sandbox_home)"
+mkdir -p "$sb_keys/.ssh"
+for key in id_ed25519 id_ed25519.pub id_rsa id_broken; do
+    print -r -- fake > "$sb_keys/.ssh/$key"
+done
+: > "$keylog"
+out=$(run_sandbox_zsh "$sb_keys" '
+path=("$KEYBIN" $path)
+add_ssh_keys
+' KEYBIN="$keybin" KEY_LOG="$keylog" 2>&1)
+assert_eq "$(<"$keylog")" "$sb_keys/.ssh/id_ed25519" "only the private key the agent lacks is added"
+assert_contains "$out" "Added 1 SSH key(s) to agent" "add_ssh_keys reports how many keys it added"
+assert_contains "$out" "Skipping $sb_keys/.ssh/id_broken: cannot compute fingerprint" \
+    "a key without a fingerprint is skipped with a message, not silently"
 
 # ── extract (autoloaded function) ────────────────────────────────────
 if have tar && have gzip; then
@@ -419,6 +496,9 @@ print -rn -- "L15="; probe --icons never somedir
 print -rn -- "L16="; probe --icons
 print -rn -- "L17="; probe --color --all
 print -rn -- "L18="; probe --classify never somedir
+print -rn -- "L19="; probe -A1dFRi
+print -rn -- "L20="; probe -lU
+print -rn -- "L21="; probe -lUr
 EOF
 out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
 assert_contains "$out" "L1=OK --all --long --sort=modified"           "-altr translates (oldest first)"
@@ -439,6 +519,10 @@ assert_contains "$out" "L15=OK --icons=never -- somedir"               "separate
 assert_contains "$out" "L16=OK --icons"                               "bare --icons passes through (eza value is optional)"
 assert_contains "$out" "L17=OK --color --all"                          "bare --color does not swallow a following option"
 assert_contains "$out" "L18=OK --classify=never -- somedir"           "separate --classify value stays attached to the option"
+assert_contains "$out" "L19=OK --almost-all --oneline --list-dirs --classify --recurse --inode" \
+    "-A, -1, -d, -F, -R and -i map to their eza long forms"
+assert_contains "$out" "L20=OK --long --sort=none"$'\n'                "-U is directory order, which no reversal applies to"
+assert_contains "$out" "L21=OK --long --sort=none --reverse"           "-Ur reverses directory order"
 
 # ── hgrep / recalls: multi-word patterns ─────────────────────────────
 # Both functions must pass the full argument list to grep as ONE pattern.
