@@ -123,11 +123,15 @@ sckrec:
 vm-build:
     nix build .#nixosConfigurations.vm-aarch64.config.system.build.toplevel
 
+# backup.tar.gz* stays behind. /nix-config is not a git checkout, so the VM
+# evaluates it as a path flake, and nix copies everything in that directory,
+# ignored files included, into the world-readable store.
 # Copy local config to VM and apply NixOS rebuild (requires VM to be running)
 vm-switch:
     rsync -av --rsync-path="sudo rsync" \
         --exclude='.git/' \
         --exclude='result' \
+        --exclude='backup.tar.gz*' \
         . vm:/nix-config
     ssh vm "sudo nixos-rebuild switch --flake /nix-config#vm-aarch64"
 
