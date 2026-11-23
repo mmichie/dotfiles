@@ -23,6 +23,22 @@ setup_history() {
     setopt HIST_VERIFY            # Show command with history expansion before running it
     setopt HIST_FCNTL_LOCK        # Use fcntl locking (recommended for concurrent shells)
     setopt HIST_NO_STORE          # Don't store history/fc commands in history
+
+    # HIST_NO_STORE only recognises the history BUILTIN: zsh stops filtering
+    # `history ...` lines as soon as a function of that name exists, and
+    # functions/history is one. Containment-guarded so re-sourcing .zshrc
+    # cannot register the hook twice.
+    typeset -ga zshaddhistory_functions
+    (( ${zshaddhistory_functions[(Ie)_hist_no_store_history]} )) \
+        || zshaddhistory_functions+=(_hist_no_store_history)
+}
+
+# zshaddhistory hook: status 1 keeps the line out of the history, with the
+# builtin's own grace period (it stays recallable until the next command).
+# $1 is the whole line, trailing newline included, which is what lets a bare
+# `history` match the whitespace class.
+_hist_no_store_history() {
+    [[ "$1" != history[[:space:]]* ]]
 }
 
 setup_history

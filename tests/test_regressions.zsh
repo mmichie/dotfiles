@@ -670,4 +670,68 @@ assert_contains "$out" "LESSHIST=$sb/.cache/less/history" "LESSHISTFILE stays un
 assert_contains "$out" "LESSHIST_DIR=yes" \
     "the directory LESSHISTFILE points into exists after startup (regression: less saved no history)"
 
+# ── history N lists the last N, as bash does (functions/history) ──────
+# Bug: `alias history="history 1"` ("behave more like bash") made bare
+# `history` list everything, but the alias also prefixed every argument:
+# `history 2` became `history 1 2`, the two OLDEST events, and zsh's own
+# `history -3` became `history 1 -3`. history is a function now. zsh stops
+# applying HIST_NO_STORE to `history ...` lines once a function of that name
+# exists, so lib/20-history.zsh restates the rule in a zshaddhistory hook;
+# the stored-events check pins it.
+#
+# Event numbers and "the last N" only mean something on a real command line,
+# so zle-line-init feeds a queue of commands to the shell's own prompt and
+# each listing is redirected to a file in the sandbox HOME.
+hist_cmds() {
+    # Command column of a history listing, joined with |: "    3  echo three".
+    local line
+    local -a cmds
+    for line in ${(f)"$(<$1)"}; do
+        cmds+=("${line#*[0-9]  }")
+    done
+    print -r -- "${(j:|:)cmds}"
+}
+sb="$(make_sandbox_home)"
+cat > "$sb/.zshrc.local" <<'EOF'
+typeset -ga _t_hist_queue=(
+    'echo one' 'echo two' 'echo three' 'echo four'
+    'history 2 > ~/h-n.out'
+    'history > ~/h-bare.out'
+    'history -3 > ~/h-dash.out'
+    'history 0 > ~/h-zero.out'
+    'fc -l 1 > ~/h-stored.out'
+    'recent 2 > ~/h-recent.out'
+)
+_t_hist_drive() {
+    if (( ${#_t_hist_queue} )); then
+        BUFFER=${_t_hist_queue[1]}
+        shift _t_hist_queue
+    else
+        BUFFER=' exit'
+    fi
+    zle .accept-line
+}
+zle -N zle-line-init _t_hist_drive
+EOF
+_sandbox_env_args "$sb"
+if out=$(cd "$sb" && run_under_pty env -i "${reply[@]}" zsh --no-globalrcs -i); then
+    assert_eq "$(hist_cmds "$sb/h-n.out")" "echo three|echo four" \
+        "history N lists the last N events (regression: the alias made it events 1 to N)"
+    assert_eq "$(hist_cmds "$sb/h-bare.out")" "echo one|echo two|echo three|echo four" \
+        "bare history lists every event"
+    assert_eq "$(hist_cmds "$sb/h-dash.out")" "echo two|echo three|echo four" \
+        "zsh's own history -N still lists the last N (regression: the alias prefixed it too)"
+    if [[ -e "$sb/h-zero.out" && ! -s "$sb/h-zero.out" ]]; then
+        t_pass "history 0 lists nothing"
+    else
+        t_fail "history 0 lists nothing" "$(<"$sb/h-zero.out")"
+    fi
+    assert_eq "$(hist_cmds "$sb/h-stored.out")" "echo one|echo two|echo three|echo four" \
+        "history invocations are not stored: HIST_NO_STORE holds for the function too"
+    assert_eq "$(hist_cmds "$sb/h-recent.out")" "echo three|echo four" \
+        "recent N still lists the last N through the function"
+else
+    t_skip "history listing on a real command line" "PTY unavailable"
+fi
+
 t_finish

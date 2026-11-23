@@ -8,7 +8,11 @@ setup_aliases() {
         alias cat="bat --style=plain --paging=never --wrap=never"
     fi
 
-    alias history="history 1" # behave more like bash
+    # history is a function now (functions/history: bash-style `history N`).
+    # Drop the alias it replaced, so `source ~/.zshrc` upgrades a shell that
+    # predates the change: left in place, it rewrites `history 5` to
+    # `history 1 5` before the function sees it.
+    unalias history 2>/dev/null
     alias gclean="git_cleanup"
     alias dclean="docker_cleanup"
     # chevron subsumes the old shell system_health: ~33ms warm-cache vs 5-13s.

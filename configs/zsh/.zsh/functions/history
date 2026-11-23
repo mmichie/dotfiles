@@ -1,0 +1,20 @@
+# history: bash-style listing over zsh's history builtin.
+#   history      every event (the builtin alone lists only the last 16)
+#   history N    the last N events, as in bash (the builtin reads a bare N
+#                as "from event N on")
+# Anything else goes to the builtin untouched, so zsh's own forms keep
+# working: history -5, history 100 200, history -m 'git*'.
+#
+# zsh stops applying HIST_NO_STORE to `history ...` lines once a function of
+# this name exists; lib/20-history.zsh restates that rule in a hook.
+history() {
+    if (( $# == 0 )); then
+        builtin history 1
+    elif (( $# == 1 )) && [[ "$1" == <-> ]]; then
+        # bash prints nothing for 0; the builtin has no "-0".
+        (( $1 )) || return 0
+        builtin history -$1
+    else
+        builtin history "$@"
+    fi
+}
