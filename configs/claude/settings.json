@@ -133,10 +133,6 @@
     ]
   },
   "model": "opus",
-  "statusLine": {
-    "type": "command",
-    "command": "~/bin/claude-statusline"
-  },
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -239,6 +235,10 @@
         ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/bin/claude-statusline"
   },
   "enabledPlugins": {
     "pyright-lsp@claude-plugins-official": true,
