@@ -43,6 +43,10 @@ just check
 # Run the zsh config test suite (tests/run.zsh; also runs via lefthook + CI)
 just test
 
+# Line coverage of the zsh config under that suite (about 90 seconds);
+# `just coverage --uncovered [name]` also lists the lines that never ran
+just coverage
+
 # Preview changes without applying
 just dry-run
 
@@ -174,7 +178,7 @@ bin/                          # Personal scripts
 - Tool integrations (fzf, atuin, direnv, vivid, zoxide, chevron) initialize from mtime-invalidated caches (`_refresh_cache`, zcompiled) instead of `eval $(tool init)` per shell
 - compinit runs in `25-completion.zsh` against a fingerprinted dump in `~/.cache/zsh` (`-C` fast path unless fpath changed)
 - `source ~/.zshrc` reloads cleanly — modules are written to be idempotent
-- Test suite: `tests/run.zsh` (`just test`); startup timing: `just profile` (real env) and `just profile-cold` (hermetic sandbox)
+- Test suite: `tests/run.zsh` (`just test`); line coverage: `just coverage`; startup timing: `just profile` (real env) and `just profile-cold` (hermetic sandbox)
 
 ## Platform Targets
 

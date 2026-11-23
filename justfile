@@ -94,6 +94,13 @@ check:
 test:
     zsh --no-globalrcs tests/run.zsh
 
+# Line coverage of the zsh config under that suite. Every zsh the suite
+# starts reports the lines it runs (tests/coverage.zsh explains how), so this
+# takes about a minute and a half. `just coverage --uncovered ssh` also lists
+# the lines that never ran in files whose path contains "ssh".
+coverage *args:
+    zsh tests/coverage.zsh {{args}}
+
 # Show what would change
 dry-run:
     @if [ "$(uname)" = "Darwin" ]; then \
