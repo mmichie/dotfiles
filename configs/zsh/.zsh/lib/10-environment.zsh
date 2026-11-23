@@ -152,10 +152,15 @@ setup_environment() {
     [[ -d "${LESSHISTFILE:h}" ]] || command mkdir -p "${LESSHISTFILE:h}"
 
     # ── Shell behavior ───────────────────────────────────────────
-    export WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
-    export TIMEFMT=$'\nreal\t%*E\nuser\t%*U\nsys\t%*S'
-    export REPORTTIME=10
-    export KEYTIMEOUT=1
+    # typeset -g +x, not export: these tune THIS interactive shell. Exported,
+    # every zsh it starts inherits them, and with REPORTTIME in its
+    # environment a non-interactive zsh prints a timing block after any
+    # command that used more than 10 CPU seconds. +x also strips the flag
+    # when it was inherited from a pre-fix parent (tmux server, old shells).
+    typeset -g +x WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
+    typeset -g +x TIMEFMT=$'\nreal\t%*E\nuser\t%*U\nsys\t%*S'
+    typeset -g +x REPORTTIME=10
+    typeset -g +x KEYTIMEOUT=1
 
     umask 022
 

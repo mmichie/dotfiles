@@ -734,4 +734,21 @@ else
     t_skip "history listing on a real command line" "PTY unavailable"
 fi
 
+# ── zsh tuning parameters stay out of the environment (lib/10-environment.zsh)
+# Bug: WORDCHARS, TIMEFMT, REPORTTIME and KEYTIMEOUT were exported. They tune
+# the interactive shell, but every zsh it started inherited them: with
+# REPORTTIME=10 in its environment a non-interactive zsh prints a timing
+# block after any command that used more than 10 CPU seconds, into whatever
+# was reading its stderr. Same class as the HISTFILE export. The boot is
+# handed exported copies to pin that an inherited flag is stripped as well.
+sb="$(make_sandbox_home)"
+out=$(run_sandbox_zsh "$sb" '
+typeset -a tune_env=(${(M)${(f)"$(command env)"}:#(WORDCHARS|TIMEFMT|REPORTTIME|KEYTIMEOUT)=*})
+print -r -- "TUNE_SET=$REPORTTIME/$KEYTIMEOUT/${+WORDCHARS}/${+TIMEFMT}"
+print -r -- "TUNE_ENV=[${(j:,:)${(@o)tune_env%%=*}}]"
+' REPORTTIME=99 KEYTIMEOUT=77 2>/dev/null)
+assert_contains "$out" "TUNE_SET=10/1/1/1" "the interactive shell keeps its own tuning"
+assert_eq "${${out##*TUNE_ENV=}%%$'\n'*}" "[]" \
+    "zsh tuning parameters are not exported, inherited flags included (regression: REPORTTIME reached every child zsh)"
+
 t_finish
