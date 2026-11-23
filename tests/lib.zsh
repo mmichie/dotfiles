@@ -20,6 +20,14 @@ typeset -g T_SCRATCH
 T_SCRATCH="$(mktemp -d "${${TMPDIR:-/tmp}%/}/zsh-tests.XXXXXXXX")" || exit 99
 trap 'rm -rf "$T_SCRATCH"' EXIT
 
+# Coverage runs (tests/coverage.zsh) export ZSH_TEST_COVERAGE, a directory
+# whose bin/zsh is a tracing shim. It goes first on PATH here, after this
+# process's own ~/.zshenv has reordered PATH, so every zsh a test file starts
+# resolves to it, and so does every sandbox PATH _sandbox_env_args builds.
+if [[ -n "$ZSH_TEST_COVERAGE" && -x "$ZSH_TEST_COVERAGE/bin/zsh" ]]; then
+    path=("$ZSH_TEST_COVERAGE/bin" $path)
+fi
+
 t_pass() { (( _t_pass++ )); print -r -- "  ok - $1"; }
 t_fail() {
     (( _t_fail++ ))
