@@ -11,14 +11,14 @@ USERNAME="mim"
 
 # Auto-detect disk: NVMe (VMware Fusion Apple Silicon) > virtio > SCSI
 if [ -b /dev/nvme0n1 ]; then
-  DISK="/dev/nvme0n1"
+    DISK="/dev/nvme0n1"
 elif [ -b /dev/vda ]; then
-  DISK="/dev/vda"
+    DISK="/dev/vda"
 fi
 
 if mountpoint -q /mnt; then
-  echo "error: /mnt is already mounted — refusing to run" >&2
-  exit 1
+    echo "error: /mnt is already mounted — refusing to run" >&2
+    exit 1
 fi
 
 echo "==> Target disk:"
@@ -27,8 +27,8 @@ echo
 echo "    This will ERASE ALL DATA on ${DISK}."
 read -rp "    Type the disk path (${DISK}) to confirm: " confirm
 if [ "$confirm" != "${DISK}" ]; then
-  echo "aborted (got: '$confirm', expected: '${DISK}')" >&2
-  exit 1
+    echo "aborted (got: '$confirm', expected: '${DISK}')" >&2
+    exit 1
 fi
 
 # ── Partition (GPT + EFI) ────────────────────────────────────────
@@ -45,8 +45,8 @@ udevadm settle
 PART1="${DISK}1"
 PART2="${DISK}2"
 if [[ "${DISK}" == *nvme* ]]; then
-  PART1="${DISK}p1"
-  PART2="${DISK}p2"
+    PART1="${DISK}p1"
+    PART2="${DISK}p2"
 fi
 
 # ── Format with labels ──────────────────────────────────────────
