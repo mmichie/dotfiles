@@ -1,6 +1,8 @@
 #!/usr/bin/env zsh
 # Regression tests pinning bugs fixed in the 2026-06, 2026-07 and 2026-09 zsh
-# correctness reviews and the 2026-10 forwarded-agent fix.
+# correctness reviews, the 2026-10 forwarded-agent fix and the 2026-11
+# interactive-behaviour fixes (completers, directory jumps, spelling
+# correction, less history, history N, exported tuning parameters, nsa).
 # (The _parse_env_file and arrow-binding regressions live in their own files.)
 
 source "${0:A:h}/lib.zsh"
@@ -750,5 +752,43 @@ print -r -- "TUNE_ENV=[${(j:,:)${(@o)tune_env%%=*}}]"
 assert_contains "$out" "TUNE_SET=10/1/1/1" "the interactive shell keeps its own tuning"
 assert_eq "${${out##*TUNE_ENV=}%%$'\n'*}" "[]" \
     "zsh tuning parameters are not exported, inherited flags included (regression: REPORTTIME reached every child zsh)"
+
+# ── nsa stops at the UNIX-domain section on macOS too (lib/30-aliases.zsh)
+# Bug: nsa cuts netstat -an at the UNIX-domain header, matched as the
+# literal "Active UNIX domain sockets". That is Linux's wording; macOS
+# prints "Active LOCAL (UNIX) domain sockets", so there the range never
+# closed and nsa was plain netstat -an. A stub netstat replays both layouts.
+typeset nsdir="$T_SCRATCH/netstatbin"
+mkdir -p "$nsdir"
+cat > "$nsdir/netstat" <<'EOF'
+#!/bin/sh
+if [ "$NETSTAT_STYLE" = mac ]; then
+    echo "Active Internet connections (including servers)"
+    echo "tcp4       0      0  127.0.0.1.631          *.*                    LISTEN"
+    echo "Active Multipath Internet connections"
+    echo "Active LOCAL (UNIX) domain sockets"
+    echo "UNIXROW /var/run/mDNSResponder"
+else
+    echo "Active Internet connections (servers and established)"
+    echo "tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN"
+    echo "Active UNIX domain sockets (servers and established)"
+    echo "UNIXROW /run/systemd/notify"
+fi
+EOF
+chmod +x "$nsdir/netstat"
+sb="$(make_sandbox_home)"
+out=$(run_sandbox_zsh "$sb" '
+path=("$NSDIR" $path); rehash
+export NETSTAT_STYLE=mac
+print -r -- "NSA_MAC=<${(j:|:)${(@f)$(eval "${aliases[nsa]}")}}>"
+export NETSTAT_STYLE=linux
+print -r -- "NSA_LINUX=<${(j:|:)${(@f)$(eval "${aliases[nsa]}")}}>"
+' NSDIR="$nsdir" 2>/dev/null)
+typeset nsa_mac="${${out##*NSA_MAC=}%%$'\n'*}" nsa_linux="${${out##*NSA_LINUX=}%%$'\n'*}"
+assert_contains "$nsa_mac"   "LISTEN" "nsa keeps the Internet section (macOS layout)"
+assert_not_contains "$nsa_mac" "UNIXROW" \
+    "nsa drops the UNIX-domain rows on macOS (regression: the header match was Linux-only)"
+assert_contains "$nsa_linux" "LISTEN" "nsa keeps the Internet section (Linux layout)"
+assert_not_contains "$nsa_linux" "UNIXROW" "nsa drops the UNIX-domain rows on Linux"
 
 t_finish

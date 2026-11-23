@@ -38,7 +38,10 @@ setup_aliases() {
     # Note: ssh hardening lives in ~/.ssh/config; the ssh() wrapper in
     # 80-ssh.zsh would shadow an alias here anyway.
     alias nsr="netstat -rn"
-    alias nsa="netstat -an | sed -n '1,/Active UNIX domain sockets/p'"
+    # Everything up to the UNIX-domain section. Its header reads "Active UNIX
+    # domain sockets" on Linux and "Active LOCAL (UNIX) domain sockets" on
+    # macOS; a match on the Linux wording alone never ended the range there.
+    alias nsa="netstat -an | sed -n '1,/^Active.*UNIX.*domain sockets/p'"
     alias lsock="sudo lsof -i -P"
     alias keypress="read -sk1 keypress; echo \$keypress"  # zsh read: -k1 reads one char (-n is a bashism)
 
