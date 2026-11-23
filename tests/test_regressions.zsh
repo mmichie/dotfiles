@@ -657,4 +657,17 @@ else
     t_skip "spelling correction ignore patterns" "PTY unavailable"
 fi
 
+# ── less history has a directory to land in (lib/10-environment.zsh) ──
+# Bug: LESSHISTFILE pointed at $XDG_CACHE_HOME/less/history and nothing
+# created $XDG_CACHE_HOME/less. less does not create missing parents; it
+# skips the write without a word, so search history was never saved.
+sb="$(make_sandbox_home)"
+out=$(run_sandbox_zsh "$sb" '
+print -r -- "LESSHIST=$LESSHISTFILE"
+[[ -d "${LESSHISTFILE:h}" ]] && print -r -- "LESSHIST_DIR=yes"
+' 2>/dev/null)
+assert_contains "$out" "LESSHIST=$sb/.cache/less/history" "LESSHISTFILE stays under the cache dir"
+assert_contains "$out" "LESSHIST_DIR=yes" \
+    "the directory LESSHISTFILE points into exists after startup (regression: less saved no history)"
+
 t_finish

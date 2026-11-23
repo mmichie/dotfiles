@@ -146,6 +146,10 @@ setup_environment() {
     export COLORTERM="${COLORTERM:-truecolor}"
     export LESS="-R -F -X"
     export LESSHISTFILE="$XDG_CACHE_HOME/less/history"
+    # less does not create missing parent directories: without this one it
+    # skips the write and no history is ever saved. One stat per shell; the
+    # mkdir runs once per machine.
+    [[ -d "${LESSHISTFILE:h}" ]] || command mkdir -p "${LESSHISTFILE:h}"
 
     # ── Shell behavior ───────────────────────────────────────────
     export WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
