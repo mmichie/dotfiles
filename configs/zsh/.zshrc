@@ -83,10 +83,16 @@ for module in "$SHELL_LIB_DIR"/[0-9]*.zsh; do
 done
 unset module
 
-# Disable correction for dotfile-named commands and `claude` (zsh alternation
-# requires the parens — `.*|claude` without grouping is a literal string match
-# that never fires, so correction effectively ran on every command).
-CORRECT_IGNORE='(.*|claude)'
+# Never offer a dot-name as a spelling correction. zsh corrects a command word
+# from two sources, each with its own filter: CORRECT_IGNORE covers command
+# names (nix's .foo-wrapped binaries, the .. aliases) and CORRECT_IGNORE_FILE
+# covers file names in the current directory. The second is the one that
+# bites: next to a .claude/ directory, a command zsh could not find got
+# "correct 'claude' to '.claude'?", a FILE candidate CORRECT_IGNORE never
+# sees. Neither pattern names claude: listing it only stopped typos such as
+# `claud` from being corrected to it.
+CORRECT_IGNORE='.*'
+CORRECT_IGNORE_FILE='.*'
 
 # Source local config (not in dotfiles repo, for secrets/machine-specific settings)
 # Login-only setup (e.g. macOS path_helper re-application) lives in .zprofile.

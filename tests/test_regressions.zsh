@@ -614,4 +614,47 @@ assert_contains "$out" "JUMP1=three" \
     "1 jumps to the entry d numbers 1 (regression: cd -1 counted from the bottom of the stack)"
 assert_contains "$out" "JUMP3=one"   "3 jumps to the entry d numbers 3"
 
+# ── Spelling correction never offers a dot-name (.zshrc) ──────────────
+# Bug: the setting that should stop "correct 'claude' to '.claude'?" was
+# CORRECT_IGNORE='(.*|claude)'. That prompt offers a FILE name (the .claude
+# directory), and zsh filters file candidates with CORRECT_IGNORE_FILE only;
+# CORRECT_IGNORE covers command names, so the dot pattern never applied and
+# the `claude` alternative did one thing: stop typos such as `claud` from
+# being corrected to claude. The original line, from 2025-05, did name
+# CORRECT_IGNORE_FILE, with a pattern that could not match.
+#
+# spell-word runs the same correction code as the prompt and rewrites the
+# word in place with no [nyae] question, so zle-line-init can drive it. The
+# dot entry has a made-up name: no host command can be near it.
+typeset corrdir="$T_SCRATCH/correct"
+mkdir -p "$corrdir/.zzdotname"
+sb="$(make_sandbox_home)"
+cat > "$sb/.zshrc.local" <<'EOF'
+_t_spell_probe() {
+    {
+        BUFFER='zzdotname'
+        CURSOR=${#BUFFER}
+        zle spell-word
+        print -r -- "SPELL_DOTFILE=<$BUFFER>"
+        BUFFER='claud'
+        CURSOR=${#BUFFER}
+        zle spell-word
+        print -r -- "SPELL_TYPO=<$BUFFER>"
+    } always {
+        BUFFER=' exit'
+        zle .accept-line
+    }
+}
+zle -N zle-line-init _t_spell_probe
+EOF
+_sandbox_env_args "$sb"
+if out=$(cd "$corrdir" && run_under_pty env -i "${reply[@]}" zsh --no-globalrcs -i); then
+    assert_contains "$out" "SPELL_DOTFILE=<zzdotname>" \
+        "a command zsh cannot find is not corrected to a dot-entry of the same name (regression)"
+    assert_contains "$out" "SPELL_TYPO=<claude>" \
+        "a typo of claude is corrected to claude (regression: CORRECT_IGNORE named it)"
+else
+    t_skip "spelling correction ignore patterns" "PTY unavailable"
+fi
+
 t_finish
