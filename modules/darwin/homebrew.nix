@@ -68,7 +68,7 @@ _:
       "chatgpt"
       "claude"
       "docker-desktop"
-      # "vmware-fusion"  # Broadcom download server broken
+      "utm" # hypervisor for the NixOS VM (hosts/vm-aarch64)
       "zed"
 
       # Productivity

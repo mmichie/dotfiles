@@ -22,6 +22,15 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6']
 
 # Mouse behavior (DWM-like)
 on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+
+# A VM brings its own window manager. While a UTM guest window has focus,
+# switch to a mode with no bindings, so the cmd-* chords below reach the guest
+# (dwm in the NixOS VM uses the same ones). UTM's "capture input" does not do
+# this: AeroSpace's hotkeys fire first with capture on or off. UTM's library
+# window, whose title starts with "UTM", keeps the normal bindings.
+on-focus-changed = [
+    'exec-and-forget case "$(aerospace list-windows --focused --format "%{app-bundle-id} %{window-title}")" in "com.utmapp.UTM UTM"*) want=main ;; "com.utmapp.UTM "*) want=guest ;; *) want=main ;; esac; have=$(aerospace list-modes --current); [ "$want$have" = guestmain ] && aerospace mode guest; [ "$want$have" = mainguest ] && aerospace mode main',
+]
 automatically-unhide-macos-hidden-apps = false
 
 # DWM uses zero gaps by default
@@ -89,6 +98,10 @@ cmd-shift-period = 'move-workspace-to-monitor next'   # Move window to next moni
 # Service mode for additional controls
 cmd-shift-semicolon = 'mode service'
 
+# Guest mode: no bindings at all. on-focus-changed above enters it while a
+# UTM guest window has focus and leaves it when focus moves elsewhere.
+[mode.guest.binding]
+
 [mode.service.binding]
 esc = ['reload-config', 'mode main']
 r = ['flatten-workspace-tree', 'mode main']    # Reset layout
@@ -124,7 +137,7 @@ if.app-id = 'com.mitchellh.ghostty'
 run = ['layout tiling', 'move-node-to-workspace 1']
 
 [[on-window-detected]]
-if.app-id = 'com.vmware.fusion'
+if.app-id = 'com.utmapp.UTM'
 run = ['move-node-to-workspace 1']
 
 [[on-window-detected]]

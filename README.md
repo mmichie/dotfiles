@@ -50,7 +50,7 @@ sudo nix run nix-darwin -- switch --flake .#mims-mbp
 # Linux
 nix run home-manager -- switch --flake .#mim@linux
 
-# NixOS VM (after minimal NixOS install in VMware Fusion)
+# NixOS VM (after minimal NixOS install in UTM)
 sudo nixos-rebuild switch --flake ~/src/dotfiles#vm-aarch64
 ```
 
@@ -145,7 +145,7 @@ hosts/
   mims-mbp/                   # personal nix-darwin (imports workstation-base, sets hostname)
   mim-moab/                   # work nix-darwin (my.isWork = true)
   tensor9-mbp/                # work nix-darwin (my.isWork = true)
-  vm-aarch64/                 # NixOS VM (DWM + VMware Fusion on Apple Silicon)
+  vm-aarch64/                 # NixOS VM (DWM + UTM on Apple Silicon)
 hostclass/
   darwin-workstation.nix      # macOS-specific home config (aerospace, karabiner)
   linux-workstation.nix       # Linux-specific home config (clipboard tools, git signing)
@@ -193,16 +193,17 @@ bin/                          # Personal scripts + platform binaries
 - **Declarative Homebrew cleanup**: `cleanup = "uninstall"` removes any cask not listed in the config. (`"zap"` is avoided — it breaks Docker Desktop receipts.)
 - **Pre-commit hooks**: lefthook enforces nix-fmt formatting, statix linting, shellcheck, and conventional commit messages on every commit.
 
-## NixOS VM (VMware Fusion on Apple Silicon)
+## NixOS VM (UTM on Apple Silicon)
 
-A full NixOS dev environment running DWM, inside VMware Fusion on your M-series Mac.
+A full NixOS dev environment running DWM, inside [UTM](https://mac.getutm.app) on your M-series Mac. It runs on UTM's Apple Virtualization backend, not QEMU.
 
 ### Setup
 
 1. Download the NixOS aarch64 minimal ISO from [nixos.org](https://nixos.org/download)
-2. Create a new VM in VMware Fusion (4GB+ RAM, 50GB+ disk recommended)
-3. Boot the ISO and install a minimal NixOS (partition disk, `nixos-install`, reboot)
-4. Clone and apply:
+2. Create a new VM in UTM: **Virtualize**, **Linux**, tick **Use Apple Virtualization**, boot from the ISO (4GB+ RAM, 50GB+ disk recommended), and pick `~/src` as the shared directory
+3. In the VM's settings, under **Virtualization**, make sure **Enable Clipboard Sharing** is ticked
+4. Boot the ISO and install a minimal NixOS (partition disk, `nixos-install`, reboot)
+5. Clone and apply:
 
 ```bash
 git clone https://github.com/mmichie/dotfiles ~/src/dotfiles
@@ -219,6 +220,15 @@ sudo nixos-rebuild switch --flake .#vm-aarch64
 just vm-switch   # rsyncs local config to /nix-config on the VM and rebuilds
 ```
 
+The VM announces itself as `vm-aarch64.local`, which is what the `vm` SSH alias points at. A newly installed VM has new host keys, and `ssh vm` refuses it until they are pinned: replace the `vm-aarch64.local` lines in `configs/ssh/known_hosts.pinned` with the output of `ssh-keyscan -t ed25519,rsa vm-aarch64.local`.
+
+What UTM provides to the guest:
+
+- **Shared directory**: every directory shared with the VM appears under `/mnt/utm`. `~/src` is linked to `/mnt/utm/src` when it does not already exist.
+- **Clipboard**: shared with macOS in both directions.
+- **Display**: the guest follows the size of the UTM window, full screen included (**Dynamic Resolution**, on by default).
+- **Keyboard**: Command is DWM's `Mod`. AeroSpace binds the same `cmd-*` chords and would take them first, so its config drops to an empty binding mode while a VM window has focus. Shortcuts macOS itself owns (Command+Tab, Command+H and the like) are separate: UTM's **Capture input automatically when entering full screen** setting is the switch for sending those to the guest.
+
 ### DWM keybindings
 
 | Key | Action |
@@ -231,7 +241,7 @@ just vm-switch   # rsyncs local config to /nix-config on the VM and rebuilds
 | `Mod+1-9` | Switch tag |
 | `Mod+t/f/m` | Tiled/floating/monocle layout |
 
-`Mod` is `Super` (Command key on Mac keyboard via VMware Fusion).
+`Mod` is `Super` (the Command key on a Mac keyboard, which UTM passes through as Super).
 
 ## See Also
 

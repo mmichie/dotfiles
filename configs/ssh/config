@@ -1,7 +1,9 @@
 Include config.local
 
+# The UTM guest (hosts/vm-aarch64), by the mDNS name it announces. UTM's
+# shared network assigns its address by DHCP, so there is no fixed number.
 Host vm
-    HostName 172.16.188.128
+    HostName vm-aarch64.local
     User mim
     IdentityFile ~/.ssh/personal.pub
 

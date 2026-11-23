@@ -94,7 +94,7 @@
         };
       };
 
-      # ── NixOS VM (VMware Fusion on Apple Silicon) ─────────────────
+      # ── NixOS VM (UTM on Apple Silicon) ───────────────────────────
       nixosConfigurations."vm-aarch64" = mkNixosHost {
         hostname = "vm-aarch64";
         system = "aarch64-linux";

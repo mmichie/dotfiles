@@ -9,7 +9,8 @@ FLAKE_REPO="https://github.com/mmichie/dotfiles"
 FLAKE_REF="vm-aarch64"
 USERNAME="mim"
 
-# Auto-detect disk: NVMe (VMware Fusion Apple Silicon) > virtio > SCSI
+# Auto-detect disk: NVMe (UTM with "Use NVMe Interface") > virtio (UTM's
+# default) > SCSI
 if [ -b /dev/nvme0n1 ]; then
     DISK="/dev/nvme0n1"
 elif [ -b /dev/vda ]; then

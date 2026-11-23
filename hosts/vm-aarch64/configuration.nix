@@ -1,4 +1,4 @@
-# NixOS VM — DWM tiling WM on VMware Fusion (Apple Silicon)
+# NixOS VM — DWM tiling WM on UTM (Apple Virtualization backend, Apple Silicon)
 {
   pkgs,
   lib,
@@ -54,29 +54,27 @@
   time.timeZone = "America/Los_Angeles";
   i18n.defaultLocale = "en_US.UTF-8";
 
-  # ── VMware guest tools ─────────────────────────────────────────
-  virtualisation.vmware.guest.enable = true;
-  # Note: vmware-user (clipboard/auto-resize) doesn't work on ARM guests per Broadcom docs
-
-  # ── Shared folders (VMware hgfs mounted as mim user) ──────────
-  fileSystems."/mnt/hgfs" = {
-    device = ".host:/";
-    fsType = "fuse.vmhgfs-fuse";
-    options = [
-      "uid=1000"
-      "gid=100"
-      "allow_other"
-      "auto_unmount"
-      "defaults"
-    ];
+  # ── Shared folders (UTM VirtioFS) ──────────────────────────────
+  # UTM puts every directory shared with the VM behind one virtiofs device
+  # tagged "share", each as a sub-directory named after the directory itself.
+  # No uid or gid mapping: Apple's VirtioFS shows a file as owned by whichever
+  # guest user is asking and does the work on the Mac as the user running UTM,
+  # so mim reads and writes the share as is. nofail: with nothing shared the
+  # device does not exist, and the boot must not stop on it.
+  fileSystems."/mnt/utm" = {
+    device = "share";
+    fsType = "virtiofs";
+    options = [ "nofail" ];
   };
 
-  # Symlink ~/src → /mnt/hgfs/src so shared files appear in home dir
+  # Symlink ~/src → /mnt/utm/src so the Mac's ~/src appears in the home dir
   systemd.tmpfiles.rules = [
-    "L /home/mim/src - - - - /mnt/hgfs/src"
+    "L /home/mim/src - - - - /mnt/utm/src"
   ];
 
-  # ── Graphics (VMware 3D acceleration + Mesa OpenGL) ────────────
+  # ── Graphics (Mesa OpenGL) ─────────────────────────────────────
+  # Software rendering (llvmpipe): the Apple backend gives a Linux guest a
+  # virtio-gpu display with no 3D acceleration.
   hardware.graphics.enable = true;
 
   # ── X11 + DWM ──────────────────────────────────────────────────
@@ -91,7 +89,7 @@
         package = pkgs.dwm.overrideAttrs (old: {
           patches = (old.patches or [ ]) ++ [
             # Use Super (Windows) key instead of Alt as modifier
-            # Mac keyboards in VMware Fusion map Command→Super, so this
+            # UTM passes the Mac's Command key through as Super, so this
             # lets you use the key next to Space as the DWM mod key
             (pkgs.writeText "modkey.patch" ''
               diff --git a/config.def.h b/config.def.h
@@ -119,10 +117,20 @@
           Xft.dpi: 96
           XEOF
 
-          # Set ultrawide resolution (Acer X34 3440x1440)
-          xrandr --newmode "3440x1440_60" 319.75 3440 3680 4048 4656 1440 1443 1453 1493 -hsync +vsync 2>/dev/null
-          xrandr --addmode Virtual-1 3440x1440_60 2>/dev/null
-          xrandr --output Virtual-1 --mode 3440x1440_60 2>/dev/null
+          # Clipboard: the per-session half of the SPICE agent (the system
+          # half is services.spice-vdagentd). It exits at once when clipboard
+          # sharing is off in UTM.
+          spice-vdagent
+
+          # Follow the UTM window. With Dynamic Resolution on (UTM's default)
+          # the virtual display is resized to fit the window, full screen
+          # included, and the guest sees each new size as a monitor hotplug
+          # carrying a new preferred mode. Nothing in a bare dwm session acts
+          # on one, so apply it here; the guest then always renders at the
+          # window's own pixel size.
+          udevadm monitor --udev --subsystem-match=drm | while read -r _; do
+            xrandr --output Virtual-1 --auto
+          done &
 
           while true; do
             xsetroot -name "$(date '+%a %d %b %R') | $(cat /proc/loadavg | cut -d' ' -f1-3)"
@@ -137,6 +145,23 @@
       autoLogin = {
         enable = true;
         user = "mim";
+      };
+    };
+
+    # ── Clipboard ──────────────────────────────────────────────────
+    # Shared with macOS through UTM (Virtualization > Enable Clipboard
+    # Sharing). This is the system half of the SPICE agent; the session half
+    # starts with the X session above.
+    spice-vdagentd.enable = true;
+
+    # ── mDNS ───────────────────────────────────────────────────────
+    # Announce vm-aarch64.local. UTM's shared network hands out the address
+    # by DHCP, so the Mac's `ssh vm` alias uses this name rather than a number.
+    avahi = {
+      enable = true;
+      settings.publish = {
+        disable-publishing = false;
+        publish-addresses = true;
       };
     };
 

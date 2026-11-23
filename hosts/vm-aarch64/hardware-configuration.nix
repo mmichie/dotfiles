@@ -1,4 +1,4 @@
-# VMware Fusion on Apple Silicon — hardware configuration
+# UTM (Apple Virtualization backend) on Apple Silicon — hardware configuration
 # Generated template; `nixos-generate-config` will overwrite on first install.
 {
   config,

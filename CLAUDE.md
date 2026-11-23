@@ -139,7 +139,7 @@ hosts/                        # Per-host configuration.nix (thin: import a base,
   mims-mbp/                   # personal nix-darwin (imports workstation-base, sets hostname)
   mim-moab/                   # work nix-darwin (my.isWork = true), plus a host home.nix
   tensor9-mbp/                # work nix-darwin (my.isWork = true)
-  vm-aarch64/                 # NixOS VM config (DWM, VMware, aarch64-linux)
+  vm-aarch64/                 # NixOS VM config (DWM, UTM, aarch64-linux)
 hostclass/
   darwin-workstation.nix      # macOS-specific home config (aerospace, karabiner)
   linux-workstation.nix       # Linux-specific home config (clipboard tools, git signing)
