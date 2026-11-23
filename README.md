@@ -233,7 +233,7 @@ What UTM provides to the guest:
 
 | Key | Action |
 |-----|--------|
-| `Mod+Enter` | Open terminal (st) |
+| `Mod+Shift+Enter` | Open terminal (st) |
 | `Mod+p` | dmenu launcher |
 | `Mod+j/k` | Focus next/prev window |
 | `Mod+Shift+c` | Close window |
