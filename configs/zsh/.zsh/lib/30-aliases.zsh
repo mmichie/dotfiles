@@ -73,9 +73,11 @@ setup_aliases() {
     fi
 }
 
-# Numeric directory-stack jumps: type `1`, `2`, ..., `5` to cd -1, cd -2, etc.
+# Numeric directory-stack jumps: type `1`, `2`, ..., `5` to go to the entry
+# `d` (dirs -v) lists under that number. +N, not -N: without PUSHD_MINUS, -N
+# counts from the bottom of the stack and lands on a different entry.
 for _n in 1 2 3 4 5; do
-    eval "$_n() { cd -$_n; }"
+    eval "$_n() { cd +$_n; }"
 done
 unset _n
 

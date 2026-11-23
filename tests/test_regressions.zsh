@@ -592,4 +592,26 @@ else
     t_skip "kill TAB completion on a real command line" "PTY unavailable"
 fi
 
+# ── Numeric directory jumps follow d's numbering (lib/30-aliases.zsh) ─
+# Bug: the 1..5 functions ran `cd -N`. Without PUSHD_MINUS, -N counts from
+# the BOTTOM of the directory stack, so the number typed was not the number
+# `d` (dirs -v) prints next to the directory: with four directories visited,
+# `1` landed on the entry d numbers 3. The idiom comes from oh-my-zsh, which
+# pairs it with `setopt pushdminus`; this config never set that. The jumps run
+# in command substitutions so both start from the same stack.
+typeset stackroot="$T_SCRATCH/dirstack"
+mkdir -p "$stackroot"/{one,two,three,four}
+sb="$(make_sandbox_home)"
+out=$(run_sandbox_zsh "$sb" '
+cd "$STACK/one"; cd "$STACK/two"; cd "$STACK/three"; cd "$STACK/four"
+typeset -a d_listing=("${(@f)$(d)}")
+print -r -- "D_ENTRY1=${d_listing[2]:t} D_ENTRY3=${d_listing[4]:t}"
+print -r -- "JUMP1=$( { 1 } >/dev/null; print -rn -- "${PWD:t}" )"
+print -r -- "JUMP3=$( { 3 } >/dev/null; print -rn -- "${PWD:t}" )"
+' STACK="$stackroot" 2>/dev/null)
+assert_contains "$out" "D_ENTRY1=three D_ENTRY3=one" "d numbers the stack from the most recent directory"
+assert_contains "$out" "JUMP1=three" \
+    "1 jumps to the entry d numbers 1 (regression: cd -1 counted from the bottom of the stack)"
+assert_contains "$out" "JUMP3=one"   "3 jumps to the entry d numbers 3"
+
 t_finish
