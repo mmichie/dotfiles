@@ -44,6 +44,17 @@ case "$4" in
     insecure)
         fpath=("$5" $fpath)
         ;;
+    # Completion never initialized: compinit registers nothing.
+    nocomp) _comps=() ;;
+    # zsh/stat cannot load, so the dump fingerprint cannot be computed.
+    nostat)
+        zmodload() {
+            [[ "$*" == *zsh/stat* ]] && return 1
+            builtin zmodload "$@"
+        }
+        ;;
+    # compaudit is nowhere on fpath.
+    noaudit) fpath=("$2") ;;
 esac
 typeset before_functions="${(ok)functions}" before_options="${(kv)options}"
 shell-doctor
@@ -59,7 +70,7 @@ typeset mode='' home="$T_SCRATCH/home" insecure="$T_SCRATCH/insecure"
 mkdir -p "$home" "$insecure"
 print -r -- '#compdef doctor-test' > "$insecure/_doctor_test"
 chmod 777 "$insecure"
-for mode in normal stale command unloaded missing metadata modified failed minimal insecure busy compbusy; do
+for mode in normal stale command unloaded missing metadata modified failed minimal insecure busy compbusy nocomp nostat noaudit; do
     out=$(HOME="$home" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$cache_dir" "$stubdir" "$mode" "$insecure" 2>&1)
     assert_contains "$out" STATE_UNCHANGED "$mode diagnosis preserves caller functions and options"
     assert_not_contains "$out" PRIVATE_CACHE_CONTENT "$mode diagnosis never executes or prints cache contents"
@@ -81,8 +92,33 @@ for mode in normal stale command unloaded missing metadata modified failed minim
         insecure) assert_contains "$out" "$insecure" "reports insecure completion paths" ;;
         busy) assert_contains "$out" 'cache: busy or unreadable' "does not read a tool cache during a write transaction" ;;
         compbusy) assert_contains "$out" 'Completion cache busy or unreadable' "does not read completion metadata during a write transaction" ;;
+        nocomp)
+            assert_contains "$out" 'Completion is not initialized in this shell' "flags a shell where compinit never ran"
+            assert_not_contains "$out" DOCTOR_RC=0 "an uninitialized completion system is an issue" ;;
+        nostat)
+            assert_contains "$out" 'zsh/stat could not load' "says when the dump fingerprint cannot be checked"
+            assert_not_contains "$out" DOCTOR_RC=0 "an unverifiable dump is an issue" ;;
+        noaudit)
+            assert_contains "$out" 'compaudit not found in fpath' "says when the permission audit cannot run"
+            assert_not_contains "$out" DOCTOR_RC=0 "a missing permission audit is an issue" ;;
     esac
 done
+
+# Arguments: only --help/-h is accepted, and it succeeds.
+cat > "$inner" <<'EOF'
+source "$1/.zsh/functions/shell-doctor"
+shell-doctor --help
+print -r -- "HELP_RC=$?"
+shell-doctor -h >/dev/null
+print -r -- "H_RC=$?"
+shell-doctor --verbose
+print -r -- "BAD_RC=$?"
+EOF
+out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+assert_contains "$out" 'Usage: shell-doctor' "shell-doctor --help prints the usage"
+assert_contains "$out" 'HELP_RC=0' "shell-doctor --help succeeds"
+assert_contains "$out" 'H_RC=0' "shell-doctor -h succeeds"
+assert_contains "$out" 'BAD_RC=2' "shell-doctor rejects any other argument with status 2"
 [[ ! -e "$home/doctor-tool-called" ]] && t_pass "doctor never invokes integration binaries" || t_fail "doctor never invokes integration binaries"
 typeset -a locks=("$cache_dir"/.cache-lock-*(N))
 assert_eq "${#locks}" 0 "doctor does not create cache lock files"
