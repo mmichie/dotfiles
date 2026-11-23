@@ -8,7 +8,8 @@
 #   - an autoloaded function file's lines are mapped back past its leading
 #     comments, and a nested function defined at run time keeps its file
 #   - the classifier leaves closers, array elements and continuation lines
-#     out of the count
+#     out of the count, including a group's `} | cmd` line and an empty case
+#     arm, neither of which the trap can ever report
 # The whole run takes well under a second: no sandbox boots of the real
 # config are involved.
 
@@ -73,12 +74,28 @@ unused() {
     print -r -- "never loaded"
 }
 EOF
+# Every line of shapes runs. Two of them are statement-shaped but can never
+# be reported: the trap reports the piped group at its `{` line, and the
+# empty `other) ;;` arm runs no command at all.
+cat > "$fix/.zsh/functions/shapes" <<'EOF'
+shapes() {
+    local piped=''
+    {
+        print -r -- in-group
+    } | read -r piped
+    case "$piped" in
+        other) ;;
+        in-group) local matched=1 ;;
+    esac
+}
+EOF
 
 # The traced "suite": one shell per door.
 cat > "$inner" <<'EOF'
 fpath=("$1/.zsh/functions" $fpath)
-autoload -Uz outer
+autoload -Uz outer shapes
 outer 2>/dev/null
+shapes
 EOF
 cat > "$driver" <<EOF
 source ${(q)T_LIB_DIR}/lib.zsh
@@ -107,7 +124,9 @@ assert_eq "$(row .zsh/lib/20-cdoor.zsh)" "1 1" \
 assert_eq "$(row .zsh/functions/outer)" "6 5" \
     "script door: an autoloaded function called with 2>/dev/null is reported, subshell and substitution included"
 assert_eq "$(row .zsh/functions/unused)" "1 0" "a function file nothing loads counts as not run"
-assert_eq "$(row total)" "21 17" "totals add up"
+assert_eq "$(row .zsh/functions/shapes)" "5 5" \
+    "a group's \`} | cmd\` line and an empty case arm are not counted (the trap can never report them)"
+assert_eq "$(row total)" "26 22" "totals add up"
 
 # The never-ran list names exactly the dead lines, by their real file lines:
 # outer's line 6 sits 3 lines into the function and 6 into the file.

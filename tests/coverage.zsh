@@ -37,11 +37,12 @@
 #     offset back.
 #   - "Lines" are lines where a statement starts, which is what the trap
 #     reports (`a && b` over two lines is one statement). Comments, blanks,
-#     closers (fi, done, }, ;;), function headers, case patterns, heredoc
-#     bodies and the continuation lines of multi-line statements and arrays
-#     are left out by a classifier written for this config's style. It is
-#     not a parser, so the percentages are approximate. A line the trap
-#     reported always counts, whatever the classifier thought of it.
+#     closers (fi, done, }, ;;), function headers, case patterns, empty case
+#     arms, heredoc bodies and the continuation lines of multi-line
+#     statements and arrays (a `} | cmd` line continues the pipeline its
+#     group opened) are left out by a classifier written for this config's
+#     style. It is not a parser, so the percentages are approximate. A line
+#     the trap reported always counts, whatever the classifier thought of it.
 #
 # Not named test_*.zsh: it runs the whole suite with a trap on every
 # command, so it stays out of run.zsh, the pre-commit hook and CI.
@@ -301,11 +302,16 @@ coverable_lines() {
         esac
         # A closer followed only by redirections or a background marker.
         [[ "$c" == (\}|\)|fi|done|esac)[[:space:]]##[\<\>\&0-9]* && "$c" != *(\||\&\&|\;)* ]] && continue
+        # A group's closing brace or paren that pipes on: the pipeline is one
+        # statement, which the trap reports at the line where the group opens.
+        [[ "$c" == (\}|\))[[:space:]]#\|* ]] && continue
         # A function header whose body starts on the next line.
         [[ "$c" == [^[:space:]\(\)]##\(\)[[:space:]]#[\{\(] ]] && continue
         [[ "$c" == function[[:space:]]##[^\{]##\{ ]] && continue
-        # A case pattern on a line of its own.
+        # A case pattern on a line of its own, or with an empty body: an arm
+        # that runs no command gives the trap nothing to report.
         [[ "$c" == [^\(]##\) ]] && continue
+        [[ "$c" == (\(|)[^\(\)]##\)[[:space:]]#(\;\;|\;\&|\;\|) ]] && continue
         if [[ "$c" == *=\(* ]]; then
             opens=${#${c//[^\(]/}} closes=${#${c//[^\)]/}}
             (( opens > closes )) && depth=$(( opens - closes ))
