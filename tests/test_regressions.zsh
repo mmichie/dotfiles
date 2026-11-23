@@ -525,4 +525,71 @@ else
     t_skip "forwarded-agent link follows any login path" "no unix socket listener (zsocket)"
 fi
 
+# ── kill/finger completers are real functions (lib/25-completion.zsh) ─
+# Bug: setup_completions ran `compdef _signal kill` and `compdef _user finger
+# pinky`, and zsh has neither function. The block was carried over from
+# bash's `complete -A signal kill` / `complete -A user finger pinky` by
+# prefixing an underscore; zsh's names are _signals and _users. compdef
+# registers any name unchecked, so the override replaced the stock _kill
+# (signals, PIDs, jobs) and _finger with a dangling entry: TAB after `kill`
+# printed "(eval):1: command not found: _signal" and completed nothing.
+#
+# The dangling check is the general invariant, read from the shell the whole
+# module chain built: every completer in $_comps is a function, defined or
+# marked for autoload. compinit registers only files it found on fpath, so a
+# dangling entry can only come from an explicit compdef in this config or in
+# a tool init it sources.
+sb="$(make_sandbox_home)"
+out=$(run_sandbox_zsh "$sb" '
+typeset -a comp_dangling=()
+typeset comp_cmd="" comp_fn=""
+for comp_cmd comp_fn in "${(@kv)_comps}"; do
+    (( $+functions[${comp_fn%% *}] )) || comp_dangling+=("$comp_cmd=$comp_fn")
+done
+print -r -- "COMP_REGISTERED=$(( ${#_comps} > 0 ))"
+print -r -- "COMP_KILL=${_comps[kill]}"
+print -r -- "COMP_FINGER=${_comps[finger]}"
+print -r -- "COMP_DANGLING=[${(j:,:)${(@o)comp_dangling}}]"
+' 2>/dev/null)
+assert_contains "$out" "COMP_REGISTERED=1" \
+    "completion table is populated (keeps the dangling-completer check from passing vacuously)"
+assert_eq "${${out##*COMP_DANGLING=}%%$'\n'*}" "[]" \
+    "every registered completer is a function (regression: kill -> _signal, finger/pinky -> _user)"
+assert_contains "$out" "COMP_KILL=_kill"     "kill keeps stock _kill completer (signals, PIDs, jobs)"
+assert_contains "$out" "COMP_FINGER=_finger" "finger keeps stock _finger completer (users, hosts)"
+
+# End to end on a real command line: complete `kill -HU` the way TAB does.
+# zle-line-init drives the widget without keystrokes, as test_history_widget
+# does, but from the shell's own prompt and not from vared: completion inside
+# vared is value context and never consults $_comps[kill]. ~/.zshrc.local is
+# the last file .zshrc sources, so the probe runs in the finished shell. HUP
+# is the only signal that starts with HU, so a working completer inserts it;
+# the dangling one left the buffer alone and printed the error. The always
+# block exits the shell even if the probe body fails, so a regression shows
+# up as a failed assertion and not as a hung boot. The boot starts in the
+# sandbox HOME, where a direnv hook has no .envrc to report on.
+cat > "$sb/.zshrc.local" <<'EOF'
+_t_kill_tab_probe() {
+    {
+        BUFFER='kill -HU'
+        CURSOR=${#BUFFER}
+        zle expand-or-complete
+        print -r -- "KILL_TAB_BUFFER=<$BUFFER>"
+    } always {
+        BUFFER=' exit'
+        zle .accept-line
+    }
+}
+zle -N zle-line-init _t_kill_tab_probe
+EOF
+_sandbox_env_args "$sb"
+if out=$(cd "$sb" && run_under_pty env -i "${reply[@]}" zsh --no-globalrcs -i); then
+    assert_contains "$out" "KILL_TAB_BUFFER=<kill -HUP" \
+        "TAB after \`kill -HU\` completes the signal name on a real command line"
+    assert_not_contains "$out" "command not found: _signal" \
+        "TAB after \`kill\` runs a completer that exists (regression)"
+else
+    t_skip "kill TAB completion on a real command line" "PTY unavailable"
+fi
+
 t_finish

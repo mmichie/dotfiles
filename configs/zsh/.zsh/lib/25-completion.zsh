@@ -133,10 +133,14 @@ setup_completions() {
     zstyle ':completion:*' menu select
     zmodload zsh/complist
 
-    # Command specific completions
+    # Command specific completions. kill and finger deliberately NOT
+    # overridden: stock _kill completes signals, PIDs and jobs, and stock
+    # _finger completes users and hosts. Both used to point at _signal and
+    # _user, names carried over from bash's `complete -A signal|user` that no
+    # zsh function has, so TAB printed "command not found: _signal". pinky
+    # has no stock completer and takes users, hence _users.
     compdef _command command
-    compdef _signal kill
-    compdef _user finger pinky
+    compdef _users pinky
 
     # Directory handling completions. cd/pushd deliberately NOT overridden:
     # stock _cd also completes directory-stack entries (cd -<TAB>), CDPATH,
