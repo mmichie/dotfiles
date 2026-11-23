@@ -109,15 +109,14 @@
       displayManager = {
         lightdm.enable = true;
         sessionCommands = ''
-          # HiDPI settings for Retina display
+          # 1x: the guest is drawn pixel-for-pixel on the 3440x1440 monitor.
+          # DPI is the only font setting that belongs here. Antialiasing,
+          # hinting and subpixel order are set through fonts.fontconfig below:
+          # fontconfig puts them on every pattern, and libXft reads an Xft.*
+          # resource only for a property the pattern lacks, so setting them
+          # here did nothing for dwm, st or dmenu.
           xrdb -merge <<XEOF
           Xft.dpi: 96
-          Xft.autohint: 0
-          Xft.lcdfilter: lcddefault
-          Xft.hintstyle: hintfull
-          Xft.hinting: 1
-          Xft.antialias: 1
-          Xft.rgba: rgb
           XEOF
 
           # Set ultrawide resolution (Acer X34 3440x1440)
@@ -160,14 +159,28 @@
   };
 
   # ── Fonts ──────────────────────────────────────────────────────
-  fonts.enableDefaultPackages = false; # Only install what we declare
-  fonts.packages = with pkgs; [
-    nerd-fonts.hack
-    nerd-fonts.iosevka
-    nerd-fonts.jetbrains-mono
-    dejavu_fonts
-    liberation_ttf
-  ];
+  fonts = {
+    enableDefaultPackages = false; # Only install what we declare
+    packages = with pkgs; [
+      nerd-fonts.hack
+      nerd-fonts.iosevka
+      nerd-fonts.jetbrains-mono
+      dejavu_fonts
+      liberation_ttf
+      # fontconfig's default emoji family. Without it st draws any emoji the
+      # other fonts lack as an empty box.
+      noto-fonts-color-emoji
+    ];
+
+    # Subpixel antialiasing, for an RGB-stripe LCD shown 1:1: the Acer X34 at
+    # its native 3440x1440 and 96 dpi. NixOS defaults to grayscale. The rest
+    # of the defaults already fit (antialiasing on, slight hinting, default
+    # LCD filter); full hinting was measured against slight and renders Hack
+    # almost identically. Colour fringes on text mean this no longer matches
+    # the display: use "bgr" for a reversed stripe, "none" if the guest is
+    # scaled or on a Retina or OLED panel.
+    fontconfig.subpixel.rgba = "rgb";
+  };
 
   # ── System packages ────────────────────────────────────────────
   environment.systemPackages = with pkgs; [
