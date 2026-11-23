@@ -96,6 +96,7 @@ _:
       "keybase"
       "wireshark-app"
       "tailscale-app"
+      "cloudflare-warp"
       "hazeover"
       "scroll-reverser"
       "selfcontrol"
