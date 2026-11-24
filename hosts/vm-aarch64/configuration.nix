@@ -87,8 +87,9 @@
       # dwm/config.h is the whole configuration: upstream's defaults with
       # Super as the modifier and the look (colours, font, borders, gaps).
       # The patches add what a config.h cannot: gaps, a colour scheme of
-      # its own for the window title, and restarting in place, which loads a
-      # new dwm without closing any window. Its tags, window rules
+      # its own for the window title, restarting in place (which loads a new
+      # dwm without closing any window), colours in the status text, and the
+      # title centred on the screen. Its tags, window rules
       # and per-tag keys come from desktops.h, generated from the desktops
       # shared with AeroSpace (lib/desktops.nix).
       windowManager.dwm = {
@@ -100,6 +101,8 @@
               ./dwm/gaps.diff
               ./dwm/titlescheme.diff
               ./dwm/restartsig.diff
+              ./dwm/status2d.diff
+              ./dwm/centeredwindowname.diff
             ];
           }).overrideAttrs
             (old: {
@@ -156,18 +159,10 @@
           # above; without it a bigger root window would tile the old image.
           ${lib.getExe pkgs.xwallpaper} --daemon --zoom ${pkgs.nixos-artwork.wallpapers.nineish-dark-gray.gnomeFilePath}
 
-          # dwm's status text: load average, date and time, each after a Nerd
-          # Font icon that dwm draws from Hack Nerd Font like the rest of the
-          # bar. The icons are spelled as their UTF-8 bytes (this script runs
-          # under bash): U+F029A md-gauge, U+F0E17 md-calendar_month, U+F0150
-          # md-clock_outline. They are from one set, Material Design, because
-          # its glyphs share a size; mixed sets overhang their cell unevenly.
-          load=$'\xf3\xb0\x8a\x9a' cal=$'\xf3\xb0\xb8\x97' clock=$'\xf3\xb0\x85\x90'
-          while true; do
-            read -r l1 l5 l15 _ </proc/loadavg
-            xsetroot -name " $load $l1 $l5 $l15    $(date "+$cal %a %d %b    $clock %R") "
-            sleep 10
-          done &
+          # dwm's status text: CPU, memory and disk use, date and time, each
+          # after an icon in the bar's accent, refreshed every second
+          # (slstatus/config.h).
+          ${lib.getExe (pkgs.slstatus.override { conf = ./slstatus/config.h; })} &
         '';
       };
     };

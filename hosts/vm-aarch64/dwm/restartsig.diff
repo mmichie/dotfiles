@@ -7,8 +7,8 @@ start over. Upstream's restartsig patch, with 6.8's sigaction in place
 of signal().
 
 A signal only sets a flag, which dwm reads between X events, so a SIGHUP
-takes effect at the next one: at the latest the status line's refresh,
-every ten seconds.
+takes effect at the next one: at the latest slstatus's next update, a
+second away.
 
 --- a/dwm.c
 +++ b/dwm.c

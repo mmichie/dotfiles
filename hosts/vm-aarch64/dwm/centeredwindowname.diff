@@ -1,0 +1,29 @@
+The focused window's title centred on the screen, instead of starting
+after the layout symbol, which on the 3440px monitor left most of the bar
+empty. A title that would run into the status shifts left, and one too
+long for either starts after the layout symbol as before; the marker of a
+floating window stays at the title's top left. Upstream's
+centeredwindowname patch, which puts the text half its padding off centre
+and guards only the left edge.
+
+--- a/dwm.c
++++ b/dwm.c
+@@ -738,10 +738,16 @@
+ 
+ 	if ((w = m->ww - tw - x) > bh) {
+ 		if (m->sel) {
++			/* the title centred on the screen, shifted left if that would
++			 * run it into the status, and from the layout symbol on if it
++			 * is too long for either */
++			int nw = TEXTW(m->sel->name) - lrpad;
++			int mid = (m->ww - nw) / 2 - x;
++			mid = MAX(MIN(mid, w - nw - lrpad / 2), lrpad / 2);
+ 			drw_setscheme(drw, scheme[m == selmon ? SchemeTitle : SchemeNorm]);
+-			drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
++			drw_text(drw, x, 0, w, bh, mid, m->sel->name, 0);
+ 			if (m->sel->isfloating)
+-				drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
++				drw_rect(drw, x + mid - lrpad / 2 + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
+ 		} else {
+ 			drw_setscheme(drw, scheme[SchemeNorm]);
+ 			drw_rect(drw, x, 0, w, bh, 1, 1);
