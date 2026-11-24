@@ -3,7 +3,12 @@
 # the NixOS VM reads too; everything AeroSpace-only is below. A switch writes
 # ~/.config/aerospace/aerospace.toml; AeroSpace reads it on start or on
 # `aerospace reload-config` (Cmd+Shift+semicolon, then Esc).
-{ lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   inherit (import ../../lib/desktops.nix) desktops apps floating;
 
@@ -201,4 +206,16 @@ in
   xdg.configFile."aerospace/aerospace.toml".source =
     (pkgs.formats.toml { }).generate "aerospace.toml"
       settings;
+
+  # ~/.config/aerospace used to be a single link into the repo
+  # (configs/aerospace). Left in place, home-manager writes this file's link
+  # through it, into the repo, and moves the tracked aerospace.toml aside as
+  # a .backup: it did on mim-moab's first switch to the generated config. So
+  # drop that link before home-manager checks its targets. Once
+  # ~/.config/aerospace is a real directory this does nothing.
+  home.activation.dropAerospaceDirLink = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+    if [ -L "${config.xdg.configHome}/aerospace" ]; then
+      run rm "${config.xdg.configHome}/aerospace"
+    fi
+  '';
 }
