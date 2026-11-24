@@ -238,6 +238,7 @@ What UTM provides to the guest:
 | `Mod+j/k` | Focus next/prev window |
 | `Mod+Shift+c` | Close window |
 | `Mod+Shift+q` | Quit DWM |
+| `Mod+Ctrl+Shift+q` | Restart DWM in place, keeping the windows (also `kill -HUP`) |
 | `Mod+1-9` | Switch tag |
 | `Mod+t/f/m` | Tiled/floating/monocle layout |
 

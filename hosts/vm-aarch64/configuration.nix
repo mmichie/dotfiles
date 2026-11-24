@@ -86,8 +86,9 @@
 
       # dwm/config.h is the whole configuration: upstream's defaults with
       # Super as the modifier and the look (colours, font, borders, gaps).
-      # The patches add the two things a config.h cannot: gaps, and a
-      # colour scheme of its own for the window title. Its tags, window rules
+      # The patches add what a config.h cannot: gaps, a colour scheme of
+      # its own for the window title, and restarting in place, which loads a
+      # new dwm without closing any window. Its tags, window rules
       # and per-tag keys come from desktops.h, generated from the desktops
       # shared with AeroSpace (lib/desktops.nix).
       windowManager.dwm = {
@@ -98,6 +99,7 @@
             patches = [
               ./dwm/gaps.diff
               ./dwm/titlescheme.diff
+              ./dwm/restartsig.diff
             ];
           }).overrideAttrs
             (old: {

@@ -128,6 +128,8 @@ static const Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
 	DESKTOPKEYS
 	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+	/* restart in place, keeping the windows (restartsig.diff) */
+	{ MODKEY|ControlMask|ShiftMask, XK_q,      quit,           {1} },
 };
 
 /* button definitions */

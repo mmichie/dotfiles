@@ -1,0 +1,84 @@
+Restart dwm in place, keeping every window: Mod+Ctrl+Shift+Q (config.h)
+or SIGHUP, while SIGTERM quits cleanly. dwm execs itself by the name it
+was started with, and the session starts it as plain `dwm`, so a restart
+runs whatever dwm the last switch installed. Windows the rules place go
+back to their desktops; the rest land on the first one, and layouts
+start over. Upstream's restartsig patch, with 6.8's sigaction in place
+of signal().
+
+A signal only sets a flag, which dwm reads between X events, so a SIGHUP
+takes effect at the next one: at the latest the status line's refresh,
+every ten seconds.
+
+--- a/dwm.c
++++ b/dwm.c
+@@ -204,6 +204,8 @@
+ static void setup(void);
+ static void seturgent(Client *c, int urg);
+ static void showhide(Client *c);
++static void sighup(int unused);
++static void sigterm(int unused);
+ static void spawn(const Arg *arg);
+ static void tag(const Arg *arg);
+ static void tagmon(const Arg *arg);
+@@ -259,6 +261,7 @@
+ 	[UnmapNotify] = unmapnotify
+ };
+ static Atom wmatom[WMLast], netatom[NetLast];
++static int restart = 0;
+ static int running = 1;
+ static Cur *cursor[CurLast];
+ static Clr **scheme;
+@@ -1258,6 +1261,8 @@
+ void
+ quit(const Arg *arg)
+ {
++	if (arg->i)
++		restart = 1;
+ 	running = 0;
+ }
+ 
+@@ -1553,6 +1558,13 @@
+ 	/* clean up any zombies (inherited from .xinitrc etc) immediately */
+ 	while (waitpid(-1, NULL, WNOHANG) > 0);
+ 
++	/* restart on SIGHUP, quit on SIGTERM */
++	sa.sa_flags = SA_RESTART;
++	sa.sa_handler = sighup;
++	sigaction(SIGHUP, &sa, NULL);
++	sa.sa_handler = sigterm;
++	sigaction(SIGTERM, &sa, NULL);
++
+ 	/* init screen */
+ 	screen = DefaultScreen(dpy);
+ 	sw = DisplayWidth(dpy, screen);
+@@ -1645,6 +1657,20 @@
+ }
+ 
+ void
++sighup(int unused)
++{
++	Arg a = {.i = 1};
++	quit(&a);
++}
++
++void
++sigterm(int unused)
++{
++	Arg a = {.i = 0};
++	quit(&a);
++}
++
++void
+ spawn(const Arg *arg)
+ {
+ 	struct sigaction sa;
+@@ -2159,6 +2185,8 @@
+ #endif /* __OpenBSD__ */
+ 	scan();
+ 	run();
++	if (restart)
++		execvp(argv[0], argv);
+ 	cleanup();
+ 	XCloseDisplay(dpy);
+ 	return EXIT_SUCCESS;
