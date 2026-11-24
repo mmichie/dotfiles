@@ -16,6 +16,7 @@ keys:
   - &mims_mbp age104578lqk2s482c6g537570ztv2v8r9egyuweel5jadlc9qjf8dhq4cyguq
   - &mim_moab age16z6aaru0y89wpf0uzdcz6pc40tllx8sp7htvnmh09xn62zr8s5tqd36fku
   - &wintermute age1zanrznxpx0gwx0q4eyghpz6tvm5a96g49q4mfglht5r2rvj3cgrshl05jv
+  - &vm_aarch64 age1qvnt3nj7xdkm8e5vwkfqre0hws4sa5mlrmatmstf328ervzgydzq2w6zcj
 
 creation_rules:
   # Work-only secrets — encrypted only to the moab age key so they're truly
@@ -32,3 +33,4 @@ creation_rules:
           - *mims_mbp
           - *mim_moab
           - *wintermute
+          - *vm_aarch64

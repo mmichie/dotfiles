@@ -24,7 +24,8 @@ typeset moab_key=''
 moab_key=$(grep -oE '&mim_moab age1[0-9a-z]+' "$SOPS_YAML" | awk '{print $2}')
 typeset WORK_ONLY="zshrc-work-local"   # matches the work creation_rule in .sops.yaml
 
-assert_eq "${#all_keys}" "3" "sops.yaml declares the expected recipient count"
+# mims-mbp, mim-moab, wintermute, vm-aarch64
+assert_eq "${#all_keys}" "4" "sops.yaml declares the expected recipient count"
 
 # Per-file checks via one python pass (envelope shape + recipients + nonces).
 # python3 carries the entire tier below, so its absence must be visible: an
