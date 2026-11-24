@@ -58,6 +58,7 @@ let
   # Darwin-only home modules (excluded from Linux/NixOS closures)
   darwinHomeModules = [
     ../modules/home/secrets-darwin.nix
+    ../modules/home/aerospace.nix
   ];
 
   # ── Class definitions ────────────────────────────────────────────────

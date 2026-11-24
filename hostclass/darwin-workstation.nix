@@ -11,7 +11,7 @@
     # its mlx_lm runs entirely on the CPU. See modules/darwin/homebrew.nix.
   ];
 
-  xdg.configFile."aerospace".source = mkLink "aerospace";
+  # AeroSpace's config is generated, not linked: modules/home/aerospace.nix.
   xdg.configFile."karabiner".source = mkLink "karabiner";
 
   # Homebrew tap trust is declared in modules/darwin/homebrew.nix (via
