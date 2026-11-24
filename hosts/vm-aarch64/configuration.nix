@@ -84,23 +84,30 @@
       xkb.layout = "us";
       dpi = 96; # Native resolution (no HiDPI scaling)
 
+      # dwm/config.h is the whole configuration: upstream's defaults with
+      # Super as the modifier and the look (colours, font, borders, gaps).
+      # The patches add the two things a config.h cannot: gaps, and a
+      # colour scheme of its own for the window title. Its tags, window rules
+      # and per-tag keys come from desktops.h, generated from the desktops
+      # shared with AeroSpace (lib/desktops.nix).
       windowManager.dwm = {
         enable = true;
-        package = pkgs.dwm.overrideAttrs (old: {
-          patches = (old.patches or [ ]) ++ [
-            # Use Super (Windows) key instead of Alt as modifier
-            # UTM passes the Mac's Command key through as Super, so this
-            # lets you use the key next to Space as the DWM mod key
-            (pkgs.writeText "modkey.patch" ''
-              diff --git a/config.def.h b/config.def.h
-              --- a/config.def.h
-              +++ b/config.def.h
-              @@ -48,1 +48,1 @@
-              -#define MODKEY Mod1Mask
-              +#define MODKEY Mod4Mask
-            '')
-          ];
-        });
+        package =
+          (pkgs.dwm.override {
+            conf = ./dwm/config.h;
+            patches = [
+              ./dwm/gaps.diff
+              ./dwm/titlescheme.diff
+            ];
+          }).overrideAttrs
+            (old: {
+              # nixpkgs' postPatch (the copy of config.h) ends without a
+              # newline, so each command gets a line of its own
+              postPatch = ''
+                ${old.postPatch}
+                cp ${pkgs.callPackage ./dwm/desktops.nix { }} desktops.h
+              '';
+            });
       };
 
       # Auto-login — single-user VM, skip the login screen
@@ -132,8 +139,21 @@
             xrandr --output Virtual-1 --auto
           done &
 
+          # Wallpaper, which shows in the gaps around windows. --daemon forks
+          # and stays to redraw it at every new display size from the loop
+          # above; without it a bigger root window would tile the old image.
+          ${lib.getExe pkgs.xwallpaper} --daemon --zoom ${pkgs.nixos-artwork.wallpapers.nineish-dark-gray.gnomeFilePath}
+
+          # dwm's status text: load average, date and time, each after a Nerd
+          # Font icon that dwm draws from Hack Nerd Font like the rest of the
+          # bar. The icons are spelled as their UTF-8 bytes (this script runs
+          # under bash): U+F029A md-gauge, U+F0E17 md-calendar_month, U+F0150
+          # md-clock_outline. They are from one set, Material Design, because
+          # its glyphs share a size; mixed sets overhang their cell unevenly.
+          load=$'\xf3\xb0\x8a\x9a' cal=$'\xf3\xb0\xb8\x97' clock=$'\xf3\xb0\x85\x90'
           while true; do
-            xsetroot -name "$(date '+%a %d %b %R') | $(cat /proc/loadavg | cut -d' ' -f1-3)"
+            read -r l1 l5 l15 _ </proc/loadavg
+            xsetroot -name " $load $l1 $l5 $l15    $(date "+$cal %a %d %b    $clock %R") "
             sleep 10
           done &
         '';
@@ -227,8 +247,24 @@
       ];
     }))
     dmenu # DWM launcher
+    # Google's own arm64 build (unfree, allowed above), so not in the
+    # binary cache: a switch fetches the .deb from Google and repackages it.
+    # dmenu finds it as google-chrome-stable.
+    google-chrome
+    # Slack and Spotify as their web apps, each in its own Chrome app window.
+    # Both desktop apps wrap these same web UIs in a bundled Chromium, but
+    # they publish that bundle for Linux only on x86_64 (Slack an amd64 .deb,
+    # Spotify an amd64 snap), so nixpkgs has neither for aarch64-linux.
+    # Spotify's player needs Widevine, which this Chrome ships.
+    (writeShellScriptBin "slack" ''
+      exec ${lib.getExe google-chrome} --app=https://app.slack.com/client "$@"
+    '')
+    (writeShellScriptBin "spotify" ''
+      exec ${lib.getExe google-chrome} --app=https://open.spotify.com "$@"
+    '')
     xclip
     xsel
+    xdotool # dwm's Cmd+C / Cmd+V (dwm/config.h)
   ];
 
   # ── User ───────────────────────────────────────────────────────
@@ -249,15 +285,25 @@
     mutableUsers = true; # Allow passwd changes; remove initialPassword
   };
 
-  programs.zsh = {
-    enable = true;
-    # Same rationale as darwin: ~/.zshrc runs its own fingerprinted compinit;
-    # the global one in /etc/zshrc would be a second, slower compinit.
-    enableGlobalCompInit = false;
-    # And as on darwin: no bashcompinit (nothing uses bash-style completions),
-    # no global prompt theme (lib/60-prompt.zsh replaces it anyway).
-    enableBashCompletion = false;
-    promptInit = "";
+  programs = {
+    zsh = {
+      enable = true;
+      # Same rationale as darwin: ~/.zshrc runs its own fingerprinted compinit;
+      # the global one in /etc/zshrc would be a second, slower compinit.
+      enableGlobalCompInit = false;
+      # And as on darwin: no bashcompinit (nothing uses bash-style completions),
+      # no global prompt theme (lib/60-prompt.zsh replaces it anyway).
+      enableBashCompletion = false;
+      promptInit = "";
+    };
+
+    # 1Password's own arm64 build (unfree). The NixOS module rather than a
+    # bare package: it installs the polkit policy that lets mim unlock the
+    # app with the account password, which home-manager cannot do.
+    _1password-gui = {
+      enable = true;
+      polkitPolicyOwners = [ "mim" ];
+    };
   };
 
   # ── Security ───────────────────────────────────────────────────

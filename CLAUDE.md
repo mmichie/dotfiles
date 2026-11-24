@@ -139,19 +139,22 @@ justfile                      # Task runner (switch, update, vm-switch, secrets,
 lefthook.yml                  # Pre-commit hooks (nix-fmt, statix, shellcheck, conventional commits)
 lib/
   mkHost.nix                  # Host constructors — mkDarwinHost, mkNixosHost, mkHomeConfig
+  desktops.nix                # Desktops + which app opens on which, shared by AeroSpace and dwm (both generated from it)
 hosts/                        # Per-host configuration.nix (thin: import a base, set the hostname)
   mims-mbp/                   # personal nix-darwin (imports workstation-base, sets hostname)
   mim-moab/                   # work nix-darwin (my.isWork = true), plus a host home.nix
   tensor9-mbp/                # work nix-darwin (my.isWork = true)
   vm-aarch64/                 # NixOS VM config (DWM, UTM, aarch64-linux)
+    dwm/                      # dwm's config.h (whole config, replaces config.def.h), dwm.c patches, desktops.h generator
 hostclass/
-  darwin-workstation.nix      # macOS-specific home config (aerospace, karabiner)
-  linux-workstation.nix       # Linux-specific home config (clipboard tools, git signing)
+  darwin-workstation.nix      # macOS-specific home config (karabiner)
+  linux-workstation.nix       # Linux-specific home config (clipboard tools, git signing, Linux-only counterparts of casks)
 home/                         # shared.nix (cross-platform)
 modules/darwin/               # workstation-base.nix (shared macOS base), homebrew.nix (casks), defaults.nix (macOS prefs)
-modules/home/                 # options, lib, packages-core/dev, shell, git, editor, terminal, secrets, secrets-darwin
+modules/home/                 # options, lib, packages-core/dev, shell, git, editor, terminal, secrets, secrets-darwin, aerospace (generated config)
 configs/                      # Raw config files (symlinked by home-manager)
-  aerospace/ claude/ ghostty/ git/ karabiner/ nvim/ ssh/ system/ tmux/ wezterm/ zsh/
+  claude/ ghostty/ git/ karabiner/ nvim/ ssh/ system/ tmux/ wezterm/ zsh/
+  aerospace/                  # superseded by modules/home/aerospace.nix; still the live config until each Mac switches
 bin/                          # Personal scripts
 .github/workflows/            # CI: flake check + fmt + lint + zsh tests (push), weekly linux bootstrap rehearsal
 ```
