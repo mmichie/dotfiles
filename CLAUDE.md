@@ -146,6 +146,7 @@ hosts/                        # Per-host configuration.nix (thin: import a base,
   tensor9-mbp/                # work nix-darwin (my.isWork = true)
   vm-aarch64/                 # NixOS VM config (DWM, UTM, aarch64-linux)
     dwm/                      # dwm's config.h (whole config, replaces config.def.h), dwm.c patches, desktops.h generator
+    st/                       # st's colour patch (Ghostty's palette)
 hostclass/
   darwin-workstation.nix      # macOS-specific home config (karabiner)
   linux-workstation.nix       # Linux-specific home config (clipboard tools, git signing, Linux-only counterparts of casks)

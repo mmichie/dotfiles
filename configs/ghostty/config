@@ -6,6 +6,11 @@ font-size = 15
 font-thicken = true
 alpha-blending = linear-corrected
 
+# This machine's own settings, if it has any: home-manager writes the Linux
+# ones (hostclass/linux-workstation.nix), and the Macs have none. Ghostty
+# loads the file after this one, so its values win.
+config-file = ?~/.config/ghostty.local
+
 # Window settings
 window-padding-x = 0
 window-padding-y = 1

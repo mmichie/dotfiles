@@ -107,6 +107,10 @@
                 ${old.postPatch}
                 cp ${pkgs.callPackage ./dwm/desktops.nix { }} desktops.h
               '';
+              # libXcursor, for themed cursors (see Cursor below)
+              postFixup = (old.postFixup or "") + ''
+                patchelf --add-needed libXcursor.so.1 --add-rpath ${lib.getLib pkgs.libxcursor}/lib $out/bin/dwm
+              '';
             });
       };
 
@@ -123,6 +127,12 @@
           xrdb -merge <<XEOF
           Xft.dpi: 96
           XEOF
+
+          # Keep the display on. X blanked it and powered the virtual monitor
+          # off after ten idle minutes, and the guest sees input only while
+          # its UTM window has focus, so it went black in plain view while the
+          # work was on the Mac. The Mac's own screen lock still applies.
+          xset s off -dpms
 
           # Clipboard: the per-session half of the SPICE agent (the system
           # half is services.spice-vdagentd). It exits at once when clipboard
@@ -227,6 +237,33 @@
     fontconfig.subpixel.rgba = "rgb";
   };
 
+  # ── Cursor ─────────────────────────────────────────────────────
+  # The theme every X client falls back to when nothing names one, Xcursor's
+  # "default". There was none.
+  #
+  # That alone does not reach dwm and st, which drew X's core bitmap cursors
+  # either way: they ask X for its core cursors, which libX11 themes through
+  # libXcursor, but libX11 dlopens that by name from its own library paths,
+  # where NixOS does not put it. So both builds (dwm above, st below) load it
+  # at startup, and the dlopen finds it already loaded. Adwaita has no
+  # "sizing", dwm's resize cursor, so that one stays X's.
+  #
+  # adwaita-icon-theme is declared in the packages below: until now only the
+  # LightDM greeter's module happened to install it.
+  xdg.icons.fallbackCursorThemes = [ "Adwaita" ];
+
+  # ── GTK ────────────────────────────────────────────────────────
+  # Prefer dark, like dwm's bar. Unset, GTK defaults to light, and Chrome
+  # follows GTK: it drew a light UI and told the pages it shows
+  # prefers-color-scheme: light. GTK reads these through XDG_CONFIG_DIRS,
+  # which starts with /etc/xdg.
+  environment.etc = lib.genAttrs [ "xdg/gtk-3.0/settings.ini" "xdg/gtk-4.0/settings.ini" ] (_: {
+    text = ''
+      [Settings]
+      gtk-application-prefer-dark-theme=1
+    '';
+  });
+
   # ── System packages ────────────────────────────────────────────
   environment.systemPackages = with pkgs; [
     vim
@@ -234,7 +271,7 @@
     wget
     curl
     (st.overrideAttrs (old: {
-      # suckless terminal with Nerd Font
+      # suckless terminal with Nerd Font, in Ghostty's colours (st/colors.diff)
       patches = (old.patches or [ ]) ++ [
         (pkgs.writeText "font.patch" ''
           diff --git a/config.def.h b/config.def.h
@@ -244,8 +281,14 @@
           -static char *font = "Liberation Mono:pixelsize=12:antialias=true:autohint=true";
           +static char *font = "Hack Nerd Font:size=11:antialias=true:autohint=false";
         '')
+        ./st/colors.diff
       ];
+      # libXcursor, for themed cursors (see Cursor above)
+      postFixup = (old.postFixup or "") + ''
+        patchelf --add-needed libXcursor.so.1 --add-rpath ${lib.getLib libxcursor}/lib $out/bin/st
+      '';
     }))
+    adwaita-icon-theme # the cursor theme (xdg.icons above)
     dmenu # DWM launcher
     # Google's own arm64 build (unfree, allowed above), so not in the
     # binary cache: a switch fetches the .deb from Google and repackages it.

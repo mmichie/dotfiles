@@ -1,0 +1,58 @@
+Ghostty's colours (configs/ghostty/config) in st, so the two terminals in the
+VM draw the same output alike: its 16-colour palette, its foreground and its
+cursor. Its background and the text under its cursor are black, as st's
+already are. st's own palette is xterm's, whose blue (#0000ee) barely shows
+on black.
+
+--- a/config.def.h
++++ b/config.def.h
+@@ -96,31 +96,31 @@
+ /* Terminal colors (16 first used in escape sequence) */
+ static const char *colorname[] = {
+ 	/* 8 normal colors */
+-	"black",
+-	"red3",
+-	"green3",
+-	"yellow3",
+-	"blue2",
+-	"magenta3",
+-	"cyan3",
+-	"gray90",
++	"#000000",
++	"#cc0000",
++	"#00d700",
++	"#c4a000",
++	"#3465a4",
++	"#75507b",
++	"#06989a",
++	"#d3d7cf",
+ 
+ 	/* 8 bright colors */
+-	"gray50",
+-	"red",
+-	"green",
+-	"yellow",
+-	"#5c5cff",
+-	"magenta",
+-	"cyan",
+-	"white",
++	"#555753",
++	"#ef2929",
++	"#5fff00",
++	"#fce94f",
++	"#729fcf",
++	"#ad7fa8",
++	"#34e2e2",
++	"#eeeeec",
+ 
+ 	[255] = 0,
+ 
+ 	/* more colors can be added after 255 to use with DefaultXX */
+-	"#cccccc",
++	"#50fa7b", /* cursor colour */
+ 	"#555555",
+-	"gray90", /* default foreground colour */
++	"#ffffff", /* default foreground colour */
+ 	"black", /* default background colour */
+ };
+ 

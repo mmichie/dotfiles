@@ -49,6 +49,18 @@
           ln -snf "$SSH_AUTH_SOCK" "$HOME/.ssh/ssh_auth_sock"
         fi
       '';
+
+      # Ghostty's Linux settings, which configs/ghostty/config loads after
+      # itself, so they override it.
+      ".config/ghostty.local".text = ''
+        # font-size is in points. A point is a pixel on the Mac's 1x display
+        # but 4/3 of one at Linux's 96 dpi, so the shared 15 came out a third
+        # larger here. 11.25 is the Mac's 15px.
+        font-size = 11.25
+        # The Linux desktop is dwm, which draws no title bars and shows the
+        # window title in its own bar, so Ghostty's GTK title bar repeated it.
+        gtk-titlebar = false
+      '';
     };
   };
 }
