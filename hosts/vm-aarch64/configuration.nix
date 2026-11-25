@@ -160,7 +160,7 @@
           ${lib.getExe pkgs.xwallpaper} --daemon --zoom ${pkgs.nixos-artwork.wallpapers.nineish-dark-gray.gnomeFilePath}
 
           # dwm's status text: CPU, memory and disk use, date and time, each
-          # after an icon in the bar's accent, refreshed every second
+          # after a label or icon in the bar's accent, refreshed every second
           # (slstatus/config.h).
           ${lib.getExe (pkgs.slstatus.override { conf = ./slstatus/config.h; })} &
         '';
