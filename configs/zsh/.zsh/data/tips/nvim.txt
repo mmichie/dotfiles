@@ -1,29 +1,17 @@
-Use ,tt to open a new tab, ,tc to close it
-Use ,tn for next tab, ,tp for previous tab
-Navigate between windows with Ctrl+h/j/k/l
-Clear search highlighting with ,<Space>
-,e toggles the file explorer (Neo-tree)
-,ff opens fuzzy file finder (Telescope)
-,fg searches for text in files (live grep)
-,fb shows open buffers in Telescope
-,fh searches help tags
-,db toggles debug breakpoint
-,dc continues debugging
-,ds steps over in debugger
-,di steps into in debugger
-,do steps out in debugger
-,du opens debug UI
-,so opens symbols outline
-gd jumps to definition
-K shows hover documentation
-,rn renames symbol under cursor
-,ca shows code actions
-gr shows references
-,f formats current buffer
-Use Ctrl-\ to toggle floating terminal
-Tab accepts Copilot suggestion
-Alt-] and Alt-[ cycle through Copilot suggestions
-Alt-w accepts word from Copilot
-Alt-l accepts line from Copilot
-Ctrl-] dismisses Copilot suggestion
-Shift-h and Shift-l navigate between tabs
+,tt: open a new tab
+,tc: close the tab
+,tn / ,tp: next / previous tab
+Ctrl+H/J/K/L: move to the window on the left, below, above or right
+,Space: clear the search highlighting
+,e: toggle the file explorer (Neo-tree)
+gd: go to the definition (LSP)
+gr: list the references (LSP)
+K: show the documentation for the symbol under the cursor (LSP)
+,rn: rename the symbol under the cursor (LSP)
+,ca: code actions (LSP)
+,f: format the buffer (LSP)
+Tab: accept the Copilot suggestion, when one shows
+Alt+W: accept the next word of the Copilot suggestion
+Alt+L: accept the next line of the Copilot suggestion
+Alt+] / Alt+[: next / previous Copilot suggestion
+Ctrl+]: dismiss the Copilot suggestion

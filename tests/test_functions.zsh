@@ -324,10 +324,11 @@ else
 fi
 
 # ── tips ──────────────────────────────────────────────────────────────
+# A tip is "keys: what they do"; a line without ": " prints whole.
 typeset tipsconf="$T_SCRATCH/tipsconf" catbin="$T_SCRATCH/catbin"
 mkdir -p "$tipsconf/data/tips"
-print -rl -- 'git tip one' 'git tip two' > "$tipsconf/data/tips/git.txt"
-print -r -- 'docker tip' > "$tipsconf/data/tips/docker.txt"
+print -rl -- 'git st: short status' 'git log --graph: log as a graph' > "$tipsconf/data/tips/git.txt"
+print -r -- 'docker tip without keys' > "$tipsconf/data/tips/docker.txt"
 if link_tools "$catbin" cat; then
     inner="$T_SCRATCH/tips.zsh"
     cat > "$inner" <<'EOF'
@@ -340,18 +341,56 @@ tips nope
 print -r -- "UNKNOWN_RC=$?"
 tips
 EOF
+    # Captured output is not a terminal, so it gets plain text.
     out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$tipsconf" "$catbin" 2>&1)
-    assert_contains "$out" $'git tip one\ngit tip two' "tips TOOL prints every tip for that tool"
+    assert_contains "$out" $'git st: short status\ngit log --graph: log as a graph' \
+        "off a terminal, tips TOOL prints that tool's file"
     assert_contains "$out" "Available tools: docker, git" "tips for an unknown tool lists the known ones"
     assert_contains "$out" "UNKNOWN_RC=1" "tips for an unknown tool returns 1"
-    assert_contains "$out" "💡 Daily Tip:" "without gum, tips prints a plain daily tip"
-    if [[ "$out" == *"Daily Tip:"$'\n'(git tip one|git tip two|docker tip)* ]]; then
-        t_pass "the daily tip is one of the tips"
-    else
-        t_fail "the daily tip is one of the tips" "$out"
-    fi
+    case "${out##*$'\n'}" in
+        ('[git] git st: short status'|'[git] git log --graph: log as a graph'|'[docker] docker tip without keys')
+            t_pass "off a terminal, the daily tip is one tip, after its tool" ;;
+        (*) t_fail "off a terminal, the daily tip is one tip, after its tool" "$out" ;;
+    esac
 else
     t_skip "tips" "cat not available"
+fi
+
+# On a terminal: the title in a rule that ends at column 80, or at the edge
+# of a narrower terminal, over the tips with their keys in a column of their
+# own, in the banner's colours.
+inner="$T_SCRATCH/tips_tty.zsh"
+cat > "$inner" <<'EOF'
+fpath=("$1/.zsh/functions" $fpath)
+autoload -Uz tips
+SHELL_CONFIG_DIR="$2"
+COLUMNS=120
+tips git
+COLUMNS=30
+tips docker
+COLUMNS=80
+tips
+EOF
+if out=$(run_under_pty zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$tipsconf"); then
+    typeset plain=$(print -r -- "$out" | sed $'s/\e\\[[0-9;]*m//g')
+    assert_contains "$plain" $'  ─ ◆ TIPS / GIT '"${(l:63::─:)}"$'\n    git st           short status\n    git log --graph  log as a graph\n' \
+        "tips TOOL: an 80-column rule on a wide terminal, the keys in a column"
+    assert_contains "$plain" $'  ─ ◆ TIPS / DOCKER '"${(l:10::─:)}"$'\n    docker tip without keys\n' \
+        "tips TOOL: the rule ends at a narrower terminal's edge; a tip without keys prints whole"
+    assert_contains "$out" $'\e[1;38;2;212;109;254mgit st\e[0m' "keys are bold, in the banner's bright accent"
+    assert_contains "$out" $'\e[38;2;176;159;254mshort status\e[0m' "descriptions are in the banner's text colour"
+    typeset -a plines=("${(@f)plain}") want=(
+        $'  ─ ◆ TIP / GIT '"${(l:64::─:)}"$'\n    git st  short status'
+        $'  ─ ◆ TIP / GIT '"${(l:64::─:)}"$'\n    git log --graph  log as a graph'
+        $'  ─ ◆ TIP / DOCKER '"${(l:61::─:)}"$'\n    docker tip without keys'
+    )
+    if (( ${want[(Ie)${(F)plines[-2,-1]}]} )); then
+        t_pass "the daily tip is one tip, under a rule with its tool"
+    else
+        t_fail "the daily tip is one tip, under a rule with its tool" "$plain"
+    fi
+else
+    t_skip "tips on a terminal" "no pseudo-terminal available (zsh/zpty)"
 fi
 
 # ── op-env: options and failures ──────────────────────────────────────

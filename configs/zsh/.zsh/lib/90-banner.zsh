@@ -14,7 +14,7 @@
 # observed) and, because the stamp is written before display, consume the
 # hourly slot the next real terminal was owed. Checked ahead of the stamp
 # glob for that reason.
-if [[ -z "$INFLUX_SHOWN" && -t 1 ]] && command -v gum &>/dev/null; then
+if [[ -z "$INFLUX_SHOWN" && -t 1 ]]; then
     _banner_recent=("$SHELL_CACHE_DIR/banner-stamp"(N.ms-${BANNER_INTERVAL:-3600}))
     if (( ${#_banner_recent} == 0 )); then
         # Not exported: this only has to suppress a re-source in THIS shell.

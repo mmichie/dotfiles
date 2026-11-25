@@ -1,45 +1,80 @@
-# Show a random tip, or all tips for a specific tool.
-# Tip data lives in $SHELL_CONFIG_DIR/data/tips/<tool>.txt — one tip per line.
+# Show a random tip, or every tip for one tool (`tips zsh`).
+# Tips live in $SHELL_CONFIG_DIR/data/tips/<tool>.txt, one per line as
+# "keys: what they do", split at the first ": "; a line without one prints
+# whole. On a terminal they take the purples of chevron's banner, which the
+# daily tip sits under at shell start (90-banner.zsh), and line up with it:
+# the rule over them runs from the banner's third column to its right edge.
+# Elsewhere they print as plain text: the file itself for one tool, and
+# "[tool] tip" for the daily one.
 tips() {
+    emulate -L zsh
     local data_dir="${SHELL_CONFIG_DIR:-$HOME/.zsh}/data/tips"
+    local tool title
+    local -a lines
 
-    if [[ $# -gt 0 ]]; then
-        local file="$data_dir/$1.txt"
-        if [[ ! -f "$file" ]]; then
-            local available=("$data_dir"/*.txt(N:t:r))
-            echo "Available tools: ${(j:, :)available}"
+    if (( $# )); then
+        tool=$1
+        if [[ ! -f "$data_dir/$tool.txt" ]]; then
+            local -a available=("$data_dir"/*.txt(N:t:r))
+            print -r -- "Available tools: ${(j:, :)available}"
             return 1
         fi
-        # command cat: shell aliases cat to bat
-        command cat "$file"
-        return
-    fi
-
-    local -a all_tips
-    local f line
-    for f in "$data_dir"/*.txt(N); do
-        while IFS= read -r line || [[ -n "$line" ]]; do
-            [[ -n "$line" ]] && all_tips+=("$line")
-        done < "$f"
-    done
-
-    (( ${#all_tips[@]} == 0 )) && return
-
-    local tip="${all_tips[RANDOM % ${#all_tips[@]} + 1]}"
-
-    if command -v gum >/dev/null 2>&1; then
-        # One gum call, not three: the inner $(gum style) invocations cost a
-        # fork+exec each (~16ms apiece). lipgloss is ANSI-aware, so inline
-        # 256-color escapes render identically inside the border.
-        gum style \
-            --border normal \
-            --margin "1" \
-            --padding "1" \
-            --width 70 \
-            $'\e[38;5;212m💡 Daily Tip:\e[0m' \
-            $'\e[38;5;99m'"$tip"$'\e[0m'
+        if [[ ! -t 1 ]]; then
+            # command cat: shell aliases cat to bat
+            command cat "$data_dir/$tool.txt"
+            return
+        fi
+        lines=(${(f)"$(<"$data_dir/$tool.txt")"})
+        title="TIPS / ${(U)tool}"
     else
-        echo "💡 Daily Tip:"
-        echo "$tip"
+        local -a all owner
+        local f tip
+        for f in "$data_dir"/*.txt(N); do
+            for tip in ${(f)"$(<"$f")"}; do
+                all+=("$tip")
+                owner+=("${f:t:r}")
+            done
+        done
+        (( $#all )) || return
+        local pick=$(( RANDOM % $#all + 1 ))
+        tool=$owner[pick]
+        if [[ ! -t 1 ]]; then
+            print -r -- "[$tool] $all[pick]"
+            return
+        fi
+        lines=("$all[pick]")
+        title="TIP / ${(U)tool}"
     fi
+
+    # The banner's colours, sampled from its image: frame, labels, the bright
+    # accent (bold, for the keys), text.
+    local frame=$'\e[38;2;98;60;179m' label=$'\e[38;2;140;79;199m'
+    local accent=$'\e[1;38;2;212;109;254m' text=$'\e[38;2;176;159;254m'
+    local off=$'\e[0m' none=
+
+    # "  ─ ◆ TIP / ZSH ───…" to the edge of an 80-column banner, or of a
+    # narrower terminal (COLUMNS is 0 where zsh cannot tell).
+    local width=${COLUMNS:-0}
+    (( width > 0 && width < 80 )) || width=80
+    local rule=$(( width - 7 - $#title ))
+    (( rule < 3 )) && rule=3
+    print -r -- "  $frame─ $accent◆$label $title $frame${(l:rule::─:)none}$off"
+
+    # The keys in a column as wide as the widest, up to 24.
+    local line keys keyw=0 pad
+    for line in $lines; do
+        [[ $line == *': '* ]] || continue
+        keys=${line%%: *}
+        (( $#keys > keyw && $#keys <= 24 )) && keyw=$#keys
+    done
+    for line in $lines; do
+        if [[ $line == *': '* ]]; then
+            keys=${line%%: *}
+            pad=$(( keyw > $#keys ? keyw - $#keys + 2 : 2 ))
+            print -r -- "    $accent$keys$off${(l:pad:: :)none}$text${line#*: }$off"
+        else
+            print -r -- "    $text$line$off"
+        fi
+    done
+    print
 }

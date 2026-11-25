@@ -1,16 +1,16 @@
-!!: Repeat last command
-!<num>: Repeat command by history event number
-!<prefix>: Repeat last command starting with <prefix>
-!?<string>?: Repeat last command containing <string>
-!:s/foo/bar/: Replace 'foo' with 'bar' in previous command
-!^: First argument of last command
-!$: Last argument of last command
-Alt+. (Esc .): Insert last word of previous command line
-Ctrl+R: Reverse incremental search in history
-Ctrl+W: Delete previous word
-Ctrl+U: Delete to start of line
-Ctrl+K: Delete to end of line
-Ctrl+Y: Yank last killed text
-Alt+B/F: Move backward/forward one word in command line
-Ctrl+X Ctrl+E: Edit current command line in $EDITOR
-^foo^bar: Inline substitution in the last command
+!!: bring back the last command, to edit or run
+!<num>: bring back history event <num>
+!<prefix>: bring back the last command starting with <prefix>
+!?<text>?: bring back the last command containing <text>
+!$: the last argument of the last command
+!^: the first argument of the last command
+^foo^bar: the last command with foo replaced by bar
+!:gs/foo/bar/: the last command with every foo replaced by bar
+Ctrl+R: search the shell history with fzf
+Ctrl+T: insert a file path picked with fzf
+Alt+C: cd into a directory picked with fzf
+Ctrl+F: switch to a project's tmux session, picked with fzf
+Ctrl+A / Ctrl+E: jump to the start / end of the line
+Alt+B / Alt+F: back / forward one word
+Ctrl+W: delete the word before the cursor
+Ctrl+X Ctrl+E: edit the command line in $EDITOR
