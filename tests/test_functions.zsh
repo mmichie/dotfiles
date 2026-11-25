@@ -164,6 +164,12 @@ print -r -- "MISSING_RC=$?"
 print -rl -- 'GREETING="hello there"' 'TOKEN=abc' > .env
 loadenv
 print -r -- "LOADED_RC=$? GREETING=$GREETING TOKEN=$TOKEN"
+print -rl -- 'key=lowercase' 'value=literal' 'verbose=0' 'AFTER=works' > .env
+loadenv
+command env | grep -E '^(key|value|verbose|AFTER)='
+_parse_env_file() { return 13; }
+loadenv
+print -r -- "FAILED_LOAD_RC=$?"
 EOF
 work="$T_SCRATCH/loadenvwork"
 mkdir -p "$work"
@@ -174,6 +180,14 @@ assert_contains "$out" "MISSING_RC=1" "loadenv without a .env returns 1"
 assert_contains "$out" $'Loading environment variables:\nLoaded: GREETING\nLoaded: TOKEN\nAll environment variables loaded successfully.' \
     "loadenv names each variable it loads"
 assert_contains "$out" "LOADED_RC=0 GREETING=hello there TOKEN=abc" "loadenv exports the values, quotes stripped"
+for assignment in key=lowercase value=literal verbose=0 AFTER=works; do
+    assert_contains "$out" $'\n'"$assignment"$'\n' "loadenv exports $assignment"
+done
+assert_contains "$out" $'Loading environment variables:\nLoaded: key\nLoaded: value\nLoaded: verbose\nLoaded: AFTER' \
+    "loadenv logs assignments even if one is named verbose"
+assert_not_contains "${out##*AFTER=works}" "All environment variables loaded successfully." \
+    "loadenv does not report success when parsing fails"
+assert_contains "$out" "FAILED_LOAD_RC=13" "loadenv propagates parser failures"
 
 # ── hgrep, remember, recalls: usage and empty states ──────────────────
 inner="$T_SCRATCH/usage.zsh"
@@ -188,6 +202,10 @@ recalls
 print -r -- "RECALLS_EMPTY_RC=$?"
 print -r -- 'git log --oneline' > "$HOME/.important_commands"
 recalls
+rm "$HOME/.important_commands"
+mkdir "$HOME/.important_commands"
+remember echo example
+print -r -- "FAILED_SAVE_RC=$?"
 EOF
 typeset usagehome="$T_SCRATCH/usagehome"
 mkdir -p "$usagehome"
@@ -199,6 +217,8 @@ assert_contains "$out" "REMEMBER_RC=1" "remember with nothing to save returns 1"
 assert_contains "$out" "No saved commands yet." "recalls says so before anything was remembered"
 assert_contains "$out" "RECALLS_EMPTY_RC=0" "an empty recalls is not an error"
 assert_contains "$out" "git log --oneline" "recalls with no pattern lists every saved command"
+assert_contains "$out" "FAILED_SAVE_RC=1" "remember returns failure when it cannot append"
+assert_not_contains "$out" "Command saved" "remember does not report success after a failed write"
 
 # ── thin wrappers: the exact command each one runs ────────────────────
 typeset wrapbin="$T_SCRATCH/wrapbin"
@@ -249,7 +269,8 @@ assert_contains "$out" "ZTOP_THREE=/dir1,/dir2,/dir3" "ztop takes a count"
 # With bat, man's output is cleaned of escape sequences and overstrikes, then
 # highlighted. Without it, less gets colour through LESS_TERMCAP_*.
 typeset manbat="$T_SCRATCH/manbat" mannobat="$T_SCRATCH/mannobat"
-make_stub "$manbat" man 'printf "man %s\n" "$*"
+make_stub "$manbat" man 'if [ "$1" = missing ]; then exit 16; fi
+printf "man %s\n" "$*"
 printf "\033[1mBOLD\033[0m O\010Over\n"'
 make_stub "$manbat" bat 'printf "bat %s\n" "$*"
 while IFS= read -r line; do printf "%s\n" "$line"; done'
@@ -266,10 +287,13 @@ fpath=("$1/.zsh/functions" $fpath)
 autoload -Uz man
 path=("$2")
 man ls
+man missing
+print -r -- "MISSING_MAN_RC=$?"
 EOF
 out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$manbat" 2>&1)
 assert_contains "$out" "bat --color=always -l man -p" "man pipes through bat as a man page"
 assert_contains "$out" "man ls" "man runs the real man with the same arguments"
+assert_contains "$out" "MISSING_MAN_RC=16" "man propagates lookup failures through bat"
 if (( realperl )); then
     assert_contains "$out" "BOLD Over" "man strips escape sequences and overstrikes before bat"
 else
@@ -287,9 +311,12 @@ fi
 # leave a .gz the way each real tool does: zopfli keeps its input, pigz
 # removes it.
 typeset targztools="$T_SCRATCH/targztools"
-if link_tools "$targztools" tar stat rm gzip; then
+if link_tools "$targztools" tar rm gzip mktemp ln; then
     typeset zopflibin="$T_SCRATCH/zopflibin" pigzbin="$T_SCRATCH/pigzbin" nobin="$T_SCRATCH/nocompressor"
-    make_stub "$zopflibin" zopfli 'printf z > "$2.gz"'
+    make_stub "$zopflibin" zopfli 'case "$2" in
+    */race.tar) printf winner > "${2%/.targz.*}/race.tar.gz" ;;
+esac
+printf z > "$2.gz"'
     make_stub "$pigzbin" pigz 'printf z > "$2.gz" && rm -f "$2"'
     mkdir -p "$nobin"
     inner="$T_SCRATCH/targz.zsh"
@@ -303,24 +330,45 @@ print -r -- "USAGE_RC=$?"
 targz payload/ 2>/dev/null
 print -r -- "RC=$?"
 [[ -s payload.tar.gz ]] && print -r -- GZ_WRITTEN
-[[ ! -e payload.tar ]] && print -r -- TAR_REMOVED
+[[ "$(<payload.tar)" == original ]] && print -r -- TAR_PRESERVED
+zstat -A before +inode -- payload.tar.gz
+targz payload >/dev/null 2>&1
+print -r -- "COLLISION_RC=$?"
+zstat -A after +inode -- payload.tar.gz
+[[ -n "$before" && "$before" == "$after" ]] && print -r -- GZ_PRESERVED
+if (( $+commands[zopfli] )); then
+    print -r -- payload > race
+    targz race >/dev/null 2>&1
+    print -r -- "RACE_RC=$?"
+    [[ "$(<race.tar.gz)" == winner ]] && print -r -- RACE_PRESERVED
+fi
+scratch=(.targz.*(N))
+(( ! ${#scratch} )) && print -r -- SCRATCH_REMOVED
 EOF
     typeset bin='' name=''
     for name bin in zopfli "$zopflibin" pigz "$pigzbin" gzip "$nobin"; do
         work="$T_SCRATCH/targz-$name"
         mkdir -p "$work/payload"
         print -r -- hello > "$work/payload/file.txt"
+        print -r -- original > "$work/payload.tar"
         out=$(zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$bin" "$targztools" "$work" 2>&1)
         assert_contains "$out" "using \`$name\`" "targz compresses with $name when it is the best available"
         assert_contains "$out" "payload.tar.gz (" "targz names the archive after the directory, trailing slash dropped ($name)"
         assert_contains "$out" "RC=0" "targz succeeds with $name"
         assert_contains "$out" GZ_WRITTEN "targz leaves the .tar.gz ($name)"
-        assert_contains "$out" TAR_REMOVED "targz removes the intermediate .tar ($name)"
+        assert_contains "$out" TAR_PRESERVED "targz preserves a pre-existing .tar ($name)"
+        assert_contains "$out" COLLISION_RC=1 "targz rejects an existing .tar.gz ($name)"
+        assert_contains "$out" GZ_PRESERVED "targz leaves the existing .tar.gz in place ($name)"
+        assert_contains "$out" SCRATCH_REMOVED "targz removes its scratch directory ($name)"
+        if [[ "$name" == zopfli ]]; then
+            assert_contains "$out" RACE_RC=1 "targz fails if the destination appears during compression"
+            assert_contains "$out" RACE_PRESERVED "targz preserves a destination created during compression"
+        fi
     done
     assert_contains "$out" "Usage: targz <file-or-dir>" "targz with no argument prints its usage"
     assert_contains "$out" "USAGE_RC=1" "targz with no argument returns 1"
 else
-    t_skip "targz" "tar, stat, rm or gzip not available"
+    t_skip "targz" "tar, rm, gzip, mktemp or ln not available"
 fi
 
 # ── tips ──────────────────────────────────────────────────────────────

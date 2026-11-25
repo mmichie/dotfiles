@@ -166,31 +166,50 @@ zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$pop_probe" >/dev/null 2>&1
 assert_contains "$(<"$pop_probe")" "set-option -t %1 -p @claude_state" \
     "title pop clears the Claude Code state mark"
 
-# ── git_cleanup literal branch filtering (functions/git_cleanup) ────────
-# Bug: default/current branch names were interpolated into grep -E. A valid
-# name such as release+prod was treated as a regex and reached git branch -d.
-typeset gitstubdir="$T_SCRATCH/gitstub"
-make_stub "$gitstubdir" git 'case "$1:$2" in
-    fetch:--prune) exit 0 ;;
-    symbolic-ref:--short) printf "%s\n" "origin/release+prod" ;;
-    show-ref:--verify) exit 0 ;;
-    branch:--show-current) printf "%s\n" "feature" ;;
-    branch:--merged) printf "%s\n" "release+prod" "old-feature" ;;
-    branch:-d) printf "%s\n" "$3" >> "$GIT_DELETE_LOG" ;;
-    *) exit 64 ;;
-esac'
+# ── git_cleanup uses the remote default branch ──────────────────────────
 inner="$T_SCRATCH/git_cleanup_inner.zsh"
 cat > "$inner" <<'EOF'
 fpath=("$1/.zsh/functions" $fpath)
 autoload -Uz git_cleanup
-: > "$GIT_DELETE_LOG"
-git_cleanup >/dev/null
-deleted=("${(@f)$(<"$GIT_DELETE_LOG")}")
-print -r -- "GIT_DELETED=${(j:,:)deleted}"
+set -e
+cd "$2"
+git init -q --bare remote.git
+git --git-dir=remote.git symbolic-ref HEAD refs/heads/release+prod
+git init -q -b release+prod work
+cd work
+git config user.name Test
+git config user.email test@example.invalid
+git commit -qm base --allow-empty
+git branch old-feature
+git remote add upstream ../remote.git
+git config remote.upstream.followRemoteHEAD never
+git push -q -u upstream release+prod
+git switch -qc topic
+git commit -qm topic --allow-empty
+git switch -qc review
+git push -q upstream topic
+git symbolic-ref refs/remotes/upstream/HEAD refs/remotes/upstream/topic
+git_cleanup
+git show-ref --verify -q refs/heads/release+prod && print -r -- DEFAULT_PRESERVED
+git show-ref --verify -q refs/heads/topic && print -r -- TOPIC_PRESERVED
+! git show-ref --verify -q refs/heads/old-feature && print -r -- MERGED_DELETED
+
+git branch another-merged release+prod
+git --git-dir=../remote.git symbolic-ref HEAD refs/heads/missing
+git_cleanup || print -r -- "UNRESOLVED_RC=$?"
+git show-ref --verify -q refs/heads/another-merged && print -r -- BRANCH_PRESERVED
 EOF
-typeset git_delete_log="$T_SCRATCH/git-deleted.log"
-out=$(PATH="$gitstubdir:$PATH" GIT_DELETE_LOG="$git_delete_log" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
-assert_contains "$out" "GIT_DELETED=old-feature" "git_cleanup protects default branch names containing regex metacharacters"
+if (( $+commands[git] )); then
+    typeset cleanup_home="$(make_sandbox_home)"
+    out=$(HOME="$cleanup_home" GIT_CONFIG_NOSYSTEM=1 zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$cleanup_home" 2>&1)
+    assert_contains "$out" DEFAULT_PRESERVED "git_cleanup protects a default branch with regex metacharacters"
+    assert_contains "$out" TOPIC_PRESERVED "git_cleanup preserves a branch merged only into the current branch"
+    assert_contains "$out" MERGED_DELETED "git_cleanup deletes a branch merged into the sole remote's default branch"
+    assert_contains "$out" UNRESOLVED_RC=1 "git_cleanup refuses to run without a remote default branch"
+    assert_contains "$out" BRANCH_PRESERVED "git_cleanup leaves branches in place without a remote default branch"
+else
+    t_skip "git_cleanup remote default branch" "git not available"
+fi
 
 # ── helper error statuses (functions/d, functions/sshtunnel) ────────────
 inner="$T_SCRATCH/helper_status_inner.zsh"

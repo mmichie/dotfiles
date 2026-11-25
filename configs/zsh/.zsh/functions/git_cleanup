@@ -1,15 +1,32 @@
 git_cleanup() {
-    git fetch --prune || return
-    local default_branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
-    default_branch=${default_branch:-main}
-    # Merged into the *default branch*, not HEAD: run from a feature branch,
-    # bare --merged would offer branches merged into it but not into main.
-    local merge_ref="HEAD"
-    git show-ref --verify -q "refs/remotes/origin/$default_branch" \
-        && merge_ref="origin/$default_branch"
+    local remotes remote merge_ref remote_head default_branch fetched_tip
+    remotes=$(git remote) || return
+    local -a remote_names=("${(@f)remotes}")
+    if (( ${remote_names[(Ie)origin]} )); then
+        remote=origin
+    elif (( ${#remote_names} == 1 )) && [[ -n "$remote_names[1]" ]]; then
+        remote="$remote_names[1]"
+    else
+        print -ru2 -- "git_cleanup: expected origin or a single remote"
+        return 1
+    fi
+    git fetch --prune -- "$remote" || return
+
+    # The remote-tracking HEAD may be missing or point to a former default.
+    remote_head=$(git ls-remote --symref -- "$remote" HEAD) || return
+    local -a head_lines=("${(@f)remote_head}")
+    if [[ "$head_lines[1]" == 'ref: refs/heads/'*$'\tHEAD' && "$head_lines[2]" == *$'\tHEAD' ]]; then
+        default_branch=${${head_lines[1]#ref: refs/heads/}%$'\tHEAD'}
+        merge_ref="refs/remotes/$remote/$default_branch"
+        fetched_tip=$(git show-ref --verify --hash "$merge_ref" 2>/dev/null) || fetched_tip=''
+    fi
+    if [[ -z "$fetched_tip" || "$fetched_tip"$'\tHEAD' != "$head_lines[2]" ]]; then
+        print -ru2 -- "git_cleanup: cannot resolve the default branch for $remote"
+        return 1
+    fi
     local current_branch=$(git branch --show-current)
     local branch_output
-    branch_output=$(git branch --merged "$merge_ref" --format='%(refname:short)') || return
+    branch_output=$(git branch --merged "$fetched_tip" --format='%(refname:lstrip=2)') || return
     [[ -n "$branch_output" ]] || { echo "No merged branches to delete."; return; }
     local -a branches delete_branches
     branches=("${(@f)branch_output}")
@@ -18,10 +35,10 @@ git_cleanup() {
         # Exact string comparisons: branch names may legally contain regex
         # metacharacters such as `+`, which made the old grep -E filter fail
         # to protect the default branch.
-        [[ "$branch" == "$default_branch" || "$branch" == master \
+        [[ -z "$branch" || "$branch" == "$default_branch" || "$branch" == master \
             || "$branch" == main || "$branch" == "$current_branch" ]] && continue
         delete_branches+=("$branch")
     done
     (( ${#delete_branches} )) || { echo "No merged branches to delete."; return; }
-    git branch -d "${delete_branches[@]}"
+    git branch -d -- "${delete_branches[@]}"
 }

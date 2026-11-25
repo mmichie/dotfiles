@@ -4,6 +4,7 @@
 # full ANSI sequences and overstrike before bat applies its own highlighting.
 man() {
     if command -v bat &>/dev/null; then
+        setopt localoptions pipefail
         command man "$@" | perl -pe 's/\e\[[0-9;]*[mGKH]//g; s/.\x08//g' | bat --color=always -l man -p
     else
         env \

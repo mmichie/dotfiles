@@ -6,6 +6,6 @@ loadenv() {
         return 1
     fi
     echo "Loading environment variables:"
-    _parse_env_file ".env" 1
+    _parse_env_file ".env" 1 || return
     echo "All environment variables loaded successfully."
 }

@@ -8,31 +8,34 @@
 # to echo each loaded var name. Strips a single matching pair of outer
 # quotes (double or single) from values; preserves quotes elsewhere.
 _parse_env_file() {
-    local env_file="$1" verbose="${2:-0}"
-    [[ -f "$env_file" ]] || return 1
+    [[ -f "$1" ]] || return 1
 
-    local line key value
-    while IFS= read -r line || [[ -n "$line" ]]; do
+    # Keep the input line and value in $3 and $4 so imported keys cannot
+    # overwrite parser locals or disappear when the function returns.
+    set -- "$1" "${2:-0}" '' ''
+    while IFS= read -r 'argv[3]' || [[ -n "$3" ]]; do
         # CRLF tolerance: a .env written on Windows (or by a CRLF-happy
         # editor) would otherwise export values with a trailing \r.
-        line="${line%$'\r'}"
-        [[ -z "$line" || "$line" = \#* ]] && continue
+        argv[3]="${3%$'\r'}"
+        [[ -z "$3" || "$3" = \#* ]] && continue
         # Valid identifier then `=`. `#` (zero or more, EXTENDED_GLOB) — the
         # ksh-style `*(...)` this replaced means something else in zsh and
         # rejected single-char keys while passing names like FOO-BAR.
-        [[ "$line" = [A-Za-z_][A-Za-z0-9_]#=* ]] || continue
+        [[ "$3" = [A-Za-z_][A-Za-z0-9_]#=* ]] || continue
 
-        key="${line%%=*}"
-        value="${line#*=}"
+        argv[4]="${3#*=}"
 
-        case "$value" in
-            \"*\") value="${value#\"}"; value="${value%\"}" ;;
-            \'*\') value="${value#\'}"; value="${value%\'}" ;;
+        case "$4" in
+            \"*\") argv[4]="${${4#\"}%\"}" ;;
+            \'*\') argv[4]="${${4#\'}%\'}" ;;
         esac
 
-        export "$key=$value"
-        (( verbose )) && echo "Loaded: $key"
-    done < "$env_file"
+        export "${3%%=*}=$4" || return
+        if (( $2 )); then
+            print -r -- "Loaded: ${3%%=*}"
+        fi
+    done < "$1" || return
+    return 0
 }
 
 # Personal time zone only where the system has none: UTC servers and

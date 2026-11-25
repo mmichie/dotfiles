@@ -4,31 +4,36 @@ targz() {
         echo "Usage: targz <file-or-dir>" >&2
         return 1
     fi
-    local tmpFile="${1%/}.tar"
-    tar -cvf "${tmpFile}" --exclude=".DS_Store" "$1" || return 1
-
-    local size=$(
-        stat -f"%z" "${tmpFile}" 2> /dev/null;
-        stat -c"%s" "${tmpFile}" 2> /dev/null;
-    )
-
-    local cmd=""
-    if (( size < 52428800 )) && hash zopfli 2> /dev/null; then
-        cmd="zopfli"
-    elif hash pigz 2> /dev/null; then
-        cmd="pigz"
-    else
-        cmd="gzip"
+    local archive="${1%/}.tar.gz"
+    if [[ -e "$archive" || -L "$archive" ]]; then
+        print -ru2 -- "targz: $archive already exists"
+        return 1
     fi
-
-    echo "Compressing .tar ($((size / 1000)) kB) using \`${cmd}\`…"
-    "${cmd}" -v "${tmpFile}" || return 1
-    [ -f "${tmpFile}" ] && rm "${tmpFile}"
-
-    local zippedSize=$(
-        stat -f"%z" "${tmpFile}.gz" 2> /dev/null;
-        stat -c"%s" "${tmpFile}.gz" 2> /dev/null;
-    )
-
-    echo "${tmpFile}.gz ($((zippedSize / 1000)) kB) created successfully."
+    zmodload -F zsh/stat b:zstat || return
+    local destination="${archive:h}"
+    [[ "$destination" == /* ]] || destination="$PWD/$destination"
+    local tmpdir
+    tmpdir=$(mktemp -d "$destination/.targz.XXXXXXXX") || return
+    local tarfile="$tmpdir/${archive:t:r}" cmd
+    local -a size zipped_size
+    {
+        # The scratch directory can be inside the input when archiving ".".
+        tar -cvf "$tarfile" --exclude=".DS_Store" --exclude="${tmpdir:t}" -- "$1" || return
+        zstat -A size +size -- "$tarfile" || return
+        if (( size[1] < 52428800 )) && hash zopfli 2>/dev/null; then
+            cmd=zopfli
+        elif hash pigz 2>/dev/null; then
+            cmd=pigz
+        else
+            cmd=gzip
+        fi
+        print -r -- "Compressing .tar ($((size[1] / 1000)) kB) using \`$cmd\`…"
+        "$cmd" -v "$tarfile" || return
+        zstat -A zipped_size +size -- "$tarfile.gz" || return
+        # Publish beside the scratch directory without replacing another file.
+        command ln "$tarfile.gz" "$destination/" || return
+        print -r -- "$archive ($((zipped_size[1] / 1000)) kB) created successfully."
+    } always {
+        command rm -rf -- "$tmpdir"
+    }
 }
