@@ -463,6 +463,31 @@ assert_contains "$out" "OPENER_LINUX_XDG=xdg-open/xdg-open" \
 assert_contains "$out" "OPENER_OSX=open/open" "macOS binds image/HTML suffixes to open"
 assert_contains "$out" "OPENER_MD_EDITOR=yes" "text suffixes open in \$EDITOR on every platform"
 
+# ── Failed local agent startup (lib/80-ssh.zsh) ─────────────────────────
+typeset failed_agent_home="$(make_sandbox_home)"
+out=$(run_sandbox_zsh "$failed_agent_home" '
+    unset SSH_AUTH_SOCK SSH_AGENT_PID
+    ONEPASSWORD_SOCKET_MACOS="$HOME/missing-macos"
+    ONEPASSWORD_SOCKET_LINUX="$HOME/missing-linux"
+    AGENT_FORWARDED_GLOBS=()
+    AGENT_SOCKET="$HOME/failed-agent/socket"
+    AGENT_INFO="$HOME/failed-agent/info"
+    AGENT_STABLE_LINK="$HOME/failed-agent/link"
+    mkdir -p "${AGENT_INFO:h}"
+    print -r -- "export SSH_AUTH_SOCK=$HOME/stale" > "$AGENT_INFO"
+    ssh-agent() {
+        print -r -- "export SSH_AGENT_PID=1234"
+        return 7
+    }
+    init_ssh
+    print -r -- "START_RC=$? SOCK=${SSH_AUTH_SOCK-unset} PID=${SSH_AGENT_PID-unset}"
+    [[ ! -L "$AGENT_STABLE_LINK" ]] && print -r -- NO_STABLE_LINK
+    [[ "$(<"$AGENT_INFO")" == "export SSH_AUTH_SOCK=$HOME/stale" ]] && print -r -- INFO_PRESERVED
+' 2>&1)
+assert_contains "$out" "START_RC=7 SOCK=unset PID=unset" "failed startup propagates status and leaves agent variables unset"
+assert_contains "$out" NO_STABLE_LINK "failed startup does not publish a socket link"
+assert_contains "$out" INFO_PRESERVED "failed startup does not replace agent info with partial output"
+
 # ── Forwarded-agent link follows any login path (lib/80-ssh.zsh) ─────
 # Bug: ~/.ssh/ssh_auth_sock, the one SSH_AUTH_SOCK every pane exports, was
 # repointed only by ~/.ssh/rc, which sshd runs and Tailscale SSH does not

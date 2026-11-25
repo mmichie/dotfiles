@@ -73,8 +73,11 @@ _find_live_forwarded_socket() {
 # A connect, not ssh-add -l: a keyless agent is alive, and restarting on
 # one leaked a fresh agent per shell on machines with no id_* keys to add.
 _ensure_local_agent() {
-    [[ -s "$AGENT_INFO" ]] && source "$AGENT_INFO"
-    _agent_alive "$AGENT_SOCKET" || restart_ssh_agent
+    if _agent_alive "$AGENT_SOCKET"; then
+        [[ ! -s "$AGENT_INFO" ]] || source "$AGENT_INFO"
+    else
+        restart_ssh_agent
+    fi
 }
 
 # Pick an SSH agent in preference order:
@@ -91,7 +94,7 @@ handle_ssh_agent() {
     _use_1password_socket_if_present && return 0
 
     if _is_forwarded_socket "$SSH_AUTH_SOCK" && _agent_alive "$SSH_AUTH_SOCK"; then
-        ln -snf "$SSH_AUTH_SOCK" "$AGENT_STABLE_LINK"
+        ln -snf "$SSH_AUTH_SOCK" "$AGENT_STABLE_LINK" || return
     elif ! _agent_alive "$AGENT_STABLE_LINK"; then
         # The local agent's own path is not "external": a pane that
         # inherited it from tmux must still move to the link, or it would
@@ -99,26 +102,30 @@ handle_ssh_agent() {
         if [[ "$SSH_AUTH_SOCK" != "$AGENT_SOCKET" ]] && _agent_alive "$SSH_AUTH_SOCK"; then
             return 0
         elif _find_live_forwarded_socket; then
-            ln -snf "$REPLY" "$AGENT_STABLE_LINK"
+            ln -snf "$REPLY" "$AGENT_STABLE_LINK" || return
         else
-            _ensure_local_agent
-            ln -snf "$AGENT_SOCKET" "$AGENT_STABLE_LINK"
+            _ensure_local_agent || return
+            ln -snf "$AGENT_SOCKET" "$AGENT_STABLE_LINK" || return
         fi
     fi
     export SSH_AUTH_SOCK="$AGENT_STABLE_LINK"
 }
 
 restart_ssh_agent() {
-    mkdir -p "$(dirname "$AGENT_SOCKET")" "$(dirname "$AGENT_INFO")"
-    chmod 700 "$(dirname "$AGENT_SOCKET")" "$(dirname "$AGENT_INFO")"
+    mkdir -p "${AGENT_SOCKET:h}" "${AGENT_INFO:h}" || return
+    chmod 700 "${AGENT_SOCKET:h}" "${AGENT_INFO:h}" || return
 
     # -e/-L, not -S: any stale file at the socket path (plain file, dead
-    # symlink) makes ssh-agent's bind fail after AGENT_INFO was truncated.
-    [[ -e "$AGENT_SOCKET" || -L "$AGENT_SOCKET" ]] && rm -f "$AGENT_SOCKET"
+    # symlink) makes ssh-agent's bind fail.
+    if [[ -e "$AGENT_SOCKET" || -L "$AGENT_SOCKET" ]]; then
+        rm -f "$AGENT_SOCKET" || return
+    fi
 
     echo "Starting new SSH agent..."
-    ssh-agent -a "$AGENT_SOCKET" > "$AGENT_INFO"
-    source "$AGENT_INFO"
+    local agent_info
+    agent_info=$(ssh-agent -s -a "$AGENT_SOCKET") || return
+    print -r -- "$agent_info" > "$AGENT_INFO" || return
+    source "$AGENT_INFO" || return
 
     add_ssh_keys
 }
@@ -148,8 +155,8 @@ init_ssh() {
 
     # No 1Password — fall back to managed ssh-agent. Use zsh :h modifier
     # instead of $(dirname ...) subshells.
-    mkdir -p "${AGENT_SOCKET:h}" "${AGENT_INFO:h}"
-    chmod 700 "${AGENT_SOCKET:h}" "${AGENT_INFO:h}"
+    mkdir -p "${AGENT_SOCKET:h}" "${AGENT_INFO:h}" || return
+    chmod 700 "${AGENT_SOCKET:h}" "${AGENT_INFO:h}" || return
     handle_ssh_agent
 }
 
@@ -185,8 +192,13 @@ _ssh_title_host() {
     done
     host="${host#ssh://}"
     host="${host#*@}"
-    host="${host%%:*}"
     host="${host%%/*}"
+    if [[ "$host" == \[*\]* ]]; then
+        host="${host#\[}"
+        host="${host%%\]*}"
+    elif [[ "$host" != *:*:* ]]; then
+        host="${host%%:*}"
+    fi
     REPLY="${host:-ssh}"
 }
 

@@ -223,6 +223,8 @@ _ssh_title_host -vp 2222 host8;                                 print -r -- "S8=
 _ssh_title_host -4p 2222 user@host9;                            print -r -- "S9=$REPLY"
 _ssh_title_host -vi key host10;                                 print -r -- "S10=$REPLY"
 _ssh_title_host -vvv host11;                                    print -r -- "S11=$REPLY"
+_ssh_title_host "ssh://me@[2001:db8::7]:2222/";                 print -r -- "S12=$REPLY"
+_ssh_title_host -6 -p 2222 "me@2001:db8::7";                     print -r -- "S13=$REPLY"
 ' 2>/dev/null)
 assert_contains "$out" "S1=host1" "bare destination"
 assert_contains "$out" "S2=host2" "flag with value before destination (regression: last-arg parse)"
@@ -237,6 +239,8 @@ assert_contains "$out" "S8=host8"   "boolean+valued cluster, value in next arg (
 assert_contains "$out" "S9=host9"   "boolean+valued cluster with user@ (-4p 2222)"
 assert_contains "$out" "S10=host10" "boolean+valued cluster, -i key"
 assert_contains "$out" "S11=host11" "all-boolean cluster (-vvv)"
+assert_contains "$out" $'S12=2001:db8::7\n' "bracketed IPv6 URL keeps the full address and drops the port"
+assert_contains "$out"$'\n' $'S13=2001:db8::7\n' "bare IPv6 destination keeps the full address"
 
 # ── ssh wrapper: TERM translation + mode repair (lib/80-ssh.zsh) ─────
 # The wrapper must swap xterm-ghostty for a terminfo entry remotes have,

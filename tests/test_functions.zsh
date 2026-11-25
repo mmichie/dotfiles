@@ -131,6 +131,17 @@ print -rn -- ${(l:1000::a:)} > "$2/thousand"
 gz "$2/thousand"
 gz "$2/missing" 2>&1
 print -r -- "MISSING_RC=$?"
+cd "$2"
+print -rn -- payload > ./-payload
+gz -payload
+print -r -- "DASH_NAME_RC=$?"
+print -rn -- ${(l:1000::a:)} > ./-
+dash_result=$(gz - </dev/null)
+[[ -n "$dash_result" && "$dash_result" == "$(gz ./-)" ]] && print -r -- DASH_IS_FILE
+gzip() { return 7; }
+gz ./- > failed-report
+print -r -- "COMPRESSION_RC=$?"
+[[ ! -s failed-report ]] && print -r -- NO_FAILED_REPORT
 EOF
     work="$T_SCRATCH/gzsizes"
     mkdir -p "$work"
@@ -143,6 +154,10 @@ EOF
     fi
     assert_contains "$out" "Usage: gz <file>" "gz explains itself when the file is missing"
     assert_contains "$out" "MISSING_RC=1" "gz on a missing file returns 1"
+    assert_contains "$out" "DASH_NAME_RC=0" "gz accepts a file whose name starts with a dash"
+    assert_contains "$out" DASH_IS_FILE "gz treats a file named - as a file, even with empty stdin"
+    assert_contains "$out" "COMPRESSION_RC=7" "gz propagates compression failures"
+    assert_contains "$out" NO_FAILED_REPORT "gz suppresses the size report when compression fails"
 else
     t_skip "gz size report" "gzip not available"
 fi
