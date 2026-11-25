@@ -178,7 +178,7 @@ out2=$(cd "$nest" && run_under_pty env -i "${reply[@]}" T_NEST="$nest" zsh --no-
 if (( $? != 0 )); then
     t_skip "banner display on a tty" "no pseudo-terminal available (zsh/zpty)"
 else
-    assert_contains "$out2" " TIP / " "banner+tip shown on first shell with a tty"
+    assert_contains "$out2" "● TIP" "banner+tip shown on first shell with a tty"
     assert_contains "$out2" "STAMP_AT_EXIT=yes" "stamp exists inside the boot that wrote it"
     assert_contains "$out2" "BANNER_PWD=kept" \
         "the banner boot leaves \$PWD alone (regression: the stamp write cd'd up)"
@@ -188,10 +188,10 @@ else
         t_fail "banner stamp written" "missing; cache dir: [$(ls -A $sb2/.cache/zsh 2>&1 | tr '\n' ' ')]"
     fi
     out2=$(run_under_pty env -i "${reply[@]}" zsh --no-globalrcs -i -c exit)
-    assert_not_contains "$out2" " TIP / " "banner suppressed while stamp is fresh"
+    assert_not_contains "$out2" "● TIP" "banner suppressed while stamp is fresh"
     touch -t 200001010000 "$sb2/.cache/zsh/banner-stamp"
     out2=$(run_under_pty env -i "${reply[@]}" zsh --no-globalrcs -i -c exit)
-    assert_contains "$out2" " TIP / " "banner returns after stamp expires"
+    assert_contains "$out2" "● TIP" "banner returns after stamp expires"
 fi
 
 t_finish

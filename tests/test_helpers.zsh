@@ -51,7 +51,7 @@ print -r -- "DISABLED_RC=$?"
 EOF
 : > "$bannerlog"
 out=$(BANNER_LOG="$bannerlog" PATH="$stubdir:$PATH" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$bannerbin" "$nobanner" 2>&1)
-assert_eq "$(<"$bannerlog")" "chevron banner 2" "the banner is chevron banner 2, drawn once"
+assert_eq "$(<"$bannerlog")" "chevron banner text" "the banner is chevron banner text, drawn once"
 assert_contains "$out" "WITH_RC=0" "drawing the banner succeeds"
 assert_contains "$out" "Warning: chevron not found; skipping banner." "without chevron, startup says the banner is skipped"
 assert_contains "$out" "WITHOUT_RC=1" "without chevron, notify_shell_status fails"

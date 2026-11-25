@@ -404,38 +404,35 @@ else
     t_skip "tips" "cat not available"
 fi
 
-# On a terminal: the title in a rule that ends at column 80, or at the edge
-# of a narrower terminal, over the tips with their keys in a column of their
-# own, in the banner's colours.
+# On a terminal: a "● TIP · tool" heading over the tips, their keys in a
+# column of their own, in the banner's colours (tmux's).
 inner="$T_SCRATCH/tips_tty.zsh"
 cat > "$inner" <<'EOF'
 fpath=("$1/.zsh/functions" $fpath)
 autoload -Uz tips
 SHELL_CONFIG_DIR="$2"
-COLUMNS=120
 tips git
-COLUMNS=30
 tips docker
-COLUMNS=80
 tips
 EOF
 if out=$(run_under_pty zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$tipsconf"); then
     typeset plain=$(print -r -- "$out" | sed $'s/\e\\[[0-9;]*m//g')
-    assert_contains "$plain" $'  ─ ◆ TIPS / GIT '"${(l:63::─:)}"$'\n    git st           short status\n    git log --graph  log as a graph\n' \
-        "tips TOOL: an 80-column rule on a wide terminal, the keys in a column"
-    assert_contains "$plain" $'  ─ ◆ TIPS / DOCKER '"${(l:10::─:)}"$'\n    docker tip without keys\n' \
-        "tips TOOL: the rule ends at a narrower terminal's edge; a tip without keys prints whole"
-    assert_contains "$out" $'\e[1;38;2;212;109;254mgit st\e[0m' "keys are bold, in the banner's bright accent"
-    assert_contains "$out" $'\e[38;2;176;159;254mshort status\e[0m' "descriptions are in the banner's text colour"
+    assert_contains "$plain" $'\n ● TIPS · git\n   git st           short status\n   git log --graph  log as a graph\n\n' \
+        "tips TOOL: a heading, then the tips with their keys in a column"
+    assert_contains "$plain" $'\n ● TIPS · docker\n   docker tip without keys\n' \
+        "tips TOOL: a tip without keys prints whole"
+    assert_contains "$out" $'\e[1;38;5;39m● TIPS\e[0m' "the heading is in tmux's blue accent"
+    assert_contains "$out" $'\e[1;38;5;254mgit st\e[0m' "keys are bold, nearly white"
+    assert_contains "$out" $'\e[38;5;245mshort status\e[0m' "descriptions are in tmux's grey"
     typeset -a plines=("${(@f)plain}") want=(
-        $'  ─ ◆ TIP / GIT '"${(l:64::─:)}"$'\n    git st  short status'
-        $'  ─ ◆ TIP / GIT '"${(l:64::─:)}"$'\n    git log --graph  log as a graph'
-        $'  ─ ◆ TIP / DOCKER '"${(l:61::─:)}"$'\n    docker tip without keys'
+        $' ● TIP · git\n   git st  short status'
+        $' ● TIP · git\n   git log --graph  log as a graph'
+        $' ● TIP · docker\n   docker tip without keys'
     )
     if (( ${want[(Ie)${(F)plines[-2,-1]}]} )); then
-        t_pass "the daily tip is one tip, under a rule with its tool"
+        t_pass "the daily tip is one tip, under a heading with its tool"
     else
-        t_fail "the daily tip is one tip, under a rule with its tool" "$plain"
+        t_fail "the daily tip is one tip, under a heading with its tool" "$plain"
     fi
 else
     t_skip "tips on a terminal" "no pseudo-terminal available (zsh/zpty)"

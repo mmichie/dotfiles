@@ -1,11 +1,11 @@
 # Show a random tip, or every tip for one tool (`tips zsh`).
 # Tips live in $SHELL_CONFIG_DIR/data/tips/<tool>.txt, one per line as
 # "keys: what they do", split at the first ": "; a line without one prints
-# whole. On a terminal they take the purples of chevron's banner, which the
-# daily tip sits under at shell start (90-banner.zsh), and line up with it:
-# the rule over them runs from the banner's third column to its right edge.
-# Elsewhere they print as plain text: the file itself for one tool, and
-# "[tool] tip" for the daily one.
+# whole. On a terminal they look like chevron's text banner, which the daily
+# tip sits under at shell start (90-banner.zsh): tmux's greys and blue
+# accent, a "● TIP · tool" heading, and the keys in bold, lined up with the
+# card's contents. Elsewhere they print as plain text: the file itself for
+# one tool, and "[tool] tip" for the daily one.
 tips() {
     emulate -L zsh
     local data_dir="${SHELL_CONFIG_DIR:-$HOME/.zsh}/data/tips"
@@ -25,7 +25,7 @@ tips() {
             return
         fi
         lines=(${(f)"$(<"$data_dir/$tool.txt")"})
-        title="TIPS / ${(U)tool}"
+        title=TIPS
     else
         local -a all owner
         local f tip
@@ -43,22 +43,16 @@ tips() {
             return
         fi
         lines=("$all[pick]")
-        title="TIP / ${(U)tool}"
+        title=TIP
     fi
 
-    # The banner's colours, sampled from its image: frame, labels, the bright
-    # accent (bold, for the keys), text.
-    local frame=$'\e[38;2;98;60;179m' label=$'\e[38;2;140;79;199m'
-    local accent=$'\e[1;38;2;212;109;254m' text=$'\e[38;2;176;159;254m'
-    local off=$'\e[0m' none=
+    # tmux.conf's colours, as the banner has them: the accent, the faint
+    # separator, labels and descriptions, the keys (bold).
+    local accent=$'\e[1;38;5;39m' faint=$'\e[38;5;238m' dim=$'\e[38;5;245m'
+    local keyc=$'\e[1;38;5;254m' off=$'\e[0m' none=
 
-    # "  ─ ◆ TIP / ZSH ───…" to the edge of an 80-column banner, or of a
-    # narrower terminal (COLUMNS is 0 where zsh cannot tell).
-    local width=${COLUMNS:-0}
-    (( width > 0 && width < 80 )) || width=80
-    local rule=$(( width - 7 - $#title ))
-    (( rule < 3 )) && rule=3
-    print -r -- "  $frame─ $accent◆$label $title $frame${(l:rule::─:)none}$off"
+    print
+    print -r -- " $accent● $title$off$faint · $off$dim$tool$off"
 
     # The keys in a column as wide as the widest, up to 24.
     local line keys keyw=0 pad
@@ -71,9 +65,9 @@ tips() {
         if [[ $line == *': '* ]]; then
             keys=${line%%: *}
             pad=$(( keyw > $#keys ? keyw - $#keys + 2 : 2 ))
-            print -r -- "    $accent$keys$off${(l:pad:: :)none}$text${line#*: }$off"
+            print -r -- "   $keyc$keys$off${(l:pad:: :)none}$dim${line#*: }$off"
         else
-            print -r -- "    $text$line$off"
+            print -r -- "   $dim$line$off"
         fi
     done
     print
