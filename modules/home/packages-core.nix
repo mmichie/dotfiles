@@ -42,6 +42,7 @@
     procs
     btop
     htop
+    fastfetch
     chevron
     delta
     difftastic

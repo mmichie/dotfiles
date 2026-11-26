@@ -12,7 +12,6 @@
   };
 
   home.packages = with pkgs; [
-    fastfetch # system information beside a logo
     asciiquarium # an aquarium in the terminal
     yazi # a terminal file manager with image previews (Ghostty's graphics)
   ];
