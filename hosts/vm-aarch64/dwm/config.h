@@ -111,12 +111,17 @@ spawnreleased(const Arg *arg)
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static char dmenuheight[4];    /* component of dmenucmd: the bar's height, written in setup() (barstyle.diff) */
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-h", dmenuheight, "-fn", dmenufont, "-nb", col_bar, "-nf", col_title, "-sb", col_accent, "-sf", col_onaccent, NULL };
-static const char *termcmd[]  = { "st", NULL };
+/* st as Ghostty starts on the Mac (configs/ghostty/config): in tmux, attached
+ * to a detached session or a new one, or a plain shell once every session
+ * already has a window (bin/tmux-attach-or-new). sh expands $HOME. */
+#define TMUXSTART "\"$HOME/bin/tmux-attach-or-new\""
+static const char *termcmd[]  = { "/bin/sh", "-c", "exec st -e " TMUXSTART, NULL };
 /* rofi's app launcher (configs/rofi/config.rasi); Ctrl+Tab switches to its
  * other modes, commands and windows */
 static const char *roficmd[]  = { "rofi", "-show", "drun", NULL };
-/* st in tabbed, which closes with its last tab (tabbed/config.h) */
-static const char *tabbedcmd[] = { "tabbed", "-c", "-r", "2", "st", "-w", "", NULL };
+/* st in tabbed, which closes with its last tab (tabbed/config.h); each tab
+ * starts as termcmd does */
+static const char *tabbedcmd[] = { "/bin/sh", "-c", "exec tabbed -c -r 2 st -w '' -e " TMUXSTART, NULL };
 /* notifications (dunst, configs/dunst/dunstrc): dismiss the newest, dismiss
  * them all, bring back the last one dismissed */
 static const char *dunstclose[]    = { "dunstctl", "close", NULL };
