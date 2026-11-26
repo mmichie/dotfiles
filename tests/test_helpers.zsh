@@ -85,6 +85,31 @@ assert_contains "$out" "ST=yes"      "the title hooks run in st outside tmux"
 assert_contains "$out" "INTMUX=no"   "inside tmux, tmux sets st's title"
 assert_contains "$out" "GHOSTTY=no"  "other terminals keep their own titles"
 
+# ── dwm's chips (lib/60-prompt.zsh) ──────────────────────────────────
+# Where X is up and dwm-chips is installed, each prompt runs it in the
+# background: alone outside tmux, with --tmux and the server's socket
+# inside. Without either, the hook stays off.
+typeset chipsbin="$T_SCRATCH/chipsbin" chipslog="$T_SCRATCH/chips.log"
+make_stub "$chipsbin" dwm-chips 'echo "args=$*" >> "$CHIPS_LOG"'
+inner="$T_SCRATCH/chips_inner.zsh"
+cat > "$inner" <<'EOF'
+source "$1/.zsh/lib/60-prompt.zsh" 2>/dev/null
+hooked() { (( ${precmd_functions[(Ie)_dwm_chips_precmd]} )) && print yes || print no; }
+( path=("$2" /usr/bin /bin); DISPLAY=:0; unset TMUX; CHEVRON_DISABLE=1 init_prompt; print -r -- "X=$(hooked)"; _dwm_chips_precmd )
+( path=("$2" /usr/bin /bin); DISPLAY=:0; TMUX=/tmp/tmux-1/default,1,0; CHEVRON_DISABLE=1 init_prompt; _dwm_chips_precmd )
+( path=("$2" /usr/bin /bin); unset DISPLAY; CHEVRON_DISABLE=1 init_prompt; print -r -- "NODISPLAY=$(hooked)" )
+( path=(/usr/bin /bin); DISPLAY=:0; CHEVRON_DISABLE=1 init_prompt; print -r -- "NOCMD=$(hooked)" )
+EOF
+: > "$chipslog"
+out=$(CHIPS_LOG="$chipslog" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" "$chipsbin" 2>&1)
+# The hook leaves dwm-chips running in the background; wait for both.
+for _ in {1..30}; do (( $(wc -l < "$chipslog") >= 2 )) && break; sleep 0.1; done
+assert_contains "$out" "X=yes"        "the chips hook runs where X is up and dwm-chips is installed"
+assert_contains "$out" "NODISPLAY=no" "without X the chips hook stays off"
+assert_contains "$out" "NOCMD=no"     "without dwm-chips the chips hook stays off"
+assert_contains $'\n'"$(<"$chipslog")"$'\n' $'\nargs=\n' "outside tmux the hook runs dwm-chips alone"
+assert_contains "$(<"$chipslog")" "args=--tmux /tmp/tmux-1/default" "inside tmux it passes dwm-chips the server's socket"
+
 # ── _tmux_emoji_get_command (lib/75-tmux-emoji.zsh) ──────────────────
 # Returns via $REPLY (fork-free preexec hot path), not stdout.
 inner="$T_SCRATCH/emoji_inner.zsh"

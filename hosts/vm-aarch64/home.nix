@@ -3,6 +3,19 @@
 # configs/ like the rest so an edit is live without a rebuild, and a few
 # terminal programs for it.
 { mkLink, pkgs, ... }:
+let
+  # Publishes a terminal's chips for dwm's bar (dwm/chips.sh): run by the zsh
+  # prompt, by tmux's focus hooks, and by the agent hook below.
+  dwm-chips = pkgs.writeShellApplication {
+    name = "dwm-chips";
+    runtimeInputs = with pkgs; [
+      git
+      tmux
+      xprop
+    ];
+    text = builtins.readFile ./dwm/chips.sh;
+  };
+in
 {
   xdg.configFile = {
     # Notifications, started with the X session (configuration.nix), the
@@ -10,10 +23,24 @@
     "dunst".source = mkLink "dunst";
     "rofi".source = mkLink "rofi";
     "eww".source = mkLink "eww";
+    # An agent's state for dwm's chips. bin/bin/claude-tmux-state runs each
+    # hook here as `<hook> <agent> <state>` before it records the state on
+    # the pane, so this passes the new one along; - changes nothing.
+    "agent-hooks.d/dwm-chips".source = pkgs.writeShellScript "agent-hook-dwm-chips" ''
+      case $2 in
+      -) exit 0 ;;
+      clear) state= ;;
+      *) state=$2 ;;
+      esac
+      exec ${dwm-chips}/bin/dwm-chips --tmux "''${TMUX%%,*}" "$TMUX_PANE" "$state"
+    '';
   };
 
-  home.packages = with pkgs; [
+  home.packages = [
+    dwm-chips
+  ]
+  ++ (with pkgs; [
     asciiquarium # an aquarium in the terminal
     yazi # a terminal file manager with image previews (Ghostty's graphics)
-  ];
+  ]);
 }

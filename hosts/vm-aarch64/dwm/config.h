@@ -70,6 +70,22 @@ static const char *colors[][3]      = {
 	/* empty tags, dimmed (barstyle.diff) */
 	[SchemeVacant] = { col_border,  col_bar,    col_border },
 	[SchemeLayout] = { col_green,   col_bar,    col_border },
+	/* a chip's text (chips.diff), as the status blocks' values */
+	[SchemeChip]   = { col_title,   col_border, col_border },
+};
+
+/* chips (chips.diff): what a terminal publishes for the bar, drawn in place
+ * of its title like the status blocks, each kind's icon on its colour and
+ * then the text. dwm-chips (dwm/chips.sh) publishes the directory and the git
+ * branch and status in chevron's colours, and an agent's state in the tmux
+ * marks' */
+static const ChipKind chipkinds[] = {
+	/* kind       icon                  colour      icon's colour */
+	{ "dir",      "\xef\x81\xbb",       "#0087af",  "#ffffff" }, /* nf-fa-folder */
+	{ "branch",   "\xee\x82\xa0",       "#d7005f",  "#ffffff" }, /* the powerline branch */
+	{ "waiting",  "\xf3\xb0\x9a\xa9",   "#ffd700",  "#000000" }, /* nf-md-robot: waiting on you */
+	{ "working",  "\xf3\xb0\x9a\xa9",   "#585858",  "#e4e4e4" },
+	{ "done",     "\xf3\xb0\x9a\xa9",   "#5faf5f",  "#000000" }, /* finished its turn */
 };
 
 /* tagging: the tags, the window rules and DESKTOPKEYS (the per-tag keys, used

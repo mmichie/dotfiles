@@ -1,0 +1,166 @@
+Chips in place of the focused window's title, drawn like the status
+blocks: a window's _DWM_CHIPS property holds tab-separated "kind|text"
+chips, and each is drawn as its kind's icon on the kind's colour
+(chipkinds in config.h), then its text in SchemeChip. A kind config.h
+doesn't know is skipped, and a window without the property shows its
+title as before. dwm-chips (dwm/chips.sh) publishes a terminal's: its
+directory, its git branch and status, and an agent's state. Applies after
+chadwmbar.diff.
+
+diff --git a/dwm.c b/dwm.c
+index 4b1f39b..d1e22ec 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -73,7 +73,7 @@
+ 
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+-enum { SchemeNorm, SchemeSel, SchemeTitle, SchemeVacant, SchemeTagSel, SchemeLayout }; /* color schemes */
++enum { SchemeNorm, SchemeSel, SchemeTitle, SchemeVacant, SchemeTagSel, SchemeLayout, SchemeChip }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+        NetWMWindowTypeDialog, NetClientList, NetClientInfo, NetWMIcon,
+@@ -103,6 +103,7 @@ typedef struct Monitor Monitor;
+ typedef struct Client Client;
+ struct Client {
+ 	char name[256];
++	char chips[256]; /* _DWM_CHIPS: what its shell publishes for the bar */
+ 	unsigned int icw, ich;
+ 	Picture icon;
+ 	float mina, maxa;
+@@ -164,6 +165,13 @@ typedef struct {
+ 	int monitor;
+ } Rule;
+ 
++typedef struct {
++	const char *kind;
++	const char *icon;
++	const char *colour;   /* the icon's block */
++	const char *oncolour; /* the icon */
++} ChipKind;
++
+ typedef struct {
+ 	Window win;
+ 	Client *icons;
+@@ -190,6 +198,7 @@ static void detach(Client *c);
+ static void detachstack(Client *c);
+ static Monitor *dirtomon(int dir);
+ static void drawbar(Monitor *m);
++static void drawchips(Monitor *m, int x, int w);
+ static void drawbars(void);
+ static void drawtab(Monitor *m);
+ static void drawtabs(void);
+@@ -312,11 +321,13 @@ static void (*handler[LASTEvent]) (XEvent *) = {
+ 	[UnmapNotify] = unmapnotify
+ };
+ static Atom wmatom[WMLast], netatom[NetLast], xatom[XLast];
++static Atom chipsatom;
+ static int restart = 0;
+ static int running = 1;
+ static Cur *cursor[CurLast];
+ static Clr **scheme;
+ static Clr **tagschemes; /* each tag's colour on the bar's background */
++static Clr **chipschemes; /* each chip kind's icon on its colour */
+ static Display *dpy;
+ static Drw *drw;
+ static Monitor *mons, *selmon;
+@@ -565,6 +576,9 @@ cleanup(void)
+ 	for (i = 0; i < LENGTH(tags); i++)
+ 		drw_scm_free(drw, tagschemes[i], 3);
+ 	free(tagschemes);
++	for (i = 0; i < LENGTH(chipkinds); i++)
++		drw_scm_free(drw, chipschemes[i], 3);
++	free(chipschemes);
+ 	XDestroyWindow(dpy, wmcheckwin);
+ 	drw_free(drw);
+ 	XSync(dpy, False);
+@@ -826,6 +840,39 @@ dirtomon(int dir)
+ 	return m;
+ }
+ 
++/* the focused window's chips in place of its title, drawn like the status
++ * blocks: _DWM_CHIPS holds tab-separated "kind|text" chips, and each is the
++ * kind's icon on its colour (chipkinds in config.h), then the text in
++ * SchemeChip; a kind config.h doesn't know is skipped */
++void
++drawchips(Monitor *m, int x, int w)
++{
++	char buf[sizeof m->sel->chips], *chip, *text, *save = NULL;
++	int cx = x + lrpad / 2, iw, tw, h = bh - 2 * statusvpad;
++	unsigned int i;
++
++	drw_setscheme(drw, scheme[SchemeNorm]);
++	drw_rect(drw, x, 0, w, bh, 1, 1);
++	strcpy(buf, m->sel->chips);
++	for (chip = strtok_r(buf, "\t", &save); chip; chip = strtok_r(NULL, "\t", &save)) {
++		if (!(text = strchr(chip, '|')))
++			continue;
++		*text++ = '\0';
++		for (i = 0; i < LENGTH(chipkinds) && strcmp(chip, chipkinds[i].kind); i++);
++		if (i == LENGTH(chipkinds))
++			continue;
++		iw = TEXTW(chipkinds[i].icon);
++		tw = TEXTW(text);
++		if (cx + iw + tw > x + w)
++			break;
++		drw_setscheme(drw, chipschemes[i]);
++		drw_text(drw, cx, statusvpad, iw, h, lrpad / 2, chipkinds[i].icon, 0);
++		drw_setscheme(drw, scheme[SchemeChip]);
++		drw_text(drw, cx + iw, statusvpad, tw, h, lrpad / 2, text, 0);
++		cx += iw + tw + 10; /* the gap between status blocks */
++	}
++}
++
+ void
+ drawbar(Monitor *m)
+ {
+@@ -866,7 +913,9 @@ drawbar(Monitor *m)
+ 	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
+ 
+ 	if ((w = m->ww - tw - x) > bh) {
+-		if (m->sel) {
++		if (m->sel && m->sel->chips[0])
++			drawchips(m, x, w);
++		else if (m->sel) {
+ 			/* the title centred on the screen, shifted left if that would
+ 			 * run it into the status, and from the layout symbol on if it
+ 			 * is too long for either */
+@@ -1680,6 +1729,7 @@ manage(Window w, XWindowAttributes *wa)
+ 
+ 	updateicon(c);
+ 	updatetitle(c);
++	gettextprop(c->win, chipsatom, c->chips, sizeof c->chips);
+ 	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
+ 		c->mon = t->mon;
+ 		c->tags = t->tags;
+@@ -1918,6 +1968,11 @@ propertynotify(XEvent *e)
+ 			drawbars();
+ 			break;
+ 		}
++		if (ev->atom == chipsatom) {
++			gettextprop(c->win, chipsatom, c->chips, sizeof c->chips);
++			if (c == c->mon->sel)
++				drawbar(c->mon);
++		}
+ 		if (ev->atom == XA_WM_NAME || ev->atom == netatom[NetWMName]) {
+ 			updatetitle(c);
+ 			if (c == c->mon->sel)
+@@ -2298,6 +2353,7 @@ setup(void)
+ 	netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
+ 	netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+ 	netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
++	chipsatom = XInternAtom(dpy, "_DWM_CHIPS", False);
+ 	netatom[NetClientInfo] = XInternAtom(dpy, "_NET_CLIENT_INFO", False);
+ 	/* init cursors */
+ 	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
+@@ -2312,6 +2368,10 @@ setup(void)
+ 	for (i = 0; i < LENGTH(tags); i++)
+ 		tagschemes[i] = drw_scm_create(drw, (const char *[]){ tagcolours[i % LENGTH(tagcolours)],
+ 			colors[SchemeNorm][ColBg], colors[SchemeNorm][ColBorder] }, 3);
++	chipschemes = ecalloc(LENGTH(chipkinds), sizeof(Clr *));
++	for (i = 0; i < LENGTH(chipkinds); i++)
++		chipschemes[i] = drw_scm_create(drw, (const char *[]){ chipkinds[i].oncolour,
++			chipkinds[i].colour, chipkinds[i].colour }, 3);
+ 	/* init the system tray, which the bars make room for */
+ 	updatesystray();
+ 	/* init bars */

@@ -64,6 +64,18 @@ _st_title_preexec() {
     print -rn -- $'\e]2;'"${(V)words[1]}"$'\a'
 }
 
+# dwm's chips for this terminal (hosts/vm-aarch64/dwm/chips.sh): its
+# directory, git branch and status, and an agent's state, published in the
+# background after each command where dwm-chips is installed (the VM).
+# Inside tmux it updates every client's, as tmux's focus hooks do.
+_dwm_chips_precmd() {
+    if [[ -n $TMUX ]]; then
+        dwm-chips --tmux "${TMUX%%,*}" >/dev/null 2>&1 &!
+    else
+        dwm-chips >/dev/null 2>&1 &!
+    fi
+}
+
 # Initialize prompt
 init_prompt() {
     autoload -Uz add-zsh-hook
@@ -71,6 +83,9 @@ init_prompt() {
     if [[ $TERM == st-* && -z $TMUX ]]; then
         add-zsh-hook precmd _st_title_precmd
         add-zsh-hook preexec _st_title_preexec
+    fi
+    if [[ -n $DISPLAY ]] && (( $+commands[dwm-chips] )); then
+        add-zsh-hook precmd _dwm_chips_precmd
     fi
     # Kill switch for sandboxed shells (test suite, scripted boots): skip
     # chevron entirely — no daemon spawn, default prompt.

@@ -16,6 +16,7 @@ typeset TMUX_CONF="$REPO_ROOT/configs/tmux/tmux.conf"
 typeset SOCK="tmuxtest-$$"
 typeset SOCK2="tmuxtest2-$$"
 typeset SOCK3="tmuxtest3-$$"
+typeset SOCK4="tmuxtest4-$$"
 
 # Sandbox HOME: ~/.config/tmux must resolve for source-file/tpm paths.
 typeset thome=''
@@ -24,7 +25,7 @@ mkdir -p "$thome/.config"
 ln -s "$REPO_ROOT/configs/tmux" "$thome/.config/tmux"
 
 # Kill test servers on any exit; keep lib.zsh's scratch cleanup.
-trap 'tmux -L "$SOCK" kill-server 2>/dev/null; tmux -L "$SOCK2" kill-server 2>/dev/null; tmux -L "$SOCK3" kill-server 2>/dev/null; rm -rf "$T_SCRATCH"' EXIT
+trap 'tmux -L "$SOCK" kill-server 2>/dev/null; tmux -L "$SOCK2" kill-server 2>/dev/null; tmux -L "$SOCK3" kill-server 2>/dev/null; tmux -L "$SOCK4" kill-server 2>/dev/null; rm -rf "$T_SCRATCH"' EXIT
 
 # -u: some assertions read UTF-8 back (the ✓ and … Claude marks). Without it,
 # tmux treats the client as UTF-8 only when LC_ALL/LC_CTYPE/LANG says so (the
@@ -142,6 +143,27 @@ tm rename-window -t "$twin" '#[fg=colour117]X#[default] fleet [1] #2'
 assert_eq "$(tm display -p -t "$twin" "$(tm show -gv set-titles-string)")" "X fleet [1] #2" \
     "terminal title drops the window name's #[] styles"
 tm kill-window -t "$twin"
+
+# dwm's chips: where dwm-chips is installed (the VM), the focus hooks run it
+# with the server's socket; elsewhere they aren't installed at all.
+if ! have dwm-chips; then
+    assert_eq "$(tm show-hooks -g pane-focus-in | grep -c dwm-chips)" "0" \
+        "no chips hooks where dwm-chips isn't installed"
+fi
+typeset chipsbin="$T_SCRATCH/chipsbin" chipslog="$T_SCRATCH/chips.log"
+make_stub "$chipsbin" dwm-chips 'echo "$*" >> "$CHIPS_LOG"'
+: > "$chipslog"
+CHIPS_LOG="$chipslog" PATH="$chipsbin:$PATH" HOME="$thome" TMUX_LEVEL= \
+    tmux -L "$SOCK4" -f "$TMUX_CONF" new-session -d -x 80 -y 24 2>/dev/null
+for h in pane-focus-in session-window-changed client-session-changed; do
+    assert_contains "$(tmux -L "$SOCK4" show-hooks -g "$h")" "dwm-chips --tmux" \
+        "$h runs dwm-chips where it is installed"
+done
+tmux -L "$SOCK4" set-hook -R pane-focus-in
+for _ in {1..30}; do [[ -s "$chipslog" ]] && break; sleep 0.1; done
+assert_contains "$(<"$chipslog")" "--tmux $(tmux -L "$SOCK4" display -p '#{socket_path}')" \
+    "the focus hook passes dwm-chips the server's socket"
+tmux -L "$SOCK4" kill-server 2>/dev/null
 
 # ── Plugins: declared implies vendored, and yank owns drag-copy ──────
 typeset -a declared missing
