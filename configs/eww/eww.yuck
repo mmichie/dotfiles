@@ -1,0 +1,56 @@
+;; eww for the vm-aarch64 guest: a dashboard, Mod+A in
+;; hosts/vm-aarch64/dwm/config.h, in dwm's colours (eww.scss). Adapted from
+;; chadwm's (github.com/siduck/chadwm): the system, the time, the machine's
+;; load, the volume, and a few actions.
+
+(defpoll os :interval "3600s" "sed -n 's/^PRETTY_NAME=\"\\(.*\\)\"$/\\1/p' /etc/os-release")
+(defpoll kernel :interval "3600s" "uname -r")
+;; From /proc/uptime: the uptime on PATH is coreutils', which has no -p.
+(defpoll uptime :interval "60s"
+  "awk '{ s = int($1); d = int(s / 86400); h = int(s % 86400 / 3600); if (d) printf \"%dd \", d; if (d || h) printf \"%dh \", h; printf \"%dm\", int(s % 3600 / 60) }' /proc/uptime")
+(defpoll time :interval "1s" "date +%H:%M")
+(defpoll date :interval "60s" "date +'%A %d %B'")
+;; :initial, or the slider fails on the empty value before the first poll.
+(defpoll volume :interval "2s" :initial "0"
+  "wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{ printf \"%d\", $2 * 100 }'")
+
+(defwidget ring [value label]
+  (box :class "ring" :orientation "v" :space-evenly false :spacing 8
+    (circular-progress :class "progress" :value value :thickness 6 :start-at 75
+      (label :class "ring-value" :text "${round(value, 0)}%"))
+    (label :class "ring-label" :text label)))
+
+(defwidget dashboard []
+  (box :class "dashboard" :orientation "v" :space-evenly false :spacing 18
+    (box :class "header" :space-evenly false :spacing 16
+      (label :class "logo" :text "")
+      (box :orientation "v" :space-evenly false :valign "center"
+        (label :class "bright" :halign "start" :text os)
+        (label :class "dim" :halign "start" :text "dwm · ${kernel}")
+        (label :class "dim" :halign "start" :text "up ${uptime}")))
+    (box :class "clock" :orientation "v" :space-evenly false
+      (label :class "time" :text time)
+      (label :class "dim" :text date))
+    (box :class "rings" :spacing 12
+      (ring :value {EWW_CPU.avg} :label "CPU")
+      (ring :value {EWW_RAM.used_mem_perc} :label "MEM")
+      (ring :value {EWW_DISK["/"].used_perc} :label "DSK"))
+    (box :class "volume" :space-evenly false :spacing 12
+      (label :class "tag" :text "VOL")
+      (scale :class "slider" :hexpand true :min 0 :max 101 :value volume
+        :onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ {}%"))
+    (box :class "buttons" :spacing 10
+      (button :class "btn" :onclick "${EWW_CMD} close dashboard; rofi -show drun &" "apps")
+      (button :class "btn" :onclick "${EWW_CMD} close dashboard; st -e \"$HOME/bin/tmux-attach-or-new\" &" "terminal")
+      (button :class "btn" :onclick "${EWW_CMD} close dashboard; pkill -HUP -x dwm" "restart dwm"))))
+
+;; Under the bar at the top right, 10px from the edge and from the bar, the
+;; gap dwm leaves around windows. eww adds x to the anchored position, so it
+;; is negative to come in from the right. wm-ignore keeps it out of dwm's
+;; tiling.
+(defwindow dashboard
+  :monitor 0
+  :geometry (geometry :x "-10px" :y "41px" :width "380px" :anchor "top right")
+  :stacking "fg"
+  :wm-ignore true
+  (dashboard))

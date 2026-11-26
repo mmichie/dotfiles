@@ -1,0 +1,40 @@
+// The dashboard in dwm's colours, the xterm-256 values of the tmux theme
+// (configs/tmux/tmux.conf), and st's font.
+$bar: #1c1c1c;      // colour234
+$text: #8a8a8a;     // colour245
+$bright: #e4e4e4;   // colour254
+$block: #444444;    // colour238
+$accent: #00afff;   // colour39
+$onaccent: #000000; // colour16
+
+* {
+  all: unset;
+  font-family: "JetBrainsMono Nerd Font";
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.dashboard {
+  background-color: $bar;
+  border: 2px solid $accent;
+  padding: 18px;
+}
+
+.logo { color: $accent; font-size: 44px; }
+.bright { color: $bright; }
+.dim { color: $text; }
+.time { color: $bright; font-size: 44px; }
+
+.progress { color: $accent; background-color: $block; }
+// eww sizes a ring by its child, so the label sets the ring's size.
+.ring-value { color: $bright; min-width: 90px; min-height: 90px; }
+.ring-label { color: $text; }
+
+// like the status blocks: the label on the accent
+.tag { background-color: $accent; color: $onaccent; padding: 2px 8px; }
+.slider trough { background-color: $block; min-height: 8px; }
+.slider highlight { background-color: $accent; }
+.slider slider { background-color: $bright; min-width: 12px; min-height: 12px; border-radius: 6px; }
+
+.btn { background-color: $block; color: $bright; padding: 6px 12px; }
+.btn:hover { background-color: $accent; color: $onaccent; }

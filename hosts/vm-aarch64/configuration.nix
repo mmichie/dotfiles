@@ -344,6 +344,8 @@
     (dmenu.override { patches = [ ./dmenu/lineheight.diff ]; })
     # The themed launcher, Mod+R (configs/rofi)
     rofi
+    # The dashboard, Mod+A (configs/eww)
+    eww
     # Tabs around st, Mod+Shift+T, in the tmux theme's colours
     (tabbed.override { customConfig = builtins.readFile ./tabbed/config.h; })
     # Started with the X session above; here for dunstctl (Mod+N and its

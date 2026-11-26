@@ -127,12 +127,16 @@ static const char *tabbedcmd[] = { "/bin/sh", "-c", "exec tabbed -c -r 2 st -w '
 static const char *dunstclose[]    = { "dunstctl", "close", NULL };
 static const char *dunstcloseall[] = { "dunstctl", "close-all", NULL };
 static const char *dunsthistory[]  = { "dunstctl", "history-pop", NULL };
+/* the dashboard (configs/eww): the system, the time, the load, the volume;
+ * eww starts its daemon on the first open */
+static const char *ewwcmd[] = { "eww", "open", "--toggle", "dashboard", NULL };
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_r,      spawn,          {.v = roficmd } },
+	{ MODKEY,                       XK_a,      spawn,          {.v = ewwcmd } },
 	{ MODKEY|ShiftMask,             XK_t,      spawn,          {.v = tabbedcmd } },
 	{ MODKEY,                       XK_n,      spawn,          {.v = dunstclose } },
 	{ MODKEY|ShiftMask,             XK_n,      spawn,          {.v = dunstcloseall } },

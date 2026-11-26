@@ -5,10 +5,11 @@
 { mkLink, pkgs, ... }:
 {
   xdg.configFile = {
-    # Notifications, started with the X session (configuration.nix), and
-    # the launcher.
+    # Notifications, started with the X session (configuration.nix), the
+    # launcher, and the dashboard.
     "dunst".source = mkLink "dunst";
     "rofi".source = mkLink "rofi";
+    "eww".source = mkLink "eww";
   };
 
   home.packages = with pkgs; [
