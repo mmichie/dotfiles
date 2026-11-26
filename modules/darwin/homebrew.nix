@@ -98,7 +98,10 @@ _:
       "tailscale-app"
       "cloudflare-warp"
       "hazeover"
-      "scroll-reverser"
+      # Reverses the mouse wheel and smooths it, which reaches the UTM guest
+      # too: the wheel scrolls smoothly in the VM as in Mac apps. Replaced
+      # scroll-reverser, which only reversed it.
+      "mos"
       "selfcontrol"
       "keka"
       "fuse-t"
