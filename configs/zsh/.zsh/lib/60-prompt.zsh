@@ -48,10 +48,30 @@ osc7_cwd() {
     printf '\e]7;file://%s%s\a' "$hostname" "$REPLY"
 }
 
+# st's window title, which dwm's bar shows. Inside tmux, tmux sets it from
+# the window name (set-titles); outside, st has no shell integration to set
+# it and keeps the command it was started with, so the shell does: the
+# directory at the prompt, the command while one runs. (V) shows control
+# characters as ^X instead of sending them to the terminal.
+_st_title_precmd() {
+    local dir='~'
+    [[ $PWD == $HOME ]] || dir=${(V)${PWD:t}:-/}
+    print -rn -- $'\e]2;'"$dir"$'\a'
+}
+
+_st_title_preexec() {
+    local -a words=(${(z)1})
+    print -rn -- $'\e]2;'"${(V)words[1]}"$'\a'
+}
+
 # Initialize prompt
 init_prompt() {
     autoload -Uz add-zsh-hook
     add-zsh-hook precmd osc7_cwd
+    if [[ $TERM == st-* && -z $TMUX ]]; then
+        add-zsh-hook precmd _st_title_precmd
+        add-zsh-hook preexec _st_title_preexec
+    fi
     # Kill switch for sandboxed shells (test suite, scripted boots): skip
     # chevron entirely — no daemon spawn, default prompt.
     [[ -n "$CHEVRON_DISABLE" ]] && return 0

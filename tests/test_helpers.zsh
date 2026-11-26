@@ -57,6 +57,34 @@ assert_contains "$out" "Warning: chevron not found; skipping banner." "without c
 assert_contains "$out" "WITHOUT_RC=1" "without chevron, notify_shell_status fails"
 assert_contains "$out" "DISABLED_RC=0" "CHEVRON_DISABLE skips the banner quietly"
 
+# ── st's window title (lib/60-prompt.zsh) ─────────────────────────────
+# Outside tmux the shell titles st: the directory at the prompt, the command
+# while one runs. Inside tmux, or in another terminal, the hooks stay off.
+inner="$T_SCRATCH/st_title_inner.zsh"
+cat > "$inner" <<'EOF'
+source "$1/.zsh/lib/60-prompt.zsh" 2>/dev/null
+mkdir -p "$HOME/src/dotfiles" "$HOME/"$'odd\e]0;x'
+cd "$HOME";              print -r -- "HOME=$(_st_title_precmd)"
+cd "$HOME/src/dotfiles"; print -r -- "SUB=$(_st_title_precmd)"
+cd /;                    print -r -- "ROOT=$(_st_title_precmd)"
+cd "$HOME/"$'odd\e]0;x'; print -r -- "ODD=$(_st_title_precmd)"
+print -r -- "CMD=$(_st_title_preexec '  nvim config.h')"
+hooked() { (( ${precmd_functions[(Ie)_st_title_precmd]} && ${preexec_functions[(Ie)_st_title_preexec]} )) && print yes || print no; }
+( TERM=st-256color; unset TMUX; CHEVRON_DISABLE=1 init_prompt; print -r -- "ST=$(hooked)" )
+( TERM=st-256color; TMUX=/tmp/tmux-1/default,1,0; CHEVRON_DISABLE=1 init_prompt; print -r -- "INTMUX=$(hooked)" )
+( TERM=xterm-ghostty; unset TMUX; CHEVRON_DISABLE=1 init_prompt; print -r -- "GHOSTTY=$(hooked)" )
+EOF
+sb="$(make_sandbox_home)"
+out=$(HOME="$sb" zsh --no-globalrcs -f "$inner" "$ZSH_CONF" 2>&1)
+assert_contains "$out" $'HOME=\e]2;~\a'        "st's title at home is ~"
+assert_contains "$out" $'SUB=\e]2;dotfiles\a'  "st's title is the directory's name"
+assert_contains "$out" $'ROOT=\e]2;/\a'        "st's title at the root is /"
+assert_contains "$out" $'ODD=\e]2;odd^[]0;x\a' "control characters in the title are shown, not sent"
+assert_contains "$out" $'CMD=\e]2;nvim\a'      "st's title while a command runs is its first word"
+assert_contains "$out" "ST=yes"      "the title hooks run in st outside tmux"
+assert_contains "$out" "INTMUX=no"   "inside tmux, tmux sets st's title"
+assert_contains "$out" "GHOSTTY=no"  "other terminals keep their own titles"
+
 # ── _tmux_emoji_get_command (lib/75-tmux-emoji.zsh) ──────────────────
 # Returns via $REPLY (fork-free preexec hot path), not stdout.
 inner="$T_SCRATCH/emoji_inner.zsh"
