@@ -14,6 +14,18 @@ let
     "6"
   ];
 
+  # What dwm's bar shows for each desktop in place of its name: a Nerd Font
+  # icon, by hex codepoint, for what opens there (apps, below). AeroSpace has
+  # no bar to show them in. A desktop without one shows its name.
+  icons = {
+    "1" = "f489"; # nf-oct-terminal
+    "2" = "f268"; # nf-fa-chrome
+    "3" = "f121"; # nf-fa-code
+    "4" = "f086"; # nf-fa-comments
+    "5" = "f02d"; # nf-fa-book
+    "6" = "f0ae"; # nf-fa-tasks
+  };
+
   # Apps, by the desktop they open on. An app names itself per platform, and
   # needs only the platforms it runs on:
   #   macos  its bundle id, as `aerospace list-apps` prints it
@@ -114,8 +126,22 @@ let
   bad =
     builtins.filter (d: builtins.match "[1-9]" d == null) desktops
     ++ builtins.filter (d: !builtins.elem d desktops) (builtins.attrNames apps);
+
+  # Every icon has to belong to a desktop and be a codepoint in hex.
+  badIcons = builtins.filter (
+    d: !builtins.elem d desktops || builtins.match "[0-9a-f]{4,6}" icons.${d} == null
+  ) (builtins.attrNames icons);
 in
 if bad != [ ] then
   throw "lib/desktops.nix: not a desktop (or not a single digit 1-9): ${builtins.concatStringsSep ", " bad}"
+else if badIcons != [ ] then
+  throw "lib/desktops.nix: an icon for no desktop, or not a hex codepoint: ${builtins.concatStringsSep ", " badIcons}"
 else
-  { inherit desktops apps floating; }
+  {
+    inherit
+      desktops
+      icons
+      apps
+      floating
+      ;
+  }

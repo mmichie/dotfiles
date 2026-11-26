@@ -1,0 +1,86 @@
+The bar after chadwm's (github.com/siduck/chadwm). Each tag has a colour of
+its own (tagcolours in config.h, by tag): a tag with windows, or the
+selected one, is drawn in it, and the selected one is underlined in it; an
+empty tag stays dimmed in SchemeVacant. This replaces barstyle.diff's tag
+colours, so SchemeTagSel now colours only the selected tab (tab.diff). The
+layout symbol is drawn in SchemeLayout. centretitle (config.h) places the
+title: 1 centred on the screen, as centeredwindowname.diff draws it, 0 after
+the layout symbol, as chadwm's. The tags' icons come from lib/desktops.nix,
+through dwm/desktops.nix. Applies after systray.diff.
+
+diff --git a/dwm.c b/dwm.c
+index ba9570c..4b1f39b 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -73,7 +73,7 @@
+ 
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+-enum { SchemeNorm, SchemeSel, SchemeTitle, SchemeVacant, SchemeTagSel }; /* color schemes */
++enum { SchemeNorm, SchemeSel, SchemeTitle, SchemeVacant, SchemeTagSel, SchemeLayout }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+        NetWMWindowTypeDialog, NetClientList, NetClientInfo, NetWMIcon,
+@@ -316,6 +316,7 @@ static int restart = 0;
+ static int running = 1;
+ static Cur *cursor[CurLast];
+ static Clr **scheme;
++static Clr **tagschemes; /* each tag's colour on the bar's background */
+ static Display *dpy;
+ static Drw *drw;
+ static Monitor *mons, *selmon;
+@@ -561,6 +562,9 @@ cleanup(void)
+ 	for (i = 0; i < LENGTH(colors) + 1; i++)
+ 		drw_scm_free(drw, scheme[i], 3);
+ 	free(scheme);
++	for (i = 0; i < LENGTH(tags); i++)
++		drw_scm_free(drw, tagschemes[i], 3);
++	free(tagschemes);
+ 	XDestroyWindow(dpy, wmcheckwin);
+ 	drw_free(drw);
+ 	XSync(dpy, False);
+@@ -848,17 +852,17 @@ drawbar(Monitor *m)
+ 	for (i = 0; i < LENGTH(tags); i++) {
+ 		w = TEXTW(tags[i]);
+ 		sel = m->tagset[m->seltags] & 1 << i;
+-		drw_setscheme(drw, scheme[sel ? SchemeTagSel : occ & 1 << i ? SchemeNorm : SchemeVacant]);
++		/* a tag with windows, or the selected one, in its own colour
++		 * (tagcolours), and the selected one underlined in it; an empty
++		 * one dimmed */
++		drw_setscheme(drw, sel || occ & 1 << i ? tagschemes[i] : scheme[SchemeVacant]);
+ 		drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
+-		if (sel) {
+-			/* the underline, in SchemeSel's background: the accent */
+-			drw_setscheme(drw, scheme[SchemeSel]);
+-			drw_rect(drw, x + ulinepad, bh - ulinestroke, w - 2 * ulinepad, ulinestroke, 1, 1);
+-		}
++		if (sel)
++			drw_rect(drw, x + ulinepad, bh - ulinestroke, w - 2 * ulinepad, ulinestroke, 1, 0);
+ 		x += w;
+ 	}
+ 	w = TEXTW(m->ltsymbol);
+-	drw_setscheme(drw, scheme[SchemeNorm]);
++	drw_setscheme(drw, scheme[SchemeLayout]);
+ 	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
+ 
+ 	if ((w = m->ww - tw - x) > bh) {
+@@ -870,7 +874,7 @@ drawbar(Monitor *m)
+ 			 * two are centred together (winicon.diff) */
+ 			int iw = m->sel->icon ? m->sel->icw + ICONSPACING : 0;
+ 			int nw = TEXTW(m->sel->name) - lrpad + iw;
+-			int mid = (m->ww - nw) / 2 - x;
++			int mid = centretitle ? (m->ww - nw) / 2 - x : lrpad / 2;
+ 			mid = MAX(MIN(mid, w - nw - lrpad / 2), lrpad / 2);
+ 			drw_setscheme(drw, scheme[m == selmon ? SchemeTitle : SchemeNorm]);
+ 			drw_text(drw, x, 0, w, bh, mid + iw, m->sel->name, 0);
+@@ -2304,6 +2308,10 @@ setup(void)
+ 	scheme[LENGTH(colors)] = drw_scm_create(drw, colors[0], 3);
+ 	for (i = 0; i < LENGTH(colors); i++)
+ 		scheme[i] = drw_scm_create(drw, colors[i], 3);
++	tagschemes = ecalloc(LENGTH(tags), sizeof(Clr *));
++	for (i = 0; i < LENGTH(tags); i++)
++		tagschemes[i] = drw_scm_create(drw, (const char *[]){ tagcolours[i % LENGTH(tagcolours)],
++			colors[SchemeNorm][ColBg], colors[SchemeNorm][ColBorder] }, 3);
+ 	/* init the system tray, which the bars make room for */
+ 	updatesystray();
+ 	/* init bars */

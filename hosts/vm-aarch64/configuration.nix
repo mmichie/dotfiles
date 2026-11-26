@@ -96,11 +96,11 @@
       # The patches add what a config.h cannot: gaps, a colour scheme of
       # its own for the window title, restarting in place (which loads a new
       # dwm without closing any window or moving it off its desktop),
-      # colours in the status text, the title centred on the screen with
-      # its window's icon, the bar's look (its height, inset status blocks,
-      # tags drawn by state), tabs in monocle, and a system tray. Its tags,
-      # window rules and per-tag keys come from desktops.h, generated from
-      # the desktops shared with AeroSpace (lib/desktops.nix).
+      # colours in the status text, the window's icon beside its title, the
+      # bar's look (its height, inset status blocks, after chadwm's a colour
+      # and an icon per desktop), tabs in monocle, and a system tray. Its
+      # tags, window rules and per-tag keys come from desktops.h, generated
+      # from the desktops shared with AeroSpace (lib/desktops.nix).
       windowManager.dwm = {
         enable = true;
         package =
@@ -117,6 +117,7 @@
               ./dwm/winicon.diff
               ./dwm/tab.diff
               ./dwm/systray.diff
+              ./dwm/chadwmbar.diff
             ];
           }).overrideAttrs
             (old: {

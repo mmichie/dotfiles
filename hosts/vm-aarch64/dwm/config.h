@@ -9,6 +9,7 @@
  * The colours are the xterm-256 values of the tmux theme in
  * configs/tmux/tmux.conf, so dwm's bar and the tmux status line inside st
  * read as one theme: a colour234 bar, colour245 text, a colour39 accent.
+ * The tags and the layout symbol take chadwm's colours (chadwmbar.diff).
  */
 
 /* appearance */
@@ -22,6 +23,8 @@ static const int vertpadbar         = 8;        /* height beyond the font's: 31p
 static const int statusvpad         = 4;        /* status blocks stop this short of its top and bottom */
 static const int ulinepad           = 5;        /* the selected tag's underline: inset from the tag's sides */
 static const int ulinestroke        = 2;        /* and its thickness */
+/* the bar after chadwm's (chadwmbar.diff); its colours are below */
+static const int centretitle        = 0;        /* the title: 0 after the layout symbol, 1 centred on the screen (centeredwindowname.diff) */
 #define ICONSIZE    16  /* window icons beside the title (winicon.diff) */
 #define ICONSPACING 8   /* and the gap between icon and title */
 /* monocle tabs (tab.diff): never, in monocle with more than one window
@@ -46,17 +49,27 @@ static const char col_title[]       = "#e4e4e4"; /* colour254 */
 static const char col_accent[]      = "#00afff"; /* colour39 */
 static const char col_onaccent[]    = "#000000"; /* colour16 */
 static const char col_border[]      = "#444444"; /* colour238 */
+/* chadwm's onedark colours (chadwmbar.diff): a tag with windows, or the
+ * selected one, is drawn in its own (tagcolours, by tag) and the selected
+ * one underlined in it; the layout symbol is green */
+static const char col_blue[]        = "#61afef";
+static const char col_red[]         = "#e06c75";
+static const char col_orange[]      = "#caaa6a";
+static const char col_green[]       = "#7ec7a2";
+static const char col_pink[]        = "#c678dd";
+static const char col_yellow[]      = "#ebcb8b";
+static const char *tagcolours[]     = { col_blue, col_red, col_orange, col_green, col_pink, col_yellow };
 static const char *colors[][3]      = {
 	/*                fg            bg          border     */
 	[SchemeNorm]  = { col_text,     col_bar,    col_border },
 	[SchemeSel]   = { col_onaccent, col_accent, col_accent },
 	/* the focused window's title (titlescheme.diff); stock dwm uses SchemeSel */
 	[SchemeTitle] = { col_title,    col_bar,    col_border },
-	/* tags (barstyle.diff): the selected one bright over an accent underline
-	 * (SchemeSel's background), those with windows in SchemeNorm, empty ones
-	 * dimmed */
+	/* the selected tab in monocle (tab.diff) */
 	[SchemeTagSel] = { col_title,   col_bar,    col_accent },
+	/* empty tags, dimmed (barstyle.diff) */
 	[SchemeVacant] = { col_border,  col_bar,    col_border },
+	[SchemeLayout] = { col_green,   col_bar,    col_border },
 };
 
 /* tagging: the tags, the window rules and DESKTOPKEYS (the per-tag keys, used

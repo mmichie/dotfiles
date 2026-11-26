@@ -3,9 +3,18 @@
 # (lib/desktops.nix).
 { lib, writeText }:
 let
-  inherit (import ../../../lib/desktops.nix) desktops apps floating;
+  inherit (import ../../../lib/desktops.nix)
+    desktops
+    icons
+    apps
+    floating
+    ;
 
   cstr = s: if s == null then "NULL" else ''"${lib.escape [ "\\" "\"" ] s}"'';
+
+  # A desktop's label in the bar: its icon, as a C universal character name
+  # (the compiler stores it as UTF-8), or else its name.
+  label = d: if icons ? ${d} then ''"\U${lib.fixedWidthString 8 "0" icons.${d}}"'' else cstr d;
 
   # { class, instance, title, tags mask, isfloating, monitor }, as in dwm's Rule
   rule =
@@ -23,7 +32,7 @@ in
 writeText "desktops.h" ''
   /* Generated from lib/desktops.nix by hosts/vm-aarch64/dwm/desktops.nix. */
 
-  static const char *tags[] = { ${lib.concatMapStringsSep ", " cstr desktops} };
+  static const char *tags[] = { ${lib.concatMapStringsSep ", " label desktops} };
 
   static const Rule rules[] = {
   	/* class, instance, title, tags mask, isfloating, monitor */
