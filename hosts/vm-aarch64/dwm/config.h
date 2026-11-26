@@ -117,6 +117,11 @@ static const char *termcmd[]  = { "st", NULL };
 static const char *roficmd[]  = { "rofi", "-show", "drun", NULL };
 /* st in tabbed, which closes with its last tab (tabbed/config.h) */
 static const char *tabbedcmd[] = { "tabbed", "-c", "-r", "2", "st", "-w", "", NULL };
+/* notifications (dunst, configs/dunst/dunstrc): dismiss the newest, dismiss
+ * them all, bring back the last one dismissed */
+static const char *dunstclose[]    = { "dunstctl", "close", NULL };
+static const char *dunstcloseall[] = { "dunstctl", "close-all", NULL };
+static const char *dunsthistory[]  = { "dunstctl", "history-pop", NULL };
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
@@ -124,6 +129,9 @@ static const Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_r,      spawn,          {.v = roficmd } },
 	{ MODKEY|ShiftMask,             XK_t,      spawn,          {.v = tabbedcmd } },
+	{ MODKEY,                       XK_n,      spawn,          {.v = dunstclose } },
+	{ MODKEY|ShiftMask,             XK_n,      spawn,          {.v = dunstcloseall } },
+	{ MODKEY|ControlMask,           XK_n,      spawn,          {.v = dunsthistory } },
 	{ MODKEY,                       XK_c,      spawnreleased,  CLIPKEY("c") },
 	{ MODKEY,                       XK_v,      spawnreleased,  CLIPKEY("v") },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },

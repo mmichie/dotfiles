@@ -331,8 +331,11 @@
     rofi
     # Tabs around st, Mod+Shift+T, in the tmux theme's colours
     (tabbed.override { customConfig = builtins.readFile ./tabbed/config.h; })
-    # Started with the X session above; here for dunstctl
+    # Started with the X session above; here for dunstctl (Mod+N and its
+    # neighbours in dwm/config.h)
     dunst
+    # notify-send, for scripts to post notifications through dunst
+    libnotify
     # Google's own arm64 build (unfree, allowed above), so not in the
     # binary cache: a switch fetches the .deb from Google and repackages it.
     # dmenu finds it as google-chrome-stable.
