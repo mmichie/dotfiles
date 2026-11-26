@@ -84,6 +84,13 @@
       xkb.layout = "us";
       dpi = 96; # Native resolution (no HiDPI scaling)
 
+      # Key repeat as on the Mac: 583 ms before a held key repeats, then a
+      # repeat every 83 ms (macOS's HIDInitialKeyRepeat and HIDKeyRepeat,
+      # read from ioreg). The guest repeats keys itself, from the key down
+      # UTM passes it, and X's own defaults are 660 ms and 25 a second.
+      autoRepeatDelay = 583;
+      autoRepeatInterval = 83;
+
       # dwm/config.h is the whole configuration: upstream's defaults with
       # Super as the modifier and the look (colours, font, borders, gaps).
       # The patches add what a config.h cannot: gaps, a colour scheme of
