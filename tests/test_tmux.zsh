@@ -136,6 +136,11 @@ assert_eq "$(tm display -p -t "$twin" '#{E:automatic-rename-format}')" "wrapper 
 tm set-hook -R -t "$tpane" pane-focus-in
 assert_eq "$(tm display -p -t "$twin" '#{window_name}')" "wrapper title" \
     "focus hook falls back to @priority_title without @fleet_title"
+# Those titles can carry #[...] styles for the status line; the terminal's
+# title gets the name without them, and other text unchanged.
+tm rename-window -t "$twin" '#[fg=colour117]X#[default] fleet [1] #2'
+assert_eq "$(tm display -p -t "$twin" "$(tm show -gv set-titles-string)")" "X fleet [1] #2" \
+    "terminal title drops the window name's #[] styles"
 tm kill-window -t "$twin"
 
 # ── Plugins: declared implies vendored, and yank owns drag-copy ──────
