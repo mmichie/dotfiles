@@ -25,12 +25,13 @@ static const int ulinepad           = 5;        /* the selected tag's underline:
 static const int ulinestroke        = 2;        /* and its thickness */
 /* the bar after chadwm's (chadwmbar.diff); its colours are below */
 static const int centretitle        = 0;        /* the title: 0 after the layout symbol, 1 centred on the screen (centeredwindowname.diff) */
+static const int barlist            = 1;        /* 1: every window in the bar (barlist.diff); 0: the focused one's title alone */
 #define ICONSIZE    16  /* window icons beside the title (winicon.diff) */
 #define ICONSPACING 8   /* and the gap between icon and title */
 /* monocle tabs (tab.diff): never, in monocle with more than one window
- * (showtab_auto), or always */
+ * (showtab_auto), or always. Off, since the bar lists the windows */
 enum showtab_modes { showtab_never, showtab_auto, showtab_always };
-static const int showtab            = showtab_auto;
+static const int showtab            = showtab_never;
 static const int toptab             = 1;        /* tabs under the bar, not at the screen's foot */
 static const int tabmaxw            = 400;      /* a tab's widest */
 /* the system tray (systray.diff), at the bar's right end */
@@ -72,6 +73,8 @@ static const char *colors[][3]      = {
 	[SchemeLayout] = { col_green,   col_bar,    col_border },
 	/* a chip's text (chips.diff), as the status blocks' values */
 	[SchemeChip]   = { col_title,   col_border, col_border },
+	/* another window's directory in the bar's window list (barlist.diff) */
+	[SchemeChipDim] = { col_text,   col_border, col_border },
 };
 
 /* chips (chips.diff): what a terminal publishes for the bar, drawn in place
@@ -219,6 +222,8 @@ static const Button buttons[] = {
 	/* click                event mask      button          function        argument */
 	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
+	/* a window in the bar's window list (barlist.diff) */
+	{ ClkWinTitle,          0,              Button1,        focuswin,       {0} },
 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
 	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },

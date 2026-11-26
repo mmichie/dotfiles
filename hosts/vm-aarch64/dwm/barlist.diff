@@ -1,0 +1,167 @@
+Every window on the shown desktops in the bar, in place of the focused
+window's title (barlist in config.h; 0 keeps the title alone). The focused
+window shows its chips (chips.diff) in colour, or its icon and title, and
+is underlined in the desktop's colour (chadwmbar.diff). Another window
+shows only its directory, greyed, and the icon of an agent waiting on
+you, in its colour; or its icon and title in SchemeNorm. A click on a
+window focuses it: buttonpress finds the window under the click and
+passes its place to focuswin (tab.diff), which config.h binds to Button1
+on ClkWinTitle. Applies after chips.diff.
+
+diff --git a/dwm.c b/dwm.c
+index d1e22ec..d92ca6a 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -73,7 +73,7 @@
+ 
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+-enum { SchemeNorm, SchemeSel, SchemeTitle, SchemeVacant, SchemeTagSel, SchemeLayout, SchemeChip }; /* color schemes */
++enum { SchemeNorm, SchemeSel, SchemeTitle, SchemeVacant, SchemeTagSel, SchemeLayout, SchemeChip, SchemeChipDim }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+        NetWMWindowTypeDialog, NetClientList, NetClientInfo, NetWMIcon,
+@@ -104,6 +104,7 @@ typedef struct Client Client;
+ struct Client {
+ 	char name[256];
+ 	char chips[256]; /* _DWM_CHIPS: what its shell publishes for the bar */
++	int barx, barw; /* its place in the bar's window list */
+ 	unsigned int icw, ich;
+ 	Picture icon;
+ 	float mina, maxa;
+@@ -199,6 +200,8 @@ static void detachstack(Client *c);
+ static Monitor *dirtomon(int dir);
+ static void drawbar(Monitor *m);
+ static void drawchips(Monitor *m, int x, int w);
++static int drawclient(Monitor *m, Client *c, int x, int end);
++static void drawclients(Monitor *m, int x, int w);
+ static void drawbars(void);
+ static void drawtab(Monitor *m);
+ static void drawtabs(void);
+@@ -512,8 +515,20 @@ buttonpress(XEvent *e)
+ 			click = ClkLtSymbol;
+ 		else if (ev->x > selmon->ww - statusw)
+ 			click = ClkStatusText;
+-		else
++		else {
+ 			click = ClkWinTitle;
++			/* in the window list, the window under the click, by its place
++			 * among the visible ones (focuswin); none matches past the end */
++			i = 0;
++			for (c = selmon->clients; c; c = c->next) {
++				if (!ISVISIBLE(c))
++					continue;
++				if (c->barw && ev->x >= (unsigned int)c->barx && ev->x < (unsigned int)(c->barx + c->barw))
++					break;
++				i++;
++			}
++			arg.ui = c ? i : ~0u;
++		}
+ 	} else if (ev->window == selmon->tabwin) {
+ 		i = x = 0;
+ 		for (c = selmon->clients; c && i < (unsigned int)selmon->ntabs; c = c->next) {
+@@ -537,7 +552,7 @@ buttonpress(XEvent *e)
+ 	for (i = 0; i < LENGTH(buttons); i++)
+ 		if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
+ 		&& CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state))
+-			buttons[i].func((click == ClkTagBar || click == ClkTabBar) && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
++			buttons[i].func((click == ClkTagBar || click == ClkTabBar || click == ClkWinTitle) && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
+ }
+ 
+ void
+@@ -873,6 +888,84 @@ drawchips(Monitor *m, int x, int w)
+ 	}
+ }
+ 
++/* one window in the bar's window list, from x and short of end; returns where
++ * it stops. The focused window shows its chips in colour; another shows only
++ * its directory, greyed, and the icon of an agent waiting on you, in its
++ * colour. A window without chips shows its icon and title. */
++int
++drawclient(Monitor *m, Client *c, int x, int end)
++{
++	char buf[sizeof c->chips], *chip, *text, *save = NULL;
++	int sel = c == m->sel, cx = x, iw, tw, waiting, h = bh - 2 * statusvpad;
++	unsigned int i;
++
++	if (!c->chips[0]) {
++		iw = c->icon ? c->icw + ICONSPACING : 0;
++		tw = MIN(TEXTW(c->name) - lrpad, tabmaxw);
++		if (cx + iw + tw > end)
++			tw = end - cx - iw;
++		if (tw <= 0)
++			return cx;
++		drw_setscheme(drw, scheme[sel ? SchemeTitle : SchemeNorm]);
++		drw_text(drw, cx, 0, iw + tw, bh, iw, c->name, 0);
++		if (c->icon)
++			drw_pic(drw, cx, (bh - c->ich) / 2, c->icw, c->ich, c->icon);
++		return cx + iw + tw;
++	}
++	strcpy(buf, c->chips);
++	for (chip = strtok_r(buf, "\t", &save); chip; chip = strtok_r(NULL, "\t", &save)) {
++		if (!(text = strchr(chip, '|')))
++			continue;
++		*text++ = '\0';
++		for (i = 0; i < LENGTH(chipkinds) && strcmp(chip, chipkinds[i].kind); i++);
++		if (i == LENGTH(chipkinds))
++			continue;
++		waiting = !strcmp(chip, "waiting");
++		if (!sel && !waiting && strcmp(chip, "dir"))
++			continue;
++		iw = TEXTW(chipkinds[i].icon);
++		tw = sel || !waiting ? TEXTW(text) : 0;
++		if (cx + iw + tw > end)
++			break;
++		drw_setscheme(drw, sel || waiting ? chipschemes[i] : scheme[SchemeChipDim]);
++		drw_text(drw, cx, statusvpad, iw, h, lrpad / 2, chipkinds[i].icon, 0);
++		if (tw) {
++			drw_setscheme(drw, scheme[sel ? SchemeChip : SchemeChipDim]);
++			drw_text(drw, cx + iw, statusvpad, tw, h, lrpad / 2, text, 0);
++		}
++		cx += iw + tw + 4;
++	}
++	return cx > x ? cx - 4 : cx;
++}
++
++/* every window on the shown desktops in place of the title (barlist), in
++ * the order dwm keeps them, each in a slot buttonpress reads */
++void
++drawclients(Monitor *m, int x, int w)
++{
++	Client *c;
++	int cx = x + lrpad / 2, end = x + w - lrpad / 2;
++	unsigned int tag;
++
++	drw_setscheme(drw, scheme[SchemeNorm]);
++	drw_rect(drw, x, 0, w, bh, 1, 1);
++	for (tag = 0; tag < LENGTH(tags) && !(m->tagset[m->seltags] & 1 << tag); tag++);
++	for (c = m->clients; c; c = c->next) {
++		c->barw = 0;
++		if (!ISVISIBLE(c) || cx >= end)
++			continue;
++		c->barx = cx;
++		cx = drawclient(m, c, cx, end);
++		c->barw = cx - c->barx;
++		/* the focused window underlined in the desktop's colour */
++		if (c == m->sel && c->barw && tag < LENGTH(tags)) {
++			drw_setscheme(drw, tagschemes[tag]);
++			drw_rect(drw, c->barx, bh - ulinestroke, c->barw, ulinestroke, 1, 0);
++		}
++		cx += 16;
++	}
++}
++
+ void
+ drawbar(Monitor *m)
+ {
+@@ -913,7 +1006,9 @@ drawbar(Monitor *m)
+ 	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
+ 
+ 	if ((w = m->ww - tw - x) > bh) {
+-		if (m->sel && m->sel->chips[0])
++		if (barlist)
++			drawclients(m, x, w);
++		else if (m->sel && m->sel->chips[0])
+ 			drawchips(m, x, w);
+ 		else if (m->sel) {
+ 			/* the title centred on the screen, shifted left if that would
