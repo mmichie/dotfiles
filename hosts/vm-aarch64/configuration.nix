@@ -306,7 +306,7 @@
     (st.overrideAttrs (old: {
       # suckless terminal in the Mac's terminal font, JetBrains Mono SemiBold at
       # 15px (drawn as on the Mac: fonts above), and Ghostty's colours
-      # (st/colors.diff)
+      # (st/colors.diff), bold text included (st/bold-is-not-bright.diff)
       patches = (old.patches or [ ]) ++ [
         (pkgs.writeText "font.patch" ''
           diff --git a/config.def.h b/config.def.h
@@ -317,6 +317,7 @@
           +static char *font = "JetBrainsMono Nerd Font:size=11.25:weight=semibold";
         '')
         ./st/colors.diff
+        ./st/bold-is-not-bright.diff
       ];
       # libXcursor, for themed cursors (see Cursor above)
       postFixup = (old.postFixup or "") + ''

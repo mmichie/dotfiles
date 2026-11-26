@@ -146,7 +146,7 @@ hosts/                        # Per-host configuration.nix (thin: import a base,
   tensor9-mbp/                # work nix-darwin (my.isWork = true)
   vm-aarch64/                 # NixOS VM config (DWM, UTM, aarch64-linux)
     dwm/                      # dwm's config.h (whole config, replaces config.def.h), dwm.c patches, desktops.h generator
-    st/                       # st's colour patch (Ghostty's palette)
+    st/                       # st's colour patches (Ghostty's palette, bold text not brightened)
     slstatus/                 # slstatus's config.h: the status text in dwm's bar
     dmenu/                    # dmenu's line-height patch (-h), so it matches dwm's bar
     tabbed/                   # tabbed's config.h: st's font, the tmux theme's colours
