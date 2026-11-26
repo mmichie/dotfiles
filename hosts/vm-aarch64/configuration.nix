@@ -98,11 +98,12 @@
       # dwm without closing any window or moving it off its desktop),
       # colours in the status text, the window's icon beside its title, the
       # bar's look (its height, inset status blocks, after chadwm's a colour
-      # and an icon per desktop), tabs in monocle, a system tray, and every
+      # and an icon per desktop), tabs in monocle, a system tray, every
       # window in the bar with a terminal's directory, git branch and agent
-      # as chips (published by dwm-chips, home.nix). Its tags, window rules
-      # and per-tag keys come from desktops.h, generated from the desktops
-      # shared with AeroSpace (lib/desktops.nix).
+      # as chips (published by dwm-chips, home.nix), and an empty desktop
+      # starting its app. Its tags, window rules, per-tag keys and those
+      # apps come from desktops.h, generated from the desktops shared with
+      # AeroSpace (lib/desktops.nix).
       windowManager.dwm = {
         enable = true;
         package =
@@ -122,6 +123,7 @@
               ./dwm/chadwmbar.diff
               ./dwm/chips.diff
               ./dwm/barlist.diff
+              ./dwm/launch.diff
             ];
           }).overrideAttrs
             (old: {

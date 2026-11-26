@@ -1,0 +1,40 @@
+Showing a desktop that has no windows starts its app: launch in
+desktops.h, which dwm/desktops.nix generates from the x11.exec of each
+desktop's apps in lib/desktops.nix. A desktop without one stays empty.
+Only a switch does it (view), not dwm's start or a desktop's last window
+closing. Applies after barlist.diff.
+
+diff --git a/dwm.c b/dwm.c
+index d92ca6a..e3aee07 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -202,6 +202,7 @@ static void drawbar(Monitor *m);
+ static void drawchips(Monitor *m, int x, int w);
+ static int drawclient(Monitor *m, Client *c, int x, int end);
+ static void drawclients(Monitor *m, int x, int w);
++static void launchonempty(Monitor *m);
+ static void drawbars(void);
+ static void drawtab(Monitor *m);
+ static void drawtabs(void);
+@@ -3001,6 +3002,21 @@ view(const Arg *arg)
+ 		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
+ 	focus(NULL);
+ 	arrange(selmon);
++	launchonempty(selmon);
++}
++
++/* a desktop shown with no windows starts its app: launch in desktops.h,
++ * from lib/desktops.nix */
++void
++launchonempty(Monitor *m)
++{
++	unsigned int i, ts = m->tagset[m->seltags];
++	Client *c;
++
++	for (c = m->clients; c && !(c->tags & ts); c = c->next);
++	for (i = 0; i < LENGTH(tags) && ts != 1u << i; i++);
++	if (!c && i < LENGTH(tags) && launch[i])
++		spawn(&(Arg){ .v = launch[i] });
+ }
+ 
+ Client *

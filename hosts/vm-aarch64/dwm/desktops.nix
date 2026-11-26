@@ -28,6 +28,16 @@ let
     ) desktops
   );
   floatingRules = map (app: rule app.x11 "0" true) (lib.filter (app: app ? x11) floating);
+
+  # What showing an empty desktop starts (dwm/launch.diff): the x11.exec of
+  # the first of its apps with one
+  launchOf = d: lib.findFirst (app: app ? x11.exec) null (apps.${d} or [ ]);
+  launchArgv =
+    d:
+    "static const char *launch_${d}[] = { ${
+      lib.concatMapStringsSep ", " cstr (launchOf d).x11.exec
+    }, NULL };";
+  launchEntry = d: if launchOf d == null then "NULL" else "launch_${d}";
 in
 writeText "desktops.h" ''
   /* Generated from lib/desktops.nix by hosts/vm-aarch64/dwm/desktops.nix. */
@@ -38,6 +48,10 @@ writeText "desktops.h" ''
   	/* class, instance, title, tags mask, isfloating, monitor */
   ${lib.concatStringsSep "\n" (desktopRules ++ floatingRules)}
   };
+
+  /* what showing an empty desktop starts (launch.diff), by desktop */
+  ${lib.concatMapStringsSep "\n" launchArgv (lib.filter (d: launchOf d != null) desktops)}
+  static const char *const *launch[] = { ${lib.concatMapStringsSep ", " launchEntry desktops} };
 
   /* Mod+N shows desktop N, Mod+Shift+N moves the window there (TAGKEYS) */
   #define DESKTOPKEYS \

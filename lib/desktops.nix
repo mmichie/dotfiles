@@ -30,7 +30,10 @@ let
   # needs only the platforms it runs on:
   #   macos  its bundle id, as `aerospace list-apps` prints it
   #   x11    its WM_CLASS, as `xprop WM_CLASS` prints it (instance first,
-  #          then class), given as { class = ...; } or { instance = ...; }
+  #          then class), given as { class = ...; } or { instance = ...; };
+  #          and exec, a command as a list of arguments, which dwm runs
+  #          when you switch to the desktop and it has no windows (the first
+  #          app on a desktop with one)
   #   tile   make AeroSpace tile it rather than float it (macOS only)
   apps = {
     "1" = [
@@ -46,7 +49,15 @@ let
         tile = true;
       }
       { macos = "com.utmapp.UTM"; }
-      { x11.class = "st-256color"; }
+      {
+        x11.class = "st-256color";
+        # as Mod+Shift+Return (hosts/vm-aarch64/dwm/config.h)
+        x11.exec = [
+          "/bin/sh"
+          "-c"
+          "exec st -e \"$HOME/bin/tmux-attach-or-new\""
+        ];
+      }
       # st in tabbed (Mod+Shift+T in hosts/vm-aarch64/dwm/config.h)
       { x11.class = "tabbed"; }
     ];
@@ -56,6 +67,7 @@ let
       {
         macos = "com.google.Chrome";
         x11.instance = "google-chrome";
+        x11.exec = [ "google-chrome-stable" ];
         tile = true;
       }
     ];
@@ -73,6 +85,7 @@ let
         macos = "com.tinyspeck.slackmacgap";
         # the VM's `slack`: Slack's web app in a Chrome app window
         x11.instance = "app.slack.com__client";
+        x11.exec = [ "slack" ];
       }
     ];
     "5" = [
