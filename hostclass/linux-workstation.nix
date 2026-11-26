@@ -7,6 +7,10 @@
       # with GNU ar ("64-bit mach-o not 8-byte aligned"), which breaks native
       # builds outside nix.
       binutils
+      # cc, which the tree-sitter CLI (packages-dev.nix) calls to build the
+      # grammars nvim-treesitter installs. macOS has Xcode's; without one
+      # here every grammar failed to build and nvim stopped at startup.
+      gcc
       # macOS gets Ghostty from Homebrew instead (modules/darwin/homebrew.nix);
       # nixpkgs builds this package for Linux only. WezTerm, which it does
       # build for both, is in packages-dev.nix.
