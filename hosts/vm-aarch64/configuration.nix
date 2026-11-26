@@ -195,6 +195,14 @@
     # starts with the X session above.
     spice-vdagentd.enable = true;
 
+    # ── Scrolling ──────────────────────────────────────────────────
+    # Natural scrolling for UTM's pointer, "Apple Inc. Virtual USB
+    # Digitizer" (a mouse to udev), which carries the Mac's mouse and
+    # trackpad alike. The Mac reverses its mouse wheel with Scroll
+    # Reverser, which the guest never sees, so without this the wheel
+    # scrolled backwards here.
+    libinput.mouse.naturalScrolling = true;
+
     # ── mDNS ───────────────────────────────────────────────────────
     # Announce vm-aarch64.local. UTM's shared network hands out the address
     # by DHCP, so the Mac's `ssh vm` alias uses this name rather than a number.
