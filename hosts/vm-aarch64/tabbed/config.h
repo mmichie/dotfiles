@@ -11,7 +11,7 @@
  */
 
 /* appearance */
-static const char font[]        = "Hack Nerd Font:size=11"; /* st's font */
+static const char font[]        = "JetBrainsMono Nerd Font:size=11.25:weight=semibold"; /* st's font */
 static const char* normbgcolor  = "#1c1c1c"; /* colour234 */
 static const char* normfgcolor  = "#8a8a8a"; /* colour245 */
 static const char* selbgcolor   = "#00afff"; /* colour39 */

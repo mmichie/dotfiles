@@ -10,7 +10,7 @@ configuration {
 	modi: "drun,run,window";
 	show-icons: true;
 	icon-theme: "Adwaita";
-	font: "Hack Nerd Font 11";
+	font: "JetBrainsMono Nerd Font Semi-Bold 11.25"; /* st's font */
 	display-drun: "apps";
 	display-run: "run";
 	display-window: "windows";

@@ -135,6 +135,13 @@
           Xft.dpi: 96
           XEOF
 
+          # FreeType's stem darkening, for every glyph its autohinter draws,
+          # which light hinting uses for most fonts: JetBrains Mono, which
+          # fontconfig autohints (fonts below), comes out as heavy as on the
+          # Mac, and DejaVu or Liberation about 8% heavier than without it.
+          # Everything started from this session inherits it.
+          export FREETYPE_PROPERTIES="autofitter:no-stem-darkening=0"
+
           # Keep the display on. X blanked it and powered the virtual monitor
           # off after ten idle minutes, and the guest sees input only while
           # its UTM window has focus, so it went black in plain view while the
@@ -239,6 +246,28 @@
     # the display: use "bgr" for a reversed stripe, "none" if the guest is
     # scaled or on a Retina or OLED panel.
     fontconfig.subpixel.rgba = "rgb";
+
+    # Except JetBrains Mono, the desktop's font (dwm, dmenu, st, tabbed,
+    # dunst and rofi ask for it at 15px, SemiBold), drawn the way the Mac's
+    # Ghostty draws it with font-thicken: greyscale, lightly autohinted, and
+    # thickened by FreeType's stem darkening (FREETYPE_PROPERTIES, set with
+    # the X session above). Measured against a screenshot of Ghostty on the
+    # Mac, the same line lays down the same amount of ink, 100%, where Hack
+    # as rendered before came to 62%.
+    fontconfig.localConf = ''
+      <?xml version="1.0"?>
+      <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+      <fontconfig>
+        <match target="font">
+          <test name="family"><string>JetBrainsMono Nerd Font</string></test>
+          <edit name="antialias" mode="assign"><bool>true</bool></edit>
+          <edit name="rgba" mode="assign"><const>none</const></edit>
+          <edit name="hinting" mode="assign"><bool>true</bool></edit>
+          <edit name="hintstyle" mode="assign"><const>hintslight</const></edit>
+          <edit name="autohint" mode="assign"><bool>true</bool></edit>
+        </match>
+      </fontconfig>
+    '';
   };
 
   # ── Cursor ─────────────────────────────────────────────────────
@@ -275,7 +304,9 @@
     wget
     curl
     (st.overrideAttrs (old: {
-      # suckless terminal with Nerd Font, in Ghostty's colours (st/colors.diff)
+      # suckless terminal in the Mac's terminal font, JetBrains Mono SemiBold at
+      # 15px (drawn as on the Mac: fonts above), and Ghostty's colours
+      # (st/colors.diff)
       patches = (old.patches or [ ]) ++ [
         (pkgs.writeText "font.patch" ''
           diff --git a/config.def.h b/config.def.h
@@ -283,7 +314,7 @@
           +++ b/config.def.h
           @@ -7,1 +7,1 @@
           -static char *font = "Liberation Mono:pixelsize=12:antialias=true:autohint=true";
-          +static char *font = "Hack Nerd Font:size=11:antialias=true:autohint=false";
+          +static char *font = "JetBrainsMono Nerd Font:size=11.25:weight=semibold";
         '')
         ./st/colors.diff
       ];

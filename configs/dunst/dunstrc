@@ -4,12 +4,13 @@
 # (hosts/vm-aarch64/configuration.nix); `dunstctl reload` picks up an edit.
 
 [global]
-    font = "Hack Nerd Font 11"
+    # st's font, JetBrains Mono SemiBold at 15px
+    font = "JetBrainsMono Nerd Font Semi-Bold 11.25"
 
-    # Top right, below dwm's 28px bar, 10px from the screen's edge and from
+    # Top right, below dwm's 31px bar, 10px from the screen's edge and from
     # the bar: the gap dwm leaves around windows (gappx).
     origin = top-right
-    offset = (10, 38)
+    offset = (10, 41)
     width = 360
     height = (0, 300)
     notification_limit = 5

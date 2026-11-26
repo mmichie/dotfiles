@@ -18,12 +18,14 @@ static const unsigned int snap      = 32;       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 /* the bar's look (barstyle.diff) */
-static const int vertpadbar         = 8;        /* height beyond the font's: 28px with Hack at 11pt */
+static const int vertpadbar         = 8;        /* height beyond the font's: 31px with JetBrains Mono at 15px */
 static const int statusvpad         = 4;        /* status blocks stop this short of its top and bottom */
 static const int ulinepad           = 5;        /* the selected tag's underline: inset from the tag's sides */
 static const int ulinestroke        = 2;        /* and its thickness */
-static const char *fonts[]          = { "Hack Nerd Font:size=11" }; /* st's font */
-static const char dmenufont[]       = "Hack Nerd Font:size=11";
+/* st's font: JetBrains Mono SemiBold at 15px, drawn as on the Mac (fontconfig
+ * in configuration.nix) */
+static const char *fonts[]          = { "JetBrainsMono Nerd Font:size=11.25:weight=semibold" };
+static const char dmenufont[]       = "JetBrainsMono Nerd Font:size=11.25:weight=semibold";
 static const char col_bar[]         = "#1c1c1c"; /* colour234 */
 static const char col_text[]        = "#8a8a8a"; /* colour245 */
 static const char col_title[]       = "#e4e4e4"; /* colour254 */
