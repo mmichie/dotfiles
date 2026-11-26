@@ -34,7 +34,7 @@ window {
 	background-color: @bar;
 	border: 2px;
 	border-color: @accent;
-	/* picom's corner radius (configs/picom/picom.conf) */
+	/* as dunst's (configs/dunst/dunstrc) */
 	border-radius: 8px;
 	padding: 14px;
 }

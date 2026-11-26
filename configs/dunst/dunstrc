@@ -19,7 +19,7 @@
     horizontal_padding = 14
     frame_width = 2
     separator_color = frame
-    # picom's corner radius (configs/picom/picom.conf)
+    # as rofi's (configs/rofi/config.rasi)
     corner_radius = 8
 
     markup = full

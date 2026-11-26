@@ -150,7 +150,7 @@ hosts/                        # Per-host configuration.nix (thin: import a base,
     slstatus/                 # slstatus's config.h: the status text in dwm's bar
     dmenu/                    # dmenu's line-height patch (-h), so it matches dwm's bar
     tabbed/                   # tabbed's config.h: st's font, the tmux theme's colours
-    home.nix                  # the VM's own home config: links configs/{dunst,picom,rofi}, terminal toys
+    home.nix                  # the VM's own home config: links configs/{dunst,rofi}, terminal toys
 hostclass/
   darwin-workstation.nix      # macOS-specific home config (karabiner)
   linux-workstation.nix       # Linux-specific home config (clipboard tools, git signing, Linux-only counterparts of casks)
@@ -159,7 +159,7 @@ modules/darwin/               # workstation-base.nix (shared macOS base), homebr
 modules/home/                 # options, lib, packages-core/dev, shell, git, editor, terminal, secrets, secrets-darwin, aerospace (generated config)
 configs/                      # Raw config files (symlinked by home-manager)
   claude/ ghostty/ git/ karabiner/ nvim/ ssh/ system/ tmux/ wezterm/ zsh/
-  dunst/ picom/ rofi/           # the VM's X desktop (linked by hosts/vm-aarch64/home.nix)
+  dunst/ rofi/                  # the VM's X desktop (linked by hosts/vm-aarch64/home.nix)
   aerospace/                  # superseded by modules/home/aerospace.nix; still the live config until each Mac switches
 bin/                          # Personal scripts
 .github/workflows/            # CI: flake check + fmt + lint + zsh tests (push), weekly linux bootstrap rehearsal

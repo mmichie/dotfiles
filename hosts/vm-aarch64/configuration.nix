@@ -161,10 +161,9 @@
           # above; without it a bigger root window would tile the old image.
           ${lib.getExe pkgs.xwallpaper} --daemon --zoom ${pkgs.nixos-artwork.wallpapers.nineish-dark-gray.gnomeFilePath}
 
-          # The compositor, for shadows, rounded corners and fades, and the
-          # notifications, both in the bar's colours (configs/picom,
-          # configs/dunst, linked by home.nix).
-          ${lib.getExe pkgs.picom} &
+          # Notifications, in the bar's colours (configs/dunst, linked by
+          # home.nix). No compositor: picom, tried here, left terminals
+          # undrawn after a switch of desktops.
           ${lib.getExe pkgs.dunst} &
 
           # dwm's status text: CPU, memory and disk use, date and time, each
@@ -300,9 +299,8 @@
     rofi
     # Tabs around st, Mod+Shift+T, in the tmux theme's colours
     (tabbed.override { customConfig = builtins.readFile ./tabbed/config.h; })
-    # Started with the X session above; here for dunstctl and picom's tools
+    # Started with the X session above; here for dunstctl
     dunst
-    picom
     # Google's own arm64 build (unfree, allowed above), so not in the
     # binary cache: a switch fetches the .deb from Google and repackages it.
     # dmenu finds it as google-chrome-stable.

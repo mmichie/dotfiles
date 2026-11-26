@@ -5,10 +5,9 @@
 { mkLink, pkgs, ... }:
 {
   xdg.configFile = {
-    # Notifications and the compositor, both started with the X session
-    # (configuration.nix), and the launcher.
+    # Notifications, started with the X session (configuration.nix), and
+    # the launcher.
     "dunst".source = mkLink "dunst";
-    "picom".source = mkLink "picom";
     "rofi".source = mkLink "rofi";
   };
 
