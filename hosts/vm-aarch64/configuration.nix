@@ -95,11 +95,12 @@
       # Super as the modifier and the look (colours, font, borders, gaps).
       # The patches add what a config.h cannot: gaps, a colour scheme of
       # its own for the window title, restarting in place (which loads a new
-      # dwm without closing any window), colours in the status text, the
-      # title centred on the screen, and the bar's look (its height, inset
-      # status blocks, tags drawn by state). Its tags, window rules
-      # and per-tag keys come from desktops.h, generated from the desktops
-      # shared with AeroSpace (lib/desktops.nix).
+      # dwm without closing any window or moving it off its desktop),
+      # colours in the status text, the title centred on the screen with
+      # its window's icon, the bar's look (its height, inset status blocks,
+      # tags drawn by state), tabs in monocle, and a system tray. Its tags,
+      # window rules and per-tag keys come from desktops.h, generated from
+      # the desktops shared with AeroSpace (lib/desktops.nix).
       windowManager.dwm = {
         enable = true;
         package =
@@ -112,6 +113,10 @@
               ./dwm/status2d.diff
               ./dwm/centeredwindowname.diff
               ./dwm/barstyle.diff
+              ./dwm/preserveonrestart.diff
+              ./dwm/winicon.diff
+              ./dwm/tab.diff
+              ./dwm/systray.diff
             ];
           }).overrideAttrs
             (old: {
@@ -121,6 +126,12 @@
                 ${old.postPatch}
                 cp ${pkgs.callPackage ./dwm/desktops.nix { }} desktops.h
               '';
+              # XRender and Imlib2, which scale and draw the window icons
+              # (dwm/winicon.diff)
+              buildInputs = old.buildInputs ++ [
+                pkgs.libxrender
+                pkgs.imlib2
+              ];
               # libXcursor, for themed cursors (see Cursor below)
               postFixup = (old.postFixup or "") + ''
                 patchelf --add-needed libXcursor.so.1 --add-rpath ${lib.getLib pkgs.libxcursor}/lib $out/bin/dwm

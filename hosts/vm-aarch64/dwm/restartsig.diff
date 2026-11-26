@@ -1,10 +1,9 @@
 Restart dwm in place, keeping every window: Mod+Ctrl+Shift+Q (config.h)
 or SIGHUP, while SIGTERM quits cleanly. dwm execs itself by the name it
 was started with, and the session starts it as plain `dwm`, so a restart
-runs whatever dwm the last switch installed. Windows the rules place go
-back to their desktops; the rest land on the first one, and layouts
-start over. Upstream's restartsig patch, with 6.8's sigaction in place
-of signal().
+runs whatever dwm the last switch installed. Windows go back to the
+desktops they were on (preserveonrestart.diff), and layouts start over.
+Upstream's restartsig patch, with 6.8's sigaction in place of signal().
 
 A signal only sets a flag, which dwm reads between X events, so a SIGHUP
 takes effect at the next one: at the latest slstatus's next update, a

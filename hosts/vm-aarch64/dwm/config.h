@@ -22,6 +22,20 @@ static const int vertpadbar         = 8;        /* height beyond the font's: 31p
 static const int statusvpad         = 4;        /* status blocks stop this short of its top and bottom */
 static const int ulinepad           = 5;        /* the selected tag's underline: inset from the tag's sides */
 static const int ulinestroke        = 2;        /* and its thickness */
+#define ICONSIZE    16  /* window icons beside the title (winicon.diff) */
+#define ICONSPACING 8   /* and the gap between icon and title */
+/* monocle tabs (tab.diff): never, in monocle with more than one window
+ * (showtab_auto), or always */
+enum showtab_modes { showtab_never, showtab_auto, showtab_always };
+static const int showtab            = showtab_auto;
+static const int toptab             = 1;        /* tabs under the bar, not at the screen's foot */
+static const int tabmaxw            = 400;      /* a tab's widest */
+/* the system tray (systray.diff), at the bar's right end */
+static const int showsystray        = 1;
+static const unsigned int systraypinning = 0;   /* 0: the tray follows the selected monitor; n: pinned to monitor n */
+static const int systraypinningfailfirst = 1;   /* pinned to a monitor that isn't there: 1 the first, 0 the last */
+static const unsigned int systrayspacing = 8;   /* between icons, and at either end */
+static const int systrayiconsize    = 18;       /* an icon's height */
 /* st's font: JetBrains Mono SemiBold at 15px, drawn as on the Mac (fontconfig
  * in configuration.nix) */
 static const char *fonts[]          = { "JetBrainsMono Nerd Font:size=11.25:weight=semibold" };
@@ -181,6 +195,7 @@ static const Button buttons[] = {
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
+	{ ClkTabBar,            0,              Button1,        focuswin,       {0} },
 	{ ClkTagBar,            0,              Button1,        view,           {0} },
 	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
 	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },

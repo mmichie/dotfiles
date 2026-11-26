@@ -1,0 +1,107 @@
+Windows keep their desktops across a restart (restartsig.diff): dwm keeps
+each window's tags and monitor in a _NET_CLIENT_INFO property on the
+window, set whenever they change, and manage() puts a window that has one
+back where it was, over what the rules say. Upstream's preserveonrestart
+patch, except that the property is freed whenever X returns one: upstream
+freed it only when it held items.
+
+diff --git a/dwm.c b/dwm.c
+index dba8bcf..c6604db 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -61,7 +61,7 @@ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+ enum { SchemeNorm, SchemeSel, SchemeTitle, SchemeVacant, SchemeTagSel }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+-       NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
++       NetWMWindowTypeDialog, NetClientList, NetClientInfo, NetLast }; /* EWMH atoms */
+ enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
+ enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
+        ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
+@@ -198,6 +198,7 @@ static void scan(void);
+ static int sendevent(Client *c, Atom proto);
+ static void sendmon(Client *c, Monitor *m);
+ static void setclientstate(Client *c, long state);
++static void setclienttagprop(Client *c);
+ static void setfocus(Client *c);
+ static void setfullscreen(Client *c, int fullscreen);
+ static void setlayout(const Arg *arg);
+@@ -1171,6 +1172,28 @@ manage(Window w, XWindowAttributes *wa)
+ 		c->mon = selmon;
+ 		applyrules(c);
+ 	}
++	/* a window dwm managed before, as in a restart, goes back to the tags
++	 * and monitor it had then (setclienttagprop) */
++	{
++		int format;
++		unsigned long *data, n, extra;
++		Monitor *m;
++		Atom atom;
++
++		if (XGetWindowProperty(dpy, c->win, netatom[NetClientInfo], 0L, 2L, False, XA_CARDINAL,
++				&atom, &format, &n, &extra, (unsigned char **)&data) == Success && data) {
++			if (n == 2 && (data[0] & TAGMASK)) {
++				c->tags = data[0] & TAGMASK;
++				for (m = mons; m; m = m->next)
++					if (m->num == (int)data[1]) {
++						c->mon = m;
++						break;
++					}
++			}
++			XFree(data);
++		}
++	}
++	setclienttagprop(c);
+ 
+ 	if (c->x + WIDTH(c) > c->mon->wx + c->mon->ww)
+ 		c->x = c->mon->wx + c->mon->ww - WIDTH(c);
+@@ -1550,6 +1573,7 @@ sendmon(Client *c, Monitor *m)
+ 	c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
+ 	attach(c);
+ 	attachstack(c);
++	setclienttagprop(c);
+ 	focus(NULL);
+ 	arrange(NULL);
+ }
+@@ -1563,6 +1587,17 @@ setclientstate(Client *c, long state)
+ 		PropModeReplace, (unsigned char *)data, 2);
+ }
+ 
++/* the client's tags and monitor, kept on its window so that a restart, or
++ * another dwm, finds them in manage() */
++void
++setclienttagprop(Client *c)
++{
++	long data[] = { (long) c->tags, (long) c->mon->num };
++
++	XChangeProperty(dpy, c->win, netatom[NetClientInfo], XA_CARDINAL, 32,
++		PropModeReplace, (unsigned char *) data, 2);
++}
++
+ int
+ sendevent(Client *c, Atom proto)
+ {
+@@ -1708,6 +1743,7 @@ setup(void)
+ 	netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
+ 	netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+ 	netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
++	netatom[NetClientInfo] = XInternAtom(dpy, "_NET_CLIENT_INFO", False);
+ 	/* init cursors */
+ 	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
+ 	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
+@@ -1815,6 +1851,7 @@ tag(const Arg *arg)
+ {
+ 	if (selmon->sel && arg->ui & TAGMASK) {
+ 		selmon->sel->tags = arg->ui & TAGMASK;
++		setclienttagprop(selmon->sel);
+ 		focus(NULL);
+ 		arrange(selmon);
+ 	}
+@@ -1889,6 +1926,7 @@ toggletag(const Arg *arg)
+ 	newtags = selmon->sel->tags ^ (arg->ui & TAGMASK);
+ 	if (newtags) {
+ 		selmon->sel->tags = newtags;
++		setclienttagprop(selmon->sel);
+ 		focus(NULL);
+ 		arrange(selmon);
+ 	}
