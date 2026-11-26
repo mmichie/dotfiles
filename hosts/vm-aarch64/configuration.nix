@@ -88,8 +88,9 @@
       # Super as the modifier and the look (colours, font, borders, gaps).
       # The patches add what a config.h cannot: gaps, a colour scheme of
       # its own for the window title, restarting in place (which loads a new
-      # dwm without closing any window), colours in the status text, and the
-      # title centred on the screen. Its tags, window rules
+      # dwm without closing any window), colours in the status text, the
+      # title centred on the screen, and the bar's look (its height, inset
+      # status blocks, tags drawn by state). Its tags, window rules
       # and per-tag keys come from desktops.h, generated from the desktops
       # shared with AeroSpace (lib/desktops.nix).
       windowManager.dwm = {
@@ -103,6 +104,7 @@
               ./dwm/restartsig.diff
               ./dwm/status2d.diff
               ./dwm/centeredwindowname.diff
+              ./dwm/barstyle.diff
             ];
           }).overrideAttrs
             (old: {
@@ -160,8 +162,8 @@
           ${lib.getExe pkgs.xwallpaper} --daemon --zoom ${pkgs.nixos-artwork.wallpapers.nineish-dark-gray.gnomeFilePath}
 
           # dwm's status text: CPU, memory and disk use, date and time, each
-          # after a label or icon in the bar's accent, refreshed every second
-          # (slstatus/config.h).
+          # a label or icon on the bar's accent beside its value on grey,
+          # refreshed every second (slstatus/config.h).
           ${lib.getExe (pkgs.slstatus.override { conf = ./slstatus/config.h; })} &
         '';
       };
@@ -286,7 +288,8 @@
       '';
     }))
     adwaita-icon-theme # the cursor theme (xdg.icons above)
-    dmenu # DWM launcher
+    # DWM launcher; -h, which dwm passes, makes its line as tall as the bar
+    (dmenu.override { patches = [ ./dmenu/lineheight.diff ]; })
     # Google's own arm64 build (unfree, allowed above), so not in the
     # binary cache: a switch fetches the .deb from Google and repackages it.
     # dmenu finds it as google-chrome-stable.

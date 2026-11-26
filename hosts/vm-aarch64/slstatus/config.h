@@ -6,15 +6,19 @@
  * package copies this file over config.def.h. The functions args[] can use
  * are listed in that config.def.h.
  *
- * Each value follows a label or icon in the bar's accent, #00afff
- * (col_accent in dwm/config.h), through status2d's codes
- * (dwm/status2d.diff): ^c#rrggbb^ sets the colour and ^d^ goes back to the
- * bar's grey text for the value.
+ * Each value sits in blocks of tmux's colours, through status2d's codes
+ * (dwm/status2d.diff): its label or icon black on the bar's accent, #00afff
+ * (col_accent in dwm/config.h), then the value in colour254 on colour238,
+ * like the blocks of tmux's status line. ^b#rrggbb^ sets the background,
+ * ^c#rrggbb^ the text, ^d^ goes back to the bar's own colours, and ^f10^
+ * skips 10px, the gap after each item: as wide as the gaps between windows
+ * (gappx in dwm/config.h). dwm draws the blocks a little short of the bar's
+ * top and bottom (statusvpad, dwm/barstyle.diff).
  *
  * The percentages carry the words chevron's banner uses for them (CPU, MEM,
  * DSK): their icons, a chip, a memory module and a disk, were hard to tell
- * apart at the bar's 20px. The date and time keep icons, both from one Nerd
- * Font set, Material Design, whose glyphs share a size (mixed sets overhang
+ * apart in the bar. The date and time keep icons, both from one Nerd Font
+ * set, Material Design, whose glyphs share a size (mixed sets overhang
  * their cell unevenly). They are spelled as UTF-8 bytes, since few editors
  * show private-use characters.
  */
@@ -28,15 +32,17 @@ static const char unknown_str[] = "n/a";
 /* maximum output string length */
 #define MAXLEN 2048
 
-#define ACCENT(s) "^c#00afff^" s "^d^ "
-#define CAL   ACCENT("\xf3\xb0\xb8\x97") /* U+F0E17 md-calendar_month */
-#define CLOCK ACCENT("\xf3\xb0\x85\x90") /* U+F0150 md-clock_outline */
+#define LABEL(s) "^b#00afff^^c#000000^ " s " "  /* colour16 on the accent */
+#define VALUE    "^b#444444^^c#e4e4e4^ "        /* colour254 on colour238 */
+#define END      " ^d^^f10^"
+#define CAL   "\xf3\xb0\xb8\x97" /* U+F0E17 md-calendar_month */
+#define CLOCK "\xf3\xb0\x85\x90" /* U+F0150 md-clock_outline */
 
 static const struct arg args[] = {
-	/* function  format                        argument */
-	{ cpu_perc,  " " ACCENT("CPU") "%s%%",     NULL },
-	{ ram_perc,  "    " ACCENT("MEM") "%s%%",  NULL },
-	{ disk_perc, "    " ACCENT("DSK") "%s%%",  "/" },
-	{ datetime,  "    " CAL "%s",              "%a %d %b" },
-	{ datetime,  "    " CLOCK "%s ",           "%R" },
+	/* function  format                          argument */
+	{ cpu_perc,  LABEL("CPU") VALUE "%s%%" END,  NULL },
+	{ ram_perc,  LABEL("MEM") VALUE "%s%%" END,  NULL },
+	{ disk_perc, LABEL("DSK") VALUE "%s%%" END,  "/" },
+	{ datetime,  LABEL(CAL) VALUE "%s" END,      "%a %d %b" },
+	{ datetime,  LABEL(CLOCK) VALUE "%s" END,    "%R" },
 };

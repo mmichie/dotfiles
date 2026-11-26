@@ -17,6 +17,11 @@ static const unsigned int gappx     = 10;       /* gap between and around tiled 
 static const unsigned int snap      = 32;       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
+/* the bar's look (barstyle.diff) */
+static const int vertpadbar         = 8;        /* height beyond the font's: 28px with Hack at 11pt */
+static const int statusvpad         = 4;        /* status blocks stop this short of its top and bottom */
+static const int ulinepad           = 5;        /* the selected tag's underline: inset from the tag's sides */
+static const int ulinestroke        = 2;        /* and its thickness */
 static const char *fonts[]          = { "Hack Nerd Font:size=11" }; /* st's font */
 static const char dmenufont[]       = "Hack Nerd Font:size=11";
 static const char col_bar[]         = "#1c1c1c"; /* colour234 */
@@ -31,6 +36,11 @@ static const char *colors[][3]      = {
 	[SchemeSel]   = { col_onaccent, col_accent, col_accent },
 	/* the focused window's title (titlescheme.diff); stock dwm uses SchemeSel */
 	[SchemeTitle] = { col_title,    col_bar,    col_border },
+	/* tags (barstyle.diff): the selected one bright over an accent underline
+	 * (SchemeSel's background), those with windows in SchemeNorm, empty ones
+	 * dimmed */
+	[SchemeTagSel] = { col_title,   col_bar,    col_accent },
+	[SchemeVacant] = { col_border,  col_bar,    col_border },
 };
 
 /* tagging: the tags, the window rules and DESKTOPKEYS (the per-tag keys, used
@@ -96,7 +106,8 @@ spawnreleased(const Arg *arg)
 
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_bar, "-nf", col_title, "-sb", col_accent, "-sf", col_onaccent, NULL };
+static char dmenuheight[4];    /* component of dmenucmd: the bar's height, written in setup() (barstyle.diff) */
+static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-h", dmenuheight, "-fn", dmenufont, "-nb", col_bar, "-nf", col_title, "-sb", col_accent, "-sf", col_onaccent, NULL };
 static const char *termcmd[]  = { "st", NULL };
 
 static const Key keys[] = {

@@ -1,6 +1,6 @@
 Draw the focused window's title in its own scheme, SchemeTitle (config.h),
-rather than SchemeSel. With SchemeSel as a solid accent block for the
-selected tag, the title would otherwise be one accent band across the bar.
+rather than SchemeSel, the accent block stock dwm also gives the selected
+tag: the title would otherwise be one accent band across the bar.
 
 --- a/dwm.c
 +++ b/dwm.c
