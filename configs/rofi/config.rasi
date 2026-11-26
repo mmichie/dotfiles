@@ -1,0 +1,97 @@
+/*
+ * rofi for the vm-aarch64 guest (Mod+R, hosts/vm-aarch64/dwm/config.h):
+ * apps, commands and open windows, in dwm's colours, the xterm-256 values of
+ * the tmux theme. The search field is two blocks like the status text's
+ * (hosts/vm-aarch64/slstatus/config.h): the mode on the accent, what you
+ * type on colour238. The selected entry is black on the accent, as in dmenu.
+ * rofi reads this file each time it opens.
+ */
+configuration {
+	modi: "drun,run,window";
+	show-icons: true;
+	icon-theme: "Adwaita";
+	font: "Hack Nerd Font 11";
+	display-drun: "apps";
+	display-run: "run";
+	display-window: "windows";
+	drun-display-format: "{name}";
+}
+
+* {
+	bar:      #1c1c1c; /* colour234 */
+	text:     #8a8a8a; /* colour245 */
+	bright:   #e4e4e4; /* colour254 */
+	block:    #444444; /* colour238 */
+	accent:   #00afff; /* colour39 */
+	onaccent: #000000; /* colour16 */
+
+	background-color: transparent;
+	text-color: @bright;
+}
+
+window {
+	width: 640px;
+	background-color: @bar;
+	border: 2px;
+	border-color: @accent;
+	/* picom's corner radius (configs/picom/picom.conf) */
+	border-radius: 8px;
+	padding: 14px;
+}
+
+mainbox {
+	spacing: 12px;
+	children: [ inputbar, listview ];
+}
+
+inputbar {
+	spacing: 0;
+	children: [ prompt, entry ];
+}
+
+prompt {
+	background-color: @accent;
+	text-color: @onaccent;
+	padding: 4px 10px;
+}
+
+entry {
+	background-color: @block;
+	text-color: @bright;
+	padding: 4px 10px;
+	placeholder: "type to filter";
+	placeholder-color: @text;
+}
+
+listview {
+	lines: 8;
+	spacing: 2px;
+	scrollbar: false;
+	fixed-height: false;
+}
+
+element {
+	padding: 5px 10px;
+	spacing: 10px;
+}
+
+element normal.normal, element alternate.normal {
+	background-color: transparent;
+	text-color: @text;
+}
+
+element selected.normal {
+	background-color: @accent;
+	text-color: @onaccent;
+}
+
+element-icon {
+	size: 20px;
+	background-color: transparent;
+}
+
+element-text {
+	background-color: transparent;
+	text-color: inherit;
+	vertical-align: 0.5;
+}

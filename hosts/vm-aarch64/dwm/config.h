@@ -80,11 +80,12 @@ static const Layout layouts[] = {
 /* Cmd+C and Cmd+V copy and paste, as on the Mac. Command reaches the guest as
  * Super, which no X application reads as copy or paste, so dwm takes the two
  * chords and sends the focused window its own: Ctrl+Shift+C/V to the
- * terminals (st, WezTerm, Ghostty, by window class), where Ctrl+C is the
- * interrupt, and Ctrl+C/V to everything else. --clearmodifiers lifts the held
- * Super while it types, so the window sees only that chord. */
+ * terminals (st, WezTerm, Ghostty, and st in tabbed, by window class),
+ * where Ctrl+C is the interrupt, and Ctrl+C/V to everything else.
+ * --clearmodifiers lifts the held Super while it types, so the window sees
+ * only that chord. */
 #define CLIPKEY(k) SHCMD("case \"$(xdotool getactivewindow getwindowclassname)\" in " \
-	"st-256color|org.wezfurlong.wezterm|com.mitchellh.ghostty) " \
+	"st-256color|org.wezfurlong.wezterm|com.mitchellh.ghostty|tabbed) " \
 	"xdotool key --clearmodifiers ctrl+shift+" k " ;; " \
 	"*) xdotool key --clearmodifiers ctrl+" k " ;; esac")
 
@@ -109,11 +110,18 @@ static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() 
 static char dmenuheight[4];    /* component of dmenucmd: the bar's height, written in setup() (barstyle.diff) */
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-h", dmenuheight, "-fn", dmenufont, "-nb", col_bar, "-nf", col_title, "-sb", col_accent, "-sf", col_onaccent, NULL };
 static const char *termcmd[]  = { "st", NULL };
+/* rofi's app launcher (configs/rofi/config.rasi); Ctrl+Tab switches to its
+ * other modes, commands and windows */
+static const char *roficmd[]  = { "rofi", "-show", "drun", NULL };
+/* st in tabbed, which closes with its last tab (tabbed/config.h) */
+static const char *tabbedcmd[] = { "tabbed", "-c", "-r", "2", "st", "-w", "", NULL };
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
+	{ MODKEY,                       XK_r,      spawn,          {.v = roficmd } },
+	{ MODKEY|ShiftMask,             XK_t,      spawn,          {.v = tabbedcmd } },
 	{ MODKEY,                       XK_c,      spawnreleased,  CLIPKEY("c") },
 	{ MODKEY,                       XK_v,      spawnreleased,  CLIPKEY("v") },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },

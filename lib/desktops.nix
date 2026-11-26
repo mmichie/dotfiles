@@ -35,6 +35,8 @@ let
       }
       { macos = "com.utmapp.UTM"; }
       { x11.class = "st-256color"; }
+      # st in tabbed (Mod+Shift+T in hosts/vm-aarch64/dwm/config.h)
+      { x11.class = "tabbed"; }
     ];
     "2" = [
       # By instance on X11: Chrome's app windows (Slack below) share its

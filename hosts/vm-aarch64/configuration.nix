@@ -161,6 +161,12 @@
           # above; without it a bigger root window would tile the old image.
           ${lib.getExe pkgs.xwallpaper} --daemon --zoom ${pkgs.nixos-artwork.wallpapers.nineish-dark-gray.gnomeFilePath}
 
+          # The compositor, for shadows, rounded corners and fades, and the
+          # notifications, both in the bar's colours (configs/picom,
+          # configs/dunst, linked by home.nix).
+          ${lib.getExe pkgs.picom} &
+          ${lib.getExe pkgs.dunst} &
+
           # dwm's status text: CPU, memory and disk use, date and time, each
           # a label or icon on the bar's accent beside its value on grey,
           # refreshed every second (slstatus/config.h).
@@ -290,6 +296,13 @@
     adwaita-icon-theme # the cursor theme (xdg.icons above)
     # DWM launcher; -h, which dwm passes, makes its line as tall as the bar
     (dmenu.override { patches = [ ./dmenu/lineheight.diff ]; })
+    # The themed launcher, Mod+R (configs/rofi)
+    rofi
+    # Tabs around st, Mod+Shift+T, in the tmux theme's colours
+    (tabbed.override { customConfig = builtins.readFile ./tabbed/config.h; })
+    # Started with the X session above; here for dunstctl and picom's tools
+    dunst
+    picom
     # Google's own arm64 build (unfree, allowed above), so not in the
     # binary cache: a switch fetches the .deb from Google and repackages it.
     # dmenu finds it as google-chrome-stable.

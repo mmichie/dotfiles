@@ -1,0 +1,63 @@
+# dunst for the vm-aarch64 guest: notifications in dwm's colours, the
+# xterm-256 values of the tmux theme (configs/tmux/tmux.conf), as in
+# hosts/vm-aarch64/dwm/config.h. The X session starts dunst
+# (hosts/vm-aarch64/configuration.nix); `dunstctl reload` picks up an edit.
+
+[global]
+    font = "Hack Nerd Font 11"
+
+    # Top right, below dwm's 28px bar, 10px from the screen's edge and from
+    # the bar: the gap dwm leaves around windows (gappx).
+    origin = top-right
+    offset = (10, 38)
+    width = 360
+    height = (0, 300)
+    notification_limit = 5
+    gap_size = 10
+
+    padding = 12
+    horizontal_padding = 14
+    frame_width = 2
+    separator_color = frame
+    # picom's corner radius (configs/picom/picom.conf)
+    corner_radius = 8
+
+    markup = full
+    format = "<b>%s</b>\n%b"
+    alignment = left
+    show_age_threshold = 60
+    progress_bar = true
+
+    icon_theme = "Adwaita"
+    enable_recursive_icon_lookup = true
+    icon_position = left
+    min_icon_size = 32
+    max_icon_size = 48
+
+    mouse_left_click = close_current
+    mouse_middle_click = do_action, close_current
+    mouse_right_click = close_all
+
+# low: the bar's grey text, framed in colour238
+[urgency_low]
+    background = "#1c1c1c"
+    foreground = "#8a8a8a"
+    frame_color = "#444444"
+    highlight = "#8a8a8a"
+    timeout = 5
+
+# normal: colour254, framed in the accent, colour39
+[urgency_normal]
+    background = "#1c1c1c"
+    foreground = "#e4e4e4"
+    frame_color = "#00afff"
+    highlight = "#00afff"
+    timeout = 8
+
+# critical: framed in colour196, the red of chevron's banner, until dismissed
+[urgency_critical]
+    background = "#1c1c1c"
+    foreground = "#e4e4e4"
+    frame_color = "#ff0000"
+    highlight = "#ff0000"
+    timeout = 0

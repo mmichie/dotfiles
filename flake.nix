@@ -98,6 +98,7 @@
       nixosConfigurations."vm-aarch64" = mkNixosHost {
         hostname = "vm-aarch64";
         system = "aarch64-linux";
+        extraHomeModules = [ ./hosts/vm-aarch64/home.nix ];
       };
 
       # ── Linux (standalone home-manager) ───────────────────────────
