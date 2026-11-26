@@ -5,13 +5,8 @@ Ctrl+H/J/K/L: move to the window on the left, below, above or right
 ,Space: clear the search highlighting
 ,e: toggle the file explorer (Neo-tree)
 gd: go to the definition (LSP)
-gr: list the references (LSP)
+grr: list the references (LSP)
 K: show the documentation for the symbol under the cursor (LSP)
 ,rn: rename the symbol under the cursor (LSP)
 ,ca: code actions (LSP)
-,f: format the buffer (LSP)
-Tab: accept the Copilot suggestion, when one shows
-Alt+W: accept the next word of the Copilot suggestion
-Alt+L: accept the next line of the Copilot suggestion
-Alt+] / Alt+[: next / previous Copilot suggestion
-Ctrl+]: dismiss the Copilot suggestion
+,F: format the buffer (LSP)

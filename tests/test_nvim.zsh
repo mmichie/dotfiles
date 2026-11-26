@@ -116,17 +116,16 @@ else
     t_skip "Go format-on-save uses no deprecated Neovim APIs" "gopls or goimports not in PATH"
 fi
 
-# Completion wiring: every configured source must be registered, Tab must
-# know how to advance snippets, and Copilot must not overwrite that mapping.
+# Completion wiring: every configured source must be registered, and Tab must
+# know how to advance snippets.
 typeset pyfile="$T_SCRATCH/completion.py"
 touch "$pyfile"
 probe=$(run_nvim --headless \
     +'set noswapfile' +'set noundofile' +"edit $pyfile" \
-    +'lua vim.api.nvim_exec_autocmds("InsertEnter", {}); local cmp = require("cmp"); local source = false; for _, s in pairs(cmp.get_registered_sources()) do source = source or s.name == "luasnip" end; local has_tab = cmp.get_config().mapping["<Tab>"] ~= nil; local tab = vim.fn.maparg("<Tab>", "i", false, true); local overridden = tab.desc == "Accept Copilot suggestion or insert Tab"; io.write("LUASNIP_SOURCE=" .. tostring(source) .. " CMP_TAB=" .. tostring(has_tab) .. " COPILOT_TAB_OVERRIDE=" .. tostring(overridden)); vim.cmd("qa!")' \
+    +'lua vim.api.nvim_exec_autocmds("InsertEnter", {}); local cmp = require("cmp"); local source = false; for _, s in pairs(cmp.get_registered_sources()) do source = source or s.name == "luasnip" end; local has_tab = cmp.get_config().mapping["<Tab>"] ~= nil; io.write("LUASNIP_SOURCE=" .. tostring(source) .. " CMP_TAB=" .. tostring(has_tab)); vim.cmd("qa!")' \
     2>/dev/null)
 assert_contains "$probe" "LUASNIP_SOURCE=true" "LuaSnip completion source is registered"
 assert_contains "$probe" "CMP_TAB=true" "completion mapping can advance snippet fields"
-assert_contains "$probe" "COPILOT_TAB_OVERRIDE=false" "Copilot does not overwrite completion Tab mapping"
 
 # Error, warning, and info signs should not be invisible whitespace.
 probe=$(run_nvim --headless \

@@ -122,8 +122,11 @@ return {
                     map("K", vim.lsp.buf.hover, "Hover documentation")
                     map("<leader>rn", vim.lsp.buf.rename, "Rename symbol")
                     map("<leader>ca", vim.lsp.buf.code_action, "Code action")
-                    map("gr", vim.lsp.buf.references, "List references")
-                    map("<leader>f", function()
+                    -- References are Neovim's own grr. A gr here, and format on
+                    -- <leader>f, were prefixes of the built-in grr/grn/gra/gri
+                    -- and of Telescope's <leader>ff and friends, so each waited
+                    -- out timeoutlen before running.
+                    map("<leader>F", function()
                         vim.lsp.buf.format({ async = true })
                     end, "Format buffer")
                 end,
@@ -176,10 +179,7 @@ return {
                     ["<C-n>"] = cmp.mapping.select_next_item(),
                     ["<C-p>"] = cmp.mapping.select_prev_item(),
                     ["<Tab>"] = cmp.mapping(function(fallback)
-                        local suggestion = package.loaded["copilot.suggestion"]
-                        if suggestion and suggestion.is_visible() then
-                            suggestion.accept()
-                        elseif cmp.visible() then
+                        if cmp.visible() then
                             cmp.select_next_item()
                         elseif luasnip.locally_jumpable(1) then
                             luasnip.jump(1)
@@ -214,6 +214,15 @@ return {
             "nvim-tree/nvim-web-devicons",
             "MunifTanjim/nui.nvim",
         },
+        -- Loaded on its keys, neo-tree never got to take over netrw
+        -- (hijack_netrw_behavior below), so `nvim <dir>` showed netrw. Load
+        -- it at startup when the one argument is a directory.
+        init = function()
+            if vim.fn.argc(-1) == 1 then
+                local stat = vim.uv.fs_stat(vim.fn.argv(0))
+                if stat and stat.type == "directory" then require("neo-tree") end
+            end
+        end,
         keys = {
             { "<leader>e", "<cmd>Neotree toggle<CR>", desc = "Toggle Neo-tree" },
             { "\\", "<cmd>Neotree reveal<CR>", desc = "Reveal in Neo-tree" },
@@ -259,7 +268,9 @@ return {
                         ["S"] = "open_split",
                         ["s"] = "open_vsplit",
                         ["t"] = "open_tabnew",
-                        ["w"] = "open_with_window_picker",
+                        -- open_with_window_picker needs nvim-window-picker,
+                        -- which isn't installed
+                        ["w"] = "none",
                         ["C"] = "close_node",
                         ["z"] = "close_all_nodes",
                         ["H"] = "toggle_hidden",
@@ -283,7 +294,9 @@ return {
     -- Fuzzy finder
     {
         "nvim-telescope/telescope.nvim",
-        tag = "0.1.8",
+        -- master: the 0.1.x tags call nvim-treesitter's ft_to_lang, which
+        -- the main branch (above) removed, so every preview errored.
+        branch = "master",
         dependencies = { "nvim-lua/plenary.nvim" },
         keys = {
             { "<leader>ff", "<cmd>Telescope find_files<CR>", desc = "Find files" },
@@ -330,48 +343,5 @@ return {
         ft = { "go", "gomod" },
         -- single-quoted to avoid escaping the inner "go.install"
         build = ':lua require("go.install").update_all_sync()',
-    },
-
-    -- Copilot
-    {
-        "zbirenbaum/copilot.lua",
-        cmd = "Copilot",
-        event = "InsertEnter",
-        config = function()
-            require("copilot").setup({
-                panel = {
-                    enabled = true,
-                    auto_refresh = true,
-                    keymap = {
-                        jump_prev = "[[",
-                        jump_next = "]]",
-                        accept = "<CR>",
-                        refresh = "gr",
-                        open = "<M-CR>",
-                    },
-                },
-                suggestion = {
-                    enabled = true,
-                    auto_trigger = true,
-                    debounce = 75,
-                    keymap = {
-                        accept = "<M-j>",
-                        accept_word = "<M-w>",
-                        accept_line = "<M-l>",
-                        next = "<M-]>",
-                        prev = "<M-[>",
-                        dismiss = "<C-]>",
-                    },
-                },
-                filetypes = {
-                    yaml = true,
-                    markdown = true,
-                    help = false,
-                    gitcommit = false,
-                    gitrebase = false,
-                    ["."] = false,
-                },
-            })
-        end,
     },
 }

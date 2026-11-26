@@ -196,4 +196,7 @@ autocmd("BufReadPost", {
 -- Load plugins
 require("lazy").setup("plugins", {
     install = { colorscheme = { "nord" } },
+    -- No plugin here needs luarocks; on, lazy's health check reported its
+    -- missing hererocks/luarocks as an error.
+    rocks = { enabled = false },
 })
