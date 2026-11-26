@@ -38,6 +38,14 @@
               "to": [{"key_code": "right_command"}]
             }
           ]
+        },
+        {
+          "identifiers": {
+            "is_pointing_device": true,
+            "product_id": 133,
+            "vendor_id": 5426
+          },
+          "ignore": false
         }
       ],
       "complex_modifications": {
@@ -89,6 +97,23 @@
                 },
                 "to": [{"key_code": "return_or_enter", "modifiers": ["option"]}],
                 "conditions": [{"type": "frontmost_application_if", "bundle_identifiers": ["^com\\.mitchellh\\.ghostty$"]}]
+              }
+            ]
+          },
+          {
+            "description": "UTM: the mouse's back/forward buttons as Option+Left/Right, the guest's Alt+Left/Right (back and forward in Chrome); UTM's virtual pointer has no side buttons",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {"pointing_button": "button4"},
+                "to": [{"key_code": "left_arrow", "modifiers": ["left_option"]}],
+                "conditions": [{"type": "frontmost_application_if", "bundle_identifiers": ["^com\\.utmapp\\.UTM$"]}]
+              },
+              {
+                "type": "basic",
+                "from": {"pointing_button": "button5"},
+                "to": [{"key_code": "right_arrow", "modifiers": ["left_option"]}],
+                "conditions": [{"type": "frontmost_application_if", "bundle_identifiers": ["^com\\.utmapp\\.UTM$"]}]
               }
             ]
           }
