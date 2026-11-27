@@ -19,8 +19,9 @@ let
     accent = "#00afff"; # colour39
     onaccent = "#000000"; # colour16
     white = "#ffffff"; # colour231
-    urgent = "#ffd75f"; # colour221: an urgent tab in tabbed
+    urgent = "#ffd75f"; # colour221: an urgent tab in tabbed, and a figure in the bar past its warning limit
     critical = "#ff0000"; # colour196: chevron's banner red
+    alert = "#ff5f5f"; # colour203: a figure in the bar past its critical limit, a red that reads on grey
     # the desktops, chadwm's onedark
     blue = "#61afef";
     red = "#e06c75";

@@ -219,9 +219,9 @@ in
           # 1Password's browser extension would, since Chrome has the focus.
           CM_IGNORE_WINDOW=1Password CM_MAX_CLIPS=100 ${pkgs.clipmenu}/bin/clipmenud &
 
-          # dwm's status text: CPU, memory and disk use, date and time, each
-          # a label or icon on the bar's accent beside its value on grey,
-          # refreshed every second (slstatus/config.h).
+          # dwm's status text: the music, the volume, CPU, memory and disk
+          # use, the date and the time in one grey block, refreshed every
+          # second (slstatus/config.h).
           ${lib.getExe (withPalette (pkgs.slstatus.override { conf = ./slstatus/config.h; }))} &
         '';
       };

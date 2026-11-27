@@ -16,11 +16,11 @@ let
     text = builtins.readFile ./dwm/chips.sh;
   };
 
-  # The desktop's menus and dashboard widgets (scripts/): the power and
-  # screenshot menus, Mod+Shift+E and Mod+Shift+S in dwm/config.h, and the
-  # dashboard's music and GitHub sections (configs/eww). rofi and systemctl
-  # come from the system's PATH: rofi with its plugins, systemctl the running
-  # systemd's.
+  # The desktop's menus and widgets (scripts/): the power and screenshot
+  # menus, Mod+Shift+E and Mod+Shift+S in dwm/config.h, the dashboard's music
+  # and GitHub sections (configs/eww), and the bar's CPU, memory and disk
+  # figures (slstatus/config.h). rofi and systemctl come from the system's
+  # PATH: rofi with its plugins, systemctl the running systemd's.
   script =
     name: file: runtimeInputs:
     pkgs.writeShellApplication {
@@ -49,6 +49,7 @@ let
       gnused
       gnugrep
     ])
+    (script "slstatus-system" ./scripts/system.sh [ coreutils ])
   ];
 in
 {
