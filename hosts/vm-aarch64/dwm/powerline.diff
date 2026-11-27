@@ -1,0 +1,396 @@
+The bar in the look of tmux's status line (configs/tmux/tmux.conf): blocks
+joined by tmux's powerline arrows, U+E0B0 and U+E0B2, which dwm draws as
+triangles, antialiased through XRender (drw_arrow), as wide at the blocks'
+height as the font's glyphs are in a terminal's cell. On the left the
+layout symbol takes the place of tmux's session name, in SchemeLayout,
+then tmux's grey step (SchemeChip, two spaces wide), and the tags follow as
+tmux's windows: the selected one black on its own colour (tagcolours)
+between arrows, as tmux's current window is on the accent, the others in
+their colour or dimmed as before, each as wide as it would be selected.
+This replaces chadwmbar.diff's underline under the selected tag and moves
+the layout symbol in front of the tags, where buttonpress now looks for
+it. The focused window's chips are joined by arrows as chevron's prompt is
+(drawchipline), and in another window an agent waiting on you is its icon
+between arrows. In the status text, ^<#rrggbb^ sets the background as ^b^
+does, through an arrow: the new colour pointing left over the old, as
+tmux's U+E0B2 in #[fg=new,bg=old]; ^>#rrggbb^ points right, the old over
+the new. Every block stops statusvpad short of the bar's top and bottom
+(barstyle.diff). Applies after statusclick.diff.
+
+diff --git a/drw.c b/drw.c
+index b0e49fb..cd00d8e 100644
+--- a/drw.c
++++ b/drw.c
+@@ -250,6 +250,31 @@ drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int
+ 		XDrawRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w - 1, h - 1);
+ }
+ 
++/* A powerline arrow, as a terminal draws the font's glyph in its cell: the
++ * box in the scheme's background, and on it a triangle in the foreground,
++ * pointing right (dir 1) or left (0) with its point at the box's middle.
++ * XRender draws the triangle antialiased (powerline.diff). */
++void
++drw_arrow(Drw *drw, int x, int y, unsigned int w, unsigned int h, int dir)
++{
++	XPointDouble p[3];
++	Picture fill;
++
++	if (!drw || !drw->scheme)
++		return;
++	XSetForeground(drw->dpy, drw->gc, drw->scheme[ColBg].pixel);
++	XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
++	p[0].x = p[2].x = dir ? x : x + w;
++	p[1].x = dir ? x + w : x;
++	p[0].y = y;
++	p[1].y = y + h / 2.0;
++	p[2].y = y + h;
++	fill = XRenderCreateSolidFill(drw->dpy, &drw->scheme[ColFg].color);
++	XRenderCompositeDoublePoly(drw->dpy, PictOpOver, fill, drw->picture,
++		XRenderFindStandardFormat(drw->dpy, PictStandardA8), 0, 0, 0, 0, p, 3, 0);
++	XRenderFreePicture(drw->dpy, fill);
++}
++
+ /* An ARGB picture of src (premultiplied, srcw x srch) at dstw x dsth: scaled
+  * by XRender when it is at most twice the size, otherwise by Imlib2, whose
+  * filter keeps a large icon legible when shrunk (winicon.diff). */
+diff --git a/drw.h b/drw.h
+index c7ed49b..464ccce 100644
+--- a/drw.h
++++ b/drw.h
+@@ -55,6 +55,7 @@ void drw_setscheme(Drw *drw, Clr *scm);
+ 
+ /* Drawing functions */
+ void drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert);
++void drw_arrow(Drw *drw, int x, int y, unsigned int w, unsigned int h, int dir);
+ Picture drw_picture_create_resized(Drw *drw, char *src, unsigned int src_w, unsigned int src_h, unsigned int dst_w, unsigned int dst_h);
+ void drw_pic(Drw *drw, int x, int y, unsigned int w, unsigned int h, Picture pic);
+ int drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lpad, const char *text, int invert);
+diff --git a/dwm.c b/dwm.c
+index d88e207..0e0663f 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -70,6 +70,7 @@
+ #define VERSION_MINOR               0
+ #define XEMBED_EMBEDDED_VERSION (VERSION_MAJOR << 16) | VERSION_MINOR
+ #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
++#define STEPW                   (TEXTW("  ") - lrpad) /* tmux's grey step: two spaces (powerline.diff) */
+ 
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+@@ -206,6 +207,8 @@ static Monitor *dirtomon(int dir);
+ static void drawbar(Monitor *m);
+ static void drawchips(Monitor *m, int x, int w);
+ static int drawclient(Monitor *m, Client *c, int x, int end);
++static int drawarrow(int x, Clr *left, Clr *right, int dir);
++static int drawchipline(Client *c, int x, int end);
+ static void drawclients(Monitor *m, int x, int w);
+ static void launchonempty(Monitor *m);
+ static void drawbars(void);
+@@ -305,6 +308,7 @@ static void zoom(const Arg *arg);
+ static const char broken[] = "broken";
+ static char stext[1024];
+ static int statusw; /* width of the status as drawn, without its codes */
++static int arroww;  /* a powerline arrow's width (powerline.diff) */
+ /* the status's clickable blocks as last drawn, ^a<name>^ to ^a^, in the bar's
+  * coordinates, and the button of the last click on one (statusclick.diff) */
+ static struct { char name[16]; int x0, x1; } statusblocks[16];
+@@ -342,6 +346,8 @@ static int running = 1;
+ static Cur *cursor[CurLast];
+ static Clr **scheme;
+ static Clr **tagschemes; /* each tag's colour on the bar's background */
++static Clr **tagselschemes; /* and black on it, for the selected tag (powerline.diff) */
++static Clr arrowscheme[3]; /* an arrow's two colours, set for each (drawarrow) */
+ static Clr **chipschemes; /* each chip kind's icon on its colour */
+ static Display *dpy;
+ static Drw *drw;
+@@ -516,16 +522,17 @@ buttonpress(XEvent *e)
+ 		focus(NULL);
+ 	}
+ 	if (ev->window == selmon->barwin) {
+-		i = x = 0;
+-		do
+-			x += TEXTW(tags[i]);
+-		while (ev->x >= x && ++i < LENGTH(tags));
+-		if (i < LENGTH(tags)) {
+-			click = ClkTagBar;
+-			arg.ui = 1 << i;
+-		} else if (ev->x < x + TEXTW(selmon->ltsymbol))
++		/* the layout symbol's block and the step after it, then the tags,
++		 * each between its arrows, as drawbar draws them (powerline.diff) */
++		x = TEXTW(selmon->ltsymbol) + 2 * arroww + STEPW;
++		for (i = 0; ev->x >= x && i < LENGTH(tags); i++)
++			x += TEXTW(tags[i]) + 2 * arroww;
++		if (!i)
+ 			click = ClkLtSymbol;
+-		else if (ev->x > selmon->ww - statusw) {
++		else if (ev->x < x) {
++			click = ClkTagBar;
++			arg.ui = 1 << (i - 1);
++		} else if (ev->x > selmon->ww - statusw) {
+ 			click = ClkStatusText;
+ 			/* the block under the click, if any, and the button (statusclick) */
+ 			arg.i = -1;
+@@ -607,9 +614,12 @@ cleanup(void)
+ 	for (i = 0; i < LENGTH(colors) + 1; i++)
+ 		drw_scm_free(drw, scheme[i], 3);
+ 	free(scheme);
+-	for (i = 0; i < LENGTH(tags); i++)
++	for (i = 0; i < LENGTH(tags); i++) {
+ 		drw_scm_free(drw, tagschemes[i], 3);
++		drw_scm_free(drw, tagselschemes[i], 3);
++	}
+ 	free(tagschemes);
++	free(tagselschemes);
+ 	for (i = 0; i < LENGTH(chipkinds); i++)
+ 		drw_scm_free(drw, chipschemes[i], 3);
+ 	free(chipschemes);
+@@ -874,20 +884,45 @@ dirtomon(int dir)
+ 	return m;
+ }
+ 
+-/* the focused window's chips in place of its title, drawn like the status
+- * blocks: _DWM_CHIPS holds tab-separated "kind|text" chips, and each is the
+- * kind's icon on its colour (chipkinds in config.h), then the text in
+- * SchemeChip; a kind config.h doesn't know is skipped */
++/* the focused window's chips in place of its title (drawchipline) */
+ void
+ drawchips(Monitor *m, int x, int w)
+ {
+-	char buf[sizeof m->sel->chips], *chip, *text, *save = NULL;
+-	int cx = x + lrpad / 2, iw, tw, h = bh - 2 * statusvpad;
+-	unsigned int i;
+-
+ 	drw_setscheme(drw, scheme[SchemeNorm]);
+ 	drw_rect(drw, x, 0, w, bh, 1, 1);
+-	strcpy(buf, m->sel->chips);
++	drawchipline(m->sel, x + lrpad / 2, x + w);
++}
++
++/* an arrow between two of the bar's blocks in tmux's look (powerline.diff),
++ * at x, the left block in left's background and the right one in right's:
++ * pointing right, the left one's colour over the right one's, as tmux's
++ * U+E0B0 in #[fg=left,bg=right]; pointing left, the right one's over the
++ * left one's, as its U+E0B2. Returns where it ends. */
++int
++drawarrow(int x, Clr *left, Clr *right, int dir)
++{
++	arrowscheme[ColFg] = (dir ? left : right)[ColBg];
++	arrowscheme[ColBg] = (dir ? right : left)[ColBg];
++	drw_setscheme(drw, arrowscheme);
++	drw_arrow(drw, x, statusvpad, arroww, bh - 2 * statusvpad, dir);
++	return x + arroww;
++}
++
++/* a window's chips, drawn like the status blocks in tmux's look: _DWM_CHIPS
++ * holds tab-separated "kind|text" chips, and each is the kind's icon on its
++ * colour (chipkinds in config.h), an arrow into its text in SchemeChip, and
++ * an arrow into the next chip, or the bar after the last. A kind config.h
++ * doesn't know is skipped. From x, as many as fit short of end; returns
++ * where they stop. */
++int
++drawchipline(Client *c, int x, int end)
++{
++	char buf[sizeof c->chips], *chip, *text, *save = NULL;
++	int iw, tw, h = bh - 2 * statusvpad;
++	unsigned int i;
++	Clr *prev = NULL; /* the last chip's text, which an arrow leaves */
++
++	strcpy(buf, c->chips);
+ 	for (chip = strtok_r(buf, "\t", &save); chip; chip = strtok_r(NULL, "\t", &save)) {
+ 		if (!(text = strchr(chip, '|')))
+ 			continue;
+@@ -897,20 +932,24 @@ drawchips(Monitor *m, int x, int w)
+ 			continue;
+ 		iw = TEXTW(chipkinds[i].icon);
+ 		tw = TEXTW(text);
+-		if (cx + iw + tw > x + w)
++		if (x + (prev ? arroww : 0) + iw + tw + 2 * arroww > end)
+ 			break;
++		if (prev)
++			x = drawarrow(x, prev, chipschemes[i], 1);
+ 		drw_setscheme(drw, chipschemes[i]);
+-		drw_text(drw, cx, statusvpad, iw, h, lrpad / 2, chipkinds[i].icon, 0);
++		x = drw_text(drw, x, statusvpad, iw, h, lrpad / 2, chipkinds[i].icon, 0);
++		x = drawarrow(x, chipschemes[i], scheme[SchemeChip], 1);
+ 		drw_setscheme(drw, scheme[SchemeChip]);
+-		drw_text(drw, cx + iw, statusvpad, tw, h, lrpad / 2, text, 0);
+-		cx += iw + tw + 10; /* the gap between status blocks */
++		x = drw_text(drw, x, statusvpad, tw, h, lrpad / 2, text, 0);
++		prev = scheme[SchemeChip];
+ 	}
++	return prev ? drawarrow(x, prev, scheme[SchemeNorm], 1) : x;
+ }
+ 
+ /* one window in the bar's window list, from x and short of end; returns where
+- * it stops. The focused window shows its chips in colour; another shows only
+- * its directory, greyed, and the icon of an agent waiting on you, in its
+- * colour. A window without chips shows its icon and title. */
++ * it stops. The focused window shows its chips in colour (drawchipline);
++ * another shows only its directory, greyed, and the icon of an agent waiting
++ * on you, in its colour. A window without chips shows its icon and title. */
+ int
+ drawclient(Monitor *m, Client *c, int x, int end)
+ {
+@@ -931,6 +970,8 @@ drawclient(Monitor *m, Client *c, int x, int end)
+ 			drw_pic(drw, cx, (bh - c->ich) / 2, c->icw, c->ich, c->icon);
+ 		return cx + iw + tw;
+ 	}
++	if (sel)
++		return drawchipline(c, x, end);
+ 	strcpy(buf, c->chips);
+ 	for (chip = strtok_r(buf, "\t", &save); chip; chip = strtok_r(NULL, "\t", &save)) {
+ 		if (!(text = strchr(chip, '|')))
+@@ -940,18 +981,23 @@ drawclient(Monitor *m, Client *c, int x, int end)
+ 		if (i == LENGTH(chipkinds))
+ 			continue;
+ 		waiting = !strcmp(chip, "waiting");
+-		if (!sel && !waiting && strcmp(chip, "dir"))
++		if (!waiting && strcmp(chip, "dir"))
+ 			continue;
+ 		iw = TEXTW(chipkinds[i].icon);
+-		tw = sel || !waiting ? TEXTW(text) : 0;
+-		if (cx + iw + tw > end)
++		tw = waiting ? 0 : TEXTW(text);
++		if (cx + iw + tw + (waiting ? 2 * arroww : 0) > end)
+ 			break;
+-		drw_setscheme(drw, sel || waiting ? chipschemes[i] : scheme[SchemeChipDim]);
+-		drw_text(drw, cx, statusvpad, iw, h, lrpad / 2, chipkinds[i].icon, 0);
+-		if (tw) {
+-			drw_setscheme(drw, scheme[sel ? SchemeChip : SchemeChipDim]);
+-			drw_text(drw, cx + iw, statusvpad, tw, h, lrpad / 2, text, 0);
++		if (waiting) {
++			/* the agent's icon between arrows, as a selected tag is */
++			cx = drawarrow(cx, scheme[SchemeNorm], chipschemes[i], 1);
++			drw_setscheme(drw, chipschemes[i]);
++			cx = drw_text(drw, cx, statusvpad, iw, h, lrpad / 2, chipkinds[i].icon, 0);
++			cx = drawarrow(cx, chipschemes[i], scheme[SchemeNorm], 1) + 4;
++			continue;
+ 		}
++		drw_setscheme(drw, scheme[SchemeChipDim]);
++		drw_text(drw, cx, statusvpad, iw, h, lrpad / 2, chipkinds[i].icon, 0);
++		drw_text(drw, cx + iw, statusvpad, tw, h, lrpad / 2, text, 0);
+ 		cx += iw + tw + 4;
+ 	}
+ 	return cx > x ? cx - 4 : cx;
+@@ -988,10 +1034,10 @@ drawclients(Monitor *m, int x, int w)
+ void
+ drawbar(Monitor *m)
+ {
+-	int x, w, tw = 0;
++	int x, w, tw = 0, h = bh - 2 * statusvpad;
+ 	int boxs = drw->fonts->h / 9;
+ 	int boxw = drw->fonts->h / 6 + 2;
+-	unsigned int i, sel, occ = 0, urg = 0;
++	unsigned int i, occ = 0, urg = 0;
+ 	Client *c;
+ 
+ 	if (!m->showbar)
+@@ -1007,22 +1053,34 @@ drawbar(Monitor *m)
+ 		if (c->isurgent)
+ 			urg |= c->tags;
+ 	}
+-	x = 0;
++	/* tmux's status line (configs/tmux/tmux.conf), its blocks statusvpad
++	 * short of the bar's top and bottom: the layout symbol where tmux has
++	 * the session's name, and tmux's grey step after it */
++	drw_setscheme(drw, scheme[SchemeNorm]);
++	drw_rect(drw, 0, 0, m->ww - tw, bh, 1, 1);
++	w = TEXTW(m->ltsymbol);
++	drw_setscheme(drw, scheme[SchemeLayout]);
++	x = drw_text(drw, 0, statusvpad, w, h, lrpad / 2, m->ltsymbol, 0);
++	x = drawarrow(x, scheme[SchemeLayout], scheme[SchemeChip], 1);
++	drw_setscheme(drw, scheme[SchemeChip]);
++	drw_rect(drw, x, statusvpad, STEPW, h, 1, 1);
++	x = drawarrow(x + STEPW, scheme[SchemeChip], scheme[SchemeNorm], 1);
++	/* the tags as tmux's windows: the selected one black on its own colour
++	 * (tagcolours) between arrows, as tmux's current window is on the
++	 * accent; one with windows in its colour, an empty one dimmed, each as
++	 * wide as it would be selected, so no tag moves when another is */
+ 	for (i = 0; i < LENGTH(tags); i++) {
+ 		w = TEXTW(tags[i]);
+-		sel = m->tagset[m->seltags] & 1 << i;
+-		/* a tag with windows, or the selected one, in its own colour
+-		 * (tagcolours), and the selected one underlined in it; an empty
+-		 * one dimmed */
+-		drw_setscheme(drw, sel || occ & 1 << i ? tagschemes[i] : scheme[SchemeVacant]);
+-		drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
+-		if (sel)
+-			drw_rect(drw, x + ulinepad, bh - ulinestroke, w - 2 * ulinepad, ulinestroke, 1, 0);
+-		x += w;
++		if (m->tagset[m->seltags] & 1 << i) {
++			x = drawarrow(x, scheme[SchemeNorm], tagselschemes[i], 1);
++			drw_setscheme(drw, tagselschemes[i]);
++			x = drw_text(drw, x, statusvpad, w, h, lrpad / 2, tags[i], urg & 1 << i);
++			x = drawarrow(x, tagselschemes[i], scheme[SchemeNorm], 1);
++		} else {
++			drw_setscheme(drw, occ & 1 << i ? tagschemes[i] : scheme[SchemeVacant]);
++			x = drw_text(drw, x, statusvpad, w + 2 * arroww, h, arroww + lrpad / 2, tags[i], urg & 1 << i);
++		}
+ 	}
+-	w = TEXTW(m->ltsymbol);
+-	drw_setscheme(drw, scheme[SchemeLayout]);
+-	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
+ 
+ 	if ((w = m->ww - tw - x) > bh) {
+ 		if (barlist)
+@@ -1087,6 +1145,8 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
+ 				text[i] = '^';
+ 				if (text[++i] == 'f')
+ 					w += atoi(text + ++i);
++				else if (text[i] == '<' || text[i] == '>')
++					w += arroww;
+ 			} else {
+ 				isCode = 0;
+ 				text = text + i + 1;
+@@ -1151,6 +1211,25 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
+ 					drw_rect(drw, rx + x, ry, rw, rh, 1, 0);
+ 				} else if (text[i] == 'f') {
+ 					x += atoi(text + ++i);
++				} else if (text[i] == '<' || text[i] == '>') {
++					/* ^<#rrggbb^ sets the background as ^b^ does, through
++					 * tmux's arrow between blocks (powerline.diff): the new
++					 * colour pointing left over the old, as tmux's U+E0B2
++					 * in #[fg=new,bg=old]; ^>#rrggbb^ the old pointing right
++					 * over the new, as its U+E0B0 in #[fg=old,bg=new] */
++					char buf[8];
++					Clr fg = drw->scheme[ColFg], bg;
++					memcpy(buf, (char*)text+i+1, 7);
++					buf[7] = '\0';
++					drw_clr_create(drw, &bg, buf);
++					drw->scheme[ColFg] = text[i] == '<' ? bg : drw->scheme[ColBg];
++					if (text[i] == '>')
++						drw->scheme[ColBg] = bg;
++					drw_arrow(drw, x, statusvpad, arroww, bh - 2 * statusvpad, text[i] == '>');
++					drw->scheme[ColFg] = fg;
++					drw->scheme[ColBg] = bg;
++					x += arroww;
++					i += 7;
+ 				} else if (text[i] == 'a') {
+ 					/* ^a<name>^ starts a clickable block, ^a^ ends it */
+ 					char *name = text + i + 1, *end = strchr(name, '^');
+@@ -2460,6 +2539,10 @@ setup(void)
+ 	lrpad = drw->fonts->h;
+ 	bh = drw->fonts->h + 2 + vertpadbar;
+ 	th = bh;
++	/* the arrows as wide, at the blocks' height, as the font's are in a
++	 * terminal, where each fills a cell: tmux's in st are a character wide
++	 * and a line high (powerline.diff) */
++	arroww = ((bh - 2 * statusvpad) * (int)drw_fontset_getwidth(drw, " ") + drw->fonts->h / 2) / drw->fonts->h;
+ 	snprintf(dmenuheight, sizeof dmenuheight, "%d", bh);
+ 	updategeom();
+ 	/* init atoms */
+@@ -2497,9 +2580,13 @@ setup(void)
+ 	for (i = 0; i < LENGTH(colors); i++)
+ 		scheme[i] = drw_scm_create(drw, colors[i], 3);
+ 	tagschemes = ecalloc(LENGTH(tags), sizeof(Clr *));
+-	for (i = 0; i < LENGTH(tags); i++)
++	tagselschemes = ecalloc(LENGTH(tags), sizeof(Clr *));
++	for (i = 0; i < LENGTH(tags); i++) {
+ 		tagschemes[i] = drw_scm_create(drw, (const char *[]){ tagcolours[i % LENGTH(tagcolours)],
+ 			colors[SchemeNorm][ColBg], colors[SchemeNorm][ColBorder] }, 3);
++		tagselschemes[i] = drw_scm_create(drw, (const char *[]){ colors[SchemeSel][ColFg],
++			tagcolours[i % LENGTH(tagcolours)], tagcolours[i % LENGTH(tagcolours)] }, 3);
++	}
+ 	chipschemes = ecalloc(LENGTH(chipkinds), sizeof(Clr *));
+ 	for (i = 0; i < LENGTH(chipkinds); i++)
+ 		chipschemes[i] = drw_scm_create(drw, (const char *[]){ chipkinds[i].oncolour,

@@ -8,8 +8,9 @@
  *
  * The colours, COL_BAR and the rest, come from palette.h, which
  * configuration.nix renders from hosts/vm-aarch64/palette.nix: the tmux
- * theme's for the bar, chadwm's for the tags and the layout symbol
- * (chadwmbar.diff), chevron's for the chips (chips.diff).
+ * theme's for the bar, chadwm's for the tags (chadwmbar.diff), chevron's
+ * for the chips (chips.diff). The bar is drawn in the look of tmux's status
+ * line, its blocks joined by tmux's arrows (powerline.diff).
  */
 
 /* appearance */
@@ -20,9 +21,9 @@ static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 /* the bar's look (barstyle.diff) */
 static const int vertpadbar         = 8;        /* height beyond the font's: 31px with JetBrains Mono at 15px */
-static const int statusvpad         = 4;        /* status blocks stop this short of its top and bottom */
-static const int ulinepad           = 5;        /* the selected tag's underline: inset from the tag's sides */
-static const int ulinestroke        = 2;        /* and its thickness */
+static const int statusvpad         = 4;        /* the bar's blocks stop this short of its top and bottom */
+static const int ulinepad           = 5;        /* the selected tab's underline (tab.diff): inset from the tab's sides */
+static const int ulinestroke        = 2;        /* and its thickness, and the focused window's in the bar (barlist.diff) */
 /* the bar after chadwm's (chadwmbar.diff); its colours are below */
 static const int centretitle        = 0;        /* the title: 0 after the layout symbol, 1 centred on the screen (centeredwindowname.diff) */
 static const int barlist            = 1;        /* 1: every window in the bar (barlist.diff); 0: the focused one's title alone */
@@ -45,9 +46,9 @@ static const int systrayiconsize    = 18;       /* an icon's height */
 static const char *fonts[]          = { "JetBrainsMono Nerd Font:size=11.25:weight=semibold" };
 static const char dmenufont[]       = "JetBrainsMono Nerd Font:size=11.25:weight=semibold";
 #include "palette.h"
-/* a tag with windows, or the selected one, is drawn in its own colour (by
- * tag, chadwm's onedark; chadwmbar.diff), and the selected one underlined in
- * it; the layout symbol is green */
+/* a tag with windows is drawn in its own colour (by tag, chadwm's onedark;
+ * chadwmbar.diff), and the selected one black on it between arrows, as tmux
+ * draws its current window (powerline.diff) */
 static const char *tagcolours[]     = { COL_BLUE, COL_RED, COL_ORANGE, COL_GREEN, COL_PINK, COL_YELLOW };
 static const char *colors[][3]      = {
 	/*                  fg            bg          border */
@@ -59,18 +60,22 @@ static const char *colors[][3]      = {
 	[SchemeTagSel]  = { COL_BRIGHT,   COL_BAR,    COL_ACCENT },
 	/* empty tags, dimmed (barstyle.diff) */
 	[SchemeVacant]  = { COL_BLOCK,    COL_BAR,    COL_BLOCK },
-	[SchemeLayout]  = { COL_GREEN,    COL_BAR,    COL_BLOCK },
-	/* a chip's text (chips.diff), as the status blocks' values */
+	/* the layout symbol, black on white where tmux has the session's name
+	 * (powerline.diff) */
+	[SchemeLayout]  = { COL_ONACCENT, COL_BRIGHT, COL_BLOCK },
+	/* a chip's text (chips.diff), as the status blocks' values, and tmux's
+	 * grey step after the layout symbol (powerline.diff) */
 	[SchemeChip]    = { COL_BRIGHT,   COL_BLOCK,  COL_BLOCK },
-	/* another window's directory in the bar's window list (barlist.diff) */
-	[SchemeChipDim] = { COL_TEXT,     COL_BLOCK,  COL_BLOCK },
+	/* another window's directory in the bar's window list (barlist.diff),
+	 * plain grey, as tmux's other windows are */
+	[SchemeChipDim] = { COL_TEXT,     COL_BAR,    COL_BLOCK },
 };
 
 /* chips (chips.diff): what a terminal publishes for the bar, drawn in place
  * of its title like the status blocks, each kind's icon on its colour and
- * then the text. dwm-chips (dwm/chips.sh) publishes the directory and the git
- * branch and status in chevron's colours, and an agent's state in the tmux
- * marks' */
+ * then the text, joined by arrows as chevron's prompt is (powerline.diff).
+ * dwm-chips (dwm/chips.sh) publishes the directory and the git branch and
+ * status in chevron's colours, and an agent's state in the tmux marks' */
 static const ChipKind chipkinds[] = {
 	/* kind       icon                  colour      icon's colour */
 	{ "dir",      "\xef\x81\xbb",       COL_DIR,     COL_WHITE },    /* nf-fa-folder */
