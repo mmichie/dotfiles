@@ -251,7 +251,8 @@ static const Button buttons[] = {
 	/* click                event mask      button          function        argument */
 	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
-	/* a window in the bar's window list (barlist.diff) */
+	/* a window in the bar's window list (barlist.diff), or of a group of
+	 * an app's windows the one focused longest ago (appgroups.diff) */
 	{ ClkWinTitle,          0,              Button1,        focuswin,       {0} },
 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
 	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },

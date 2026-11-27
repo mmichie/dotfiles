@@ -1,0 +1,249 @@
+The bar's window list groups an app's windows, as the BeOS Deskbar does
+(barlist.diff lists them one by one): the windows of one app other than
+the focused one share one entry, at the first of them, with the app's
+icon, or its short name if it has none, and how many there are, as
+"st ×3". An app is a WM_CLASS instance, which tells Chrome's app windows
+from Chrome's; its short name comes from the class, the last of its
+dotted parts up to a dash, in lower case. A click on the entry focuses
+the window of the group focused longest ago, so that clicks go round
+them all. An agent waiting on you in one of them still shows, its icon
+between arrows after the entry, as for a window of its own. The bar now
+redraws when any shown window's chips change, not only the focused
+one's. Applies after powerline.diff.
+
+diff --git a/dwm.c b/dwm.c
+index 0e0663f..7f72f28 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -20,6 +20,7 @@
+  *
+  * To understand everything else, start reading main().
+  */
++#include <ctype.h>
+ #include <errno.h>
+ #include <locale.h>
+ #include <signal.h>
+@@ -105,6 +106,8 @@ typedef struct Client Client;
+ struct Client {
+ 	char name[256];
+ 	char chips[256]; /* _DWM_CHIPS: what its shell publishes for the bar */
++	char app[64];     /* its WM_CLASS instance, which groups it with its app's */
++	char appname[32]; /* other windows in the bar, and the app's short name */
+ 	int barx, barw; /* its place in the bar's window list */
+ 	unsigned int icw, ich;
+ 	Picture icon;
+@@ -209,6 +212,11 @@ static void drawchips(Monitor *m, int x, int w);
+ static int drawclient(Monitor *m, Client *c, int x, int end);
+ static int drawarrow(int x, Clr *left, Clr *right, int dir);
+ static int drawchipline(Client *c, int x, int end);
++static int drawgroup(Monitor *m, Client *c, int n, int x, int end);
++static int drawmark(int x, unsigned int k);
++static int haschip(Client *c, const char *kind);
++static int sameapp(Client *a, Client *b);
++static void updateapp(Client *c);
+ static void drawclients(Monitor *m, int x, int w);
+ static void launchonempty(Monitor *m);
+ static void drawbars(void);
+@@ -988,11 +996,7 @@ drawclient(Monitor *m, Client *c, int x, int end)
+ 		if (cx + iw + tw + (waiting ? 2 * arroww : 0) > end)
+ 			break;
+ 		if (waiting) {
+-			/* the agent's icon between arrows, as a selected tag is */
+-			cx = drawarrow(cx, scheme[SchemeNorm], chipschemes[i], 1);
+-			drw_setscheme(drw, chipschemes[i]);
+-			cx = drw_text(drw, cx, statusvpad, iw, h, lrpad / 2, chipkinds[i].icon, 0);
+-			cx = drawarrow(cx, chipschemes[i], scheme[SchemeNorm], 1) + 4;
++			cx = drawmark(cx, i) + 4;
+ 			continue;
+ 		}
+ 		drw_setscheme(drw, scheme[SchemeChipDim]);
+@@ -1003,34 +1007,128 @@ drawclient(Monitor *m, Client *c, int x, int end)
+ 	return cx > x ? cx - 4 : cx;
+ }
+ 
++/* a chip kind's icon between arrows, as a selected tag is: an agent waiting
++ * on you in a window that is not focused. Returns where it ends. */
++int
++drawmark(int x, unsigned int k)
++{
++	x = drawarrow(x, scheme[SchemeNorm], chipschemes[k], 1);
++	drw_setscheme(drw, chipschemes[k]);
++	x = drw_text(drw, x, statusvpad, TEXTW(chipkinds[k].icon), bh - 2 * statusvpad,
++		lrpad / 2, chipkinds[k].icon, 0);
++	return drawarrow(x, chipschemes[k], scheme[SchemeNorm], 1);
++}
++
++/* the unfocused windows of c's app as one entry in the bar's window list, as
++ * the BeOS Deskbar groups an app's windows (appgroups.diff): the app's icon,
++ * or its short name if it has none, and how many there are, then an agent's
++ * icon between arrows if one of them waits on you. From x and short of end;
++ * returns where it stops. */
++int
++drawgroup(Monitor *m, Client *c, int n, int x, int end)
++{
++	char label[48];
++	Client *d, *ic = NULL;
++	int iw, tw, waiting = 0;
++	unsigned int k;
++
++	for (d = m->clients; d; d = d->next)
++		if (ISVISIBLE(d) && d != m->sel && sameapp(d, c)) {
++			if (!ic && d->icon)
++				ic = d;
++			waiting |= haschip(d, "waiting");
++		}
++	if (ic)
++		snprintf(label, sizeof label, "\xc3\x97%d", n); /* the times sign */
++	else
++		snprintf(label, sizeof label, "%s \xc3\x97%d", c->appname, n);
++	iw = ic ? ic->icw + ICONSPACING : 0;
++	tw = TEXTW(label) - lrpad;
++	if (x + iw + tw > end)
++		return x;
++	drw_setscheme(drw, scheme[SchemeNorm]);
++	drw_text(drw, x, 0, iw + tw, bh, iw, label, 0);
++	if (ic)
++		drw_pic(drw, x, (bh - ic->ich) / 2, ic->icw, ic->ich, ic->icon);
++	x += iw + tw;
++	for (k = 0; k < LENGTH(chipkinds) && strcmp(chipkinds[k].kind, "waiting"); k++);
++	if (waiting && k < LENGTH(chipkinds) && x + 4 + TEXTW(chipkinds[k].icon) + 2 * arroww <= end)
++		x = drawmark(x + 4, k);
++	return x;
++}
++
+ /* every window on the shown desktops in place of the title (barlist), in
+- * the order dwm keeps them, each in a slot buttonpress reads */
++ * the order dwm keeps them, each in a slot buttonpress reads. The windows of
++ * one app other than the focused one share a slot, at the first of them
++ * (drawgroup), and a click there focuses the one focused longest ago, so
++ * that clicks go round them all (appgroups.diff). */
+ void
+ drawclients(Monitor *m, int x, int w)
+ {
+-	Client *c;
+-	int cx = x + lrpad / 2, end = x + w - lrpad / 2;
++	Client *c, *d, *t;
++	int cx = x + lrpad / 2, end = x + w - lrpad / 2, n;
+ 	unsigned int tag;
+ 
+ 	drw_setscheme(drw, scheme[SchemeNorm]);
+ 	drw_rect(drw, x, 0, w, bh, 1, 1);
+ 	for (tag = 0; tag < LENGTH(tags) && !(m->tagset[m->seltags] & 1 << tag); tag++);
+-	for (c = m->clients; c; c = c->next) {
++	for (c = m->clients; c; c = c->next)
+ 		c->barw = 0;
++	for (c = m->clients; c; c = c->next) {
+ 		if (!ISVISIBLE(c) || cx >= end)
+ 			continue;
+-		c->barx = cx;
+-		cx = drawclient(m, c, cx, end);
+-		c->barw = cx - c->barx;
+-		/* the focused window underlined in the desktop's colour */
+-		if (c == m->sel && c->barw && tag < LENGTH(tags)) {
+-			drw_setscheme(drw, tagschemes[tag]);
+-			drw_rect(drw, c->barx, bh - ulinestroke, c->barw, ulinestroke, 1, 0);
++		n = 0;
++		if (c != m->sel) {
++			for (d = m->clients; d != c; d = d->next)
++				if (ISVISIBLE(d) && d != m->sel && sameapp(d, c))
++					break;
++			if (d != c)
++				continue; /* in the group drawn at the first of them */
++			for (d = m->clients; d; d = d->next)
++				n += ISVISIBLE(d) && d != m->sel && sameapp(d, c);
++		}
++		if (n > 1) {
++			for (t = NULL, d = m->stack; d; d = d->snext)
++				if (ISVISIBLE(d) && d != m->sel && sameapp(d, c))
++					t = d;
++			t->barx = cx;
++			cx = drawgroup(m, c, n, cx, end);
++			t->barw = cx - t->barx;
++		} else {
++			c->barx = cx;
++			cx = drawclient(m, c, cx, end);
++			c->barw = cx - c->barx;
++			/* the focused window underlined in the desktop's colour */
++			if (c == m->sel && c->barw && tag < LENGTH(tags)) {
++				drw_setscheme(drw, tagschemes[tag]);
++				drw_rect(drw, c->barx, bh - ulinestroke, c->barw, ulinestroke, 1, 0);
++			}
+ 		}
+ 		cx += 16;
+ 	}
+ }
+ 
++/* whether a window publishes a chip of the kind (chips.diff) */
++int
++haschip(Client *c, const char *kind)
++{
++	size_t n = strlen(kind);
++	const char *p = c->chips;
++
++	do
++		if (!strncmp(p, kind, n) && p[n] == '|')
++			return 1;
++	while ((p = strchr(p, '\t')) && *++p);
++	return 0;
++}
++
++/* whether two windows are of one app: the same WM_CLASS instance */
++int
++sameapp(Client *a, Client *b)
++{
++	return a->app[0] && !strcmp(a->app, b->app);
++}
++
+ void
+ drawbar(Monitor *m)
+ {
+@@ -1940,6 +2038,7 @@ manage(Window w, XWindowAttributes *wa)
+ 
+ 	updateicon(c);
+ 	updatetitle(c);
++	updateapp(c);
+ 	gettextprop(c->win, chipsatom, c->chips, sizeof c->chips);
+ 	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
+ 		c->mon = t->mon;
+@@ -2181,7 +2280,8 @@ propertynotify(XEvent *e)
+ 		}
+ 		if (ev->atom == chipsatom) {
+ 			gettextprop(c->win, chipsatom, c->chips, sizeof c->chips);
+-			if (c == c->mon->sel)
++			/* any shown window's: the bar lists them all (appgroups.diff) */
++			if (ISVISIBLE(c))
+ 				drawbar(c->mon);
+ 		}
+ 		if (ev->atom == XA_WM_NAME || ev->atom == netatom[NetWMName]) {
+@@ -3098,6 +3198,31 @@ updatestatus(void)
+ 	drawbar(selmon);
+ }
+ 
++/* the app a window belongs to, for the bar's window list (appgroups.diff):
++ * its WM_CLASS instance, which tells Chrome's app windows from Chrome's, and
++ * a short name from its class, the last of the class's dotted parts up to a
++ * dash, in lower case: st-256color is st, org.wezfurlong.wezterm wezterm. A
++ * window without the hint is never grouped. */
++void
++updateapp(Client *c)
++{
++	XClassHint ch = { NULL, NULL };
++	const char *s;
++	size_t i;
++
++	XGetClassHint(dpy, c->win, &ch);
++	snprintf(c->app, sizeof c->app, "%s", ch.res_name ? ch.res_name : "");
++	s = ch.res_class ? ch.res_class : c->app;
++	s = strrchr(s, '.') ? strrchr(s, '.') + 1 : s;
++	for (i = 0; i + 1 < sizeof c->appname && s[i] && s[i] != '-'; i++)
++		c->appname[i] = tolower((unsigned char)s[i]);
++	c->appname[i] = '\0';
++	if (ch.res_class)
++		XFree(ch.res_class);
++	if (ch.res_name)
++		XFree(ch.res_name);
++}
++
+ void
+ updatetitle(Client *c)
+ {
