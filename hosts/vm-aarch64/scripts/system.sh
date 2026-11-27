@@ -4,8 +4,8 @@
 # the words in the first colour given and each figure in it too, or in the
 # second past its warning limit and in the third past its critical one. CPU
 # is averaged over the last few seconds, so that a spike as a build starts
-# does not flash it; the average and the counters it is taken from carry
-# over between runs in $XDG_RUNTIME_DIR.
+# does not flash it; the average, the counters it is taken from and the
+# time of the last run carry over between runs in $XDG_RUNTIME_DIR.
 #
 # Usage: slstatus-system NORMAL WARNING CRITICAL, each a colour as #rrggbb
 
@@ -13,27 +13,26 @@ normal=$1 warning=$2 critical=$3
 state=${XDG_RUNTIME_DIR:-/tmp}/slstatus-system
 
 # CPU: the share of the time since the last run not spent idle, from the
-# first line of /proc/stat, kept in an average that holds 70% of the last
-# one, so a second at full load reads 30% and five in a row 83%. In
-# hundredths of a percent, for the shell's integers. The first run, with no
-# state yet, takes the share since boot.
+# first line of /proc/stat, kept in an average weighted by the time each
+# run covers: a second's run counts for 30% (dt / (dt + 2.33s)), so a second
+# at full load reads 30% and five in a row 83%, and a run soon after
+# another, when slstatus redraws at once for slstatus-follow, counts for
+# little. In hundredths of a percent and microseconds, for the shell's
+# integers. The first run, with no state yet, takes the share since boot.
+now=${EPOCHREALTIME//[!0-9]/}
 read -r _ user nice system idle iowait irq softirq steal _ </proc/stat
 total=$((user + nice + system + idle + iowait + irq + softirq + steal))
 idle=$((idle + iowait))
-lasttotal=0 lastidle=0 avg=-1
+lasttotal=0 lastidle=0 avg=0 lasttime=0
 if [[ -r $state ]]; then
-	read -r lasttotal lastidle avg <"$state"
+	read -r lasttotal lastidle avg lasttime <"$state"
 fi
-busy=0
 if ((total > lasttotal)); then
 	busy=$((10000 * (total - lasttotal - (idle - lastidle)) / (total - lasttotal)))
+	weight=$((1000 * (now - lasttime) / (now - lasttime + 2333333)))
+	avg=$(((avg * (1000 - weight) + busy * weight) / 1000))
 fi
-if ((avg < 0)); then
-	avg=$busy
-else
-	avg=$(((7 * avg + 3 * busy) / 10))
-fi
-printf '%s %s %s\n' "$total" "$idle" "$avg" >"$state.new"
+printf '%s %s %s %s\n' "$total" "$idle" "$avg" "$now" >"$state.new"
 mv -f "$state.new" "$state"
 cpu=$(((avg + 50) / 100))
 

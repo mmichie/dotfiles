@@ -14,6 +14,19 @@ let
     pkg.overrideAttrs (old: {
       postPatch = (old.postPatch or "") + "\ncp ${paletteH} palette.h\n";
     });
+
+  # Redraws the status the moment the volume or the music changes
+  # (scripts/follow.sh); pactl for PipeWire's PulseAudio events.
+  slstatusFollow = pkgs.writeShellApplication {
+    name = "slstatus-follow";
+    runtimeInputs = with pkgs; [
+      gnugrep
+      playerctl
+      procps
+      pulseaudio
+    ];
+    text = builtins.readFile ./scripts/follow.sh;
+  };
 in
 {
   imports = [
@@ -221,8 +234,10 @@ in
 
           # dwm's status text: the music, the volume, CPU, memory and disk
           # use, the date and the time in one grey block, refreshed every
-          # second (slstatus/config.h).
+          # second (slstatus/config.h), and at once when the volume or the
+          # music changes.
           ${lib.getExe (withPalette (pkgs.slstatus.override { conf = ./slstatus/config.h; }))} &
+          ${lib.getExe slstatusFollow} &
         '';
       };
     };
