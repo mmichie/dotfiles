@@ -79,8 +79,15 @@ let
       { macos = "com.apple.iphonesimulator"; }
     ];
     "4" = [
-      { macos = "com.hnc.Discord"; }
-      { macos = "org.whispersystems.signal-desktop"; }
+      {
+        macos = "com.hnc.Discord";
+        # the VM's `discord`: Discord's web app in a Chrome app window
+        x11.instance = "discord.com__app";
+      }
+      {
+        macos = "org.whispersystems.signal-desktop";
+        x11.class = "signal";
+      }
       {
         macos = "com.tinyspeck.slackmacgap";
         # the VM's `slack`: Slack's web app in a Chrome app window

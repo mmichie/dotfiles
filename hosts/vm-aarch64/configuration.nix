@@ -375,17 +375,26 @@
     # binary cache: a switch fetches the .deb from Google and repackages it.
     # dmenu finds it as google-chrome-stable.
     google-chrome
-    # Slack and Spotify as their web apps, each in its own Chrome app window.
-    # Both desktop apps wrap these same web UIs in a bundled Chromium, but
-    # they publish that bundle for Linux only on x86_64 (Slack an amd64 .deb,
-    # Spotify an amd64 snap), so nixpkgs has neither for aarch64-linux.
-    # Spotify's player needs Widevine, which this Chrome ships.
+    # Slack, Spotify and Discord as their web apps, each in its own Chrome
+    # app window. Their desktop apps wrap these same web UIs in a bundled
+    # Chromium, but they publish that bundle for Linux only on x86_64 (Slack
+    # an amd64 .deb, Spotify an amd64 snap, Discord an amd64 .deb and
+    # tarball), so nixpkgs has none of them for aarch64-linux. Spotify's
+    # player needs Widevine, which this Chrome ships.
     (writeShellScriptBin "slack" ''
       exec ${lib.getExe google-chrome} --app=https://app.slack.com/client "$@"
     '')
     (writeShellScriptBin "spotify" ''
       exec ${lib.getExe google-chrome} --app=https://open.spotify.com "$@"
     '')
+    (writeShellScriptBin "discord" ''
+      exec ${lib.getExe google-chrome} --app=https://discord.com/app "$@"
+    '')
+    # Signal has no web app. nixpkgs builds its desktop app for aarch64-linux
+    # from source but the binary cache lacks that build, so a switch
+    # compiles the app, its sticker creator and its SQLCipher module; the
+    # rest, Electron and libsignal included, comes from the cache.
+    signal-desktop
     xclip
     xsel
     xdotool # dwm's Cmd+C / Cmd+V (dwm/config.h)
