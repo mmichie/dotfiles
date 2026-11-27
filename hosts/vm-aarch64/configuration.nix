@@ -110,10 +110,11 @@ in
       # bar's look (its height, inset status blocks, after chadwm's a colour
       # and an icon per desktop), tabs in monocle, a system tray, every
       # window in the bar with a terminal's directory, git branch and agent
-      # as chips (published by dwm-chips, home.nix), and an empty desktop
-      # starting its app. Its tags, window rules, per-tag keys and those
-      # apps come from desktops.h, generated from the desktops shared with
-      # AeroSpace (lib/desktops.nix).
+      # as chips (published by dwm-chips, home.nix), an empty desktop
+      # starting its app, and status blocks a click opens a dropdown for
+      # (slstatus/config.h names them). Its tags, window rules, per-tag keys
+      # and those apps come from desktops.h, generated from the desktops
+      # shared with AeroSpace (lib/desktops.nix).
       windowManager.dwm = {
         enable = true;
         package =
@@ -134,6 +135,7 @@ in
               ./dwm/chips.diff
               ./dwm/barlist.diff
               ./dwm/launch.diff
+              ./dwm/statusclick.diff
             ];
           }).overrideAttrs
             (old: {

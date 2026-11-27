@@ -177,6 +177,24 @@ static const char *emojicmd[] = { "rofi", "-modi", "emoji", "-show", "emoji", "-
 static const char *calccmd[]  = { "rofi", "-modi", "calc", "-show", "calc", "-no-show-match", "-no-sort",
 	"-no-history", "-calc-command", "printf %s '{result}' | xclip -selection clipboard", NULL };
 
+/* the status blocks slstatus names (statusclick.diff; slstatus/config.h):
+ * each command runs with sh, which gets the block's left and right edges,
+ * the screen's right edge, the bar's bottom and the mouse button (1 a click,
+ * 4 and 5 a scroll) as $1 to $5. DROPDOWN opens an eww window (configs/eww)
+ * with its right edge under the block's, 10px below the bar, or closes it;
+ * --pos= keeps eww from taking the negative offset for an option. */
+#define DROPDOWN(win) "eww open --toggle " win " --anchor 'top right' --pos=\"-$(($3 - $2))x$(($4 + 10))\""
+#define ONCLICK(cmd)  "[ \"$5\" = 1 ] && " cmd
+static const StatusAction statusactions[] = {
+	/* block    command */
+	{ "music",  ONCLICK(DROPDOWN("music")) },
+	{ "volume", "case $5 in 1) " DROPDOWN("volume") " ;; "
+		"4) wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+ ;; 5) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- ;; esac" },
+	{ "cal",    ONCLICK(DROPDOWN("calendar")) },
+	{ "clock",  ONCLICK(DROPDOWN("calendar")) },
+	{ "power",  ONCLICK("rofi-power") },
+};
+
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
@@ -232,6 +250,10 @@ static const Button buttons[] = {
 	{ ClkWinTitle,          0,              Button1,        focuswin,       {0} },
 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
 	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
+	/* a status block's command (statusclick.diff), on a click or a scroll */
+	{ ClkStatusText,        0,              Button1,        statusclick,    {0} },
+	{ ClkStatusText,        0,              Button4,        statusclick,    {0} },
+	{ ClkStatusText,        0,              Button5,        statusclick,    {0} },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },

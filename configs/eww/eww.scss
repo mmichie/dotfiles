@@ -51,8 +51,9 @@
 .gh-3 { background-color: mix($accent, $block, 80%); }
 .gh-4 { background-color: $accent; }
 
-// the calendar, framed like the dashboard, today on the accent
-.calendar-box { background-color: $bar; border: 2px solid $accent; padding: 14px; }
+// the calendar and the status blocks' dropdowns, framed like the dashboard;
+// the calendar's today on the accent
+.calendar-box, .dropdown { background-color: $bar; border: 2px solid $accent; padding: 14px; }
 .cal { color: $bright; padding: 4px; }
 .cal.header { color: $bright; }
 .cal.button { color: $text; }

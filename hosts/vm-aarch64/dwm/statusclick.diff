@@ -1,0 +1,141 @@
+Clickable status blocks. The status text names a block with ^a<name>^ and
+ends it with ^a^, codes status2d.diff's parser now skips; dwm notes where
+each named block is drawn. A click on one runs its command from
+statusactions (config.h) with sh, which gets the block's left and right
+edges, the screen's right edge, the bar's bottom and the mouse button as
+$1 to $5: enough to open a dropdown under the block, or to act on a
+scroll. A click outside any named block does what it did. slstatus/config.h
+names the blocks. Applies after launch.diff.
+
+diff --git a/dwm.c b/dwm.c
+index e3aee07..d88e207 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -173,6 +173,11 @@ typedef struct {
+ 	const char *oncolour; /* the icon */
+ } ChipKind;
+ 
++typedef struct {
++	const char *block; /* a status block's name, as ^a<name>^ starts it */
++	const char *cmd;   /* run with sh when it's clicked */
++} StatusAction;
++
+ typedef struct {
+ 	Window win;
+ 	Client *icons;
+@@ -266,6 +271,7 @@ static void showhide(Client *c);
+ static void sighup(int unused);
+ static void sigterm(int unused);
+ static void spawn(const Arg *arg);
++static void statusclick(const Arg *arg);
+ static void tag(const Arg *arg);
+ static void tagmon(const Arg *arg);
+ static void tile(Monitor *m);
+@@ -299,6 +305,11 @@ static void zoom(const Arg *arg);
+ static const char broken[] = "broken";
+ static char stext[1024];
+ static int statusw; /* width of the status as drawn, without its codes */
++/* the status's clickable blocks as last drawn, ^a<name>^ to ^a^, in the bar's
++ * coordinates, and the button of the last click on one (statusclick.diff) */
++static struct { char name[16]; int x0, x1; } statusblocks[16];
++static int nstatusblocks;
++static unsigned int statusbutton;
+ static int screen;
+ static int sw, sh;           /* X display screen geometry width, height */
+ static int bh;               /* bar height */
+@@ -514,8 +525,15 @@ buttonpress(XEvent *e)
+ 			arg.ui = 1 << i;
+ 		} else if (ev->x < x + TEXTW(selmon->ltsymbol))
+ 			click = ClkLtSymbol;
+-		else if (ev->x > selmon->ww - statusw)
++		else if (ev->x > selmon->ww - statusw) {
+ 			click = ClkStatusText;
++			/* the block under the click, if any, and the button (statusclick) */
++			arg.i = -1;
++			for (i = 0; i < (unsigned int)nstatusblocks; i++)
++				if ((int)ev->x >= statusblocks[i].x0 && (int)ev->x < statusblocks[i].x1)
++					arg.i = i;
++			statusbutton = ev->button;
++		}
+ 		else {
+ 			click = ClkWinTitle;
+ 			/* in the window list, the window under the click, by its place
+@@ -553,7 +571,7 @@ buttonpress(XEvent *e)
+ 	for (i = 0; i < LENGTH(buttons); i++)
+ 		if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
+ 		&& CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state))
+-			buttons[i].func((click == ClkTagBar || click == ClkTabBar || click == ClkWinTitle) && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
++			buttons[i].func((click == ClkTagBar || click == ClkTabBar || click == ClkWinTitle || click == ClkStatusText) && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
+ }
+ 
+ void
+@@ -1092,6 +1110,7 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
+ 	x++;
+ 
+ 	/* process status text */
++	nstatusblocks = 0;
+ 	i = -1;
+ 	while (text[++i]) {
+ 		if (text[i] == '^' && !isCode) {
+@@ -1132,6 +1151,20 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
+ 					drw_rect(drw, rx + x, ry, rw, rh, 1, 0);
+ 				} else if (text[i] == 'f') {
+ 					x += atoi(text + ++i);
++				} else if (text[i] == 'a') {
++					/* ^a<name>^ starts a clickable block, ^a^ ends it */
++					char *name = text + i + 1, *end = strchr(name, '^');
++					if (!end)
++						break;
++					if (nstatusblocks && statusblocks[nstatusblocks - 1].x1 < 0)
++						statusblocks[nstatusblocks - 1].x1 = x;
++					if (end > name && nstatusblocks < (int)LENGTH(statusblocks)) {
++						snprintf(statusblocks[nstatusblocks].name, sizeof statusblocks[0].name,
++							"%.*s", (int)(end - name), name);
++						statusblocks[nstatusblocks].x0 = x;
++						statusblocks[nstatusblocks++].x1 = -1;
++					}
++					i = end - text - 1;
+ 				}
+ 			}
+ 
+@@ -1144,7 +1177,10 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
+ 	if (!isCode) {
+ 		w = TEXTW(text) - lrpad;
+ 		drw_text(drw, x, statusvpad, w, bh - 2 * statusvpad, 0, text, 0);
++		x += w;
+ 	}
++	if (nstatusblocks && statusblocks[nstatusblocks - 1].x1 < 0)
++		statusblocks[nstatusblocks - 1].x1 = x;
+ 
+ 	drw_setscheme(drw, scheme[SchemeNorm]);
+ 	free(p);
+@@ -2541,6 +2577,29 @@ sigterm(int unused)
+ 	quit(&a);
+ }
+ 
++/* a click on a status block (statusclick.diff): its command from
++ * statusactions, run with sh, which gets the block's left and right edges,
++ * the screen's right edge, the bar's bottom and the button as $1 to $5, to
++ * open a dropdown under the block, say */
++void
++statusclick(const Arg *arg)
++{
++	unsigned int i;
++	char l[12], r[12], sr[12], bb[12], b[4];
++
++	if (arg->i < 0 || arg->i >= nstatusblocks)
++		return;
++	for (i = 0; i < LENGTH(statusactions) && strcmp(statusactions[i].block, statusblocks[arg->i].name); i++);
++	if (i == LENGTH(statusactions))
++		return;
++	snprintf(l, sizeof l, "%d", selmon->wx + statusblocks[arg->i].x0);
++	snprintf(r, sizeof r, "%d", selmon->wx + statusblocks[arg->i].x1);
++	snprintf(sr, sizeof sr, "%d", selmon->mx + selmon->mw);
++	snprintf(bb, sizeof bb, "%d", selmon->by + bh);
++	snprintf(b, sizeof b, "%u", statusbutton);
++	spawn(&(Arg){ .v = (const char *[]){ "/bin/sh", "-c", statusactions[i].cmd, "dwm", l, r, sr, bb, b, NULL } });
++}
++
+ void
+ spawn(const Arg *arg)
+ {

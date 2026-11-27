@@ -1,7 +1,8 @@
 ;; eww for the vm-aarch64 guest: a dashboard, Mod+A in
 ;; hosts/vm-aarch64/dwm/config.h, in dwm's colours (eww.scss). Adapted from
 ;; chadwm's (github.com/siduck/chadwm): the system, the time, the machine's
-;; load, the volume, and a few actions. Below it, the calendar.
+;; load, the volume, and a few actions. Below it, the calendar and the
+;; dropdowns a click on the bar's status blocks opens.
 
 (defpoll os :interval "3600s" "sed -n 's/^PRETTY_NAME=\"\\(.*\\)\"$/\\1/p' /etc/os-release")
 (defpoll kernel :interval "3600s" "uname -r")
@@ -95,7 +96,8 @@
   :resizable false
   (dashboard))
 
-;; A month, under the bar at the top right like the dashboard: Mod+Shift+A
+;; A month, under the bar at the top right like the dashboard: Mod+Shift+A.
+;; A click on the bar's date or clock opens it under them instead.
 (defwidget calendar-popup []
   (box :class "calendar-box"
     (calendar :class "cal")))
@@ -106,3 +108,29 @@
   :stacking "fg"
   :wm-ignore true
   (calendar-popup))
+
+;; Dropdowns under the bar's status blocks: a click on a block opens its
+;; window under it and a second click closes it (statusactions in
+;; hosts/vm-aarch64/dwm/config.h, the blocks named in slstatus/config.h,
+;; whose --pos overrides the geometry here). The calendar above is the
+;; date's and the clock's. The music one is not resizable, like the
+;; dashboard, so it shrinks to its one line when nothing plays.
+(defwindow music
+  :monitor 0
+  :geometry (geometry :x "-10px" :y "41px" :width "360px" :anchor "top right")
+  :stacking "fg"
+  :wm-ignore true
+  :resizable false
+  (box :class "dropdown" :orientation "v" :space-evenly false
+    (label :class "dim" :visible {(music?.status ?: "") == ""} :text "Nothing playing")
+    (music)))
+
+(defwindow volume
+  :monitor 0
+  :geometry (geometry :x "-10px" :y "41px" :width "280px" :anchor "top right")
+  :stacking "fg"
+  :wm-ignore true
+  (box :class "dropdown" :space-evenly false :spacing 12
+    (label :class "tag" :text "VOL")
+    (scale :class "slider" :hexpand true :min 0 :max 101 :value volume
+      :onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ {}%")))
