@@ -1,8 +1,9 @@
 /*
  * rofi's menus of icons (hosts/vm-aarch64/scripts): power, Mod+Shift+E, and
- * screenshots, Mod+Shift+S. A row of tiles under the menu's name and a line
- * of its state, in the desktop's colours (palette.rasi); the selected tile
- * on the accent.
+ * screenshots, Mod+Shift+S. A row of tiles under the menu's name, a block on
+ * the accent closed by tmux's arrow as in config.rasi, and a line of its
+ * state, in the desktop's colours (palette.rasi); the selected tile on the
+ * accent.
  */
 configuration {
 	show-icons: false;
@@ -31,13 +32,21 @@ mainbox {
 }
 
 inputbar {
-	children: [ prompt ];
+	children: [ prompt, textbox-out-of-prompt ];
 }
 
 prompt {
 	background-color: @accent;
 	text-color: @onaccent;
-	padding: 6px 12px;
+	padding: 0 12px;
+}
+
+/* tmux's arrow (U+E0B0), as markup as in config.rasi */
+textbox-out-of-prompt {
+	expand: false;
+	markup: true;
+	str: "&#xe0b0;";
+	text-color: @accent;
 }
 
 message {

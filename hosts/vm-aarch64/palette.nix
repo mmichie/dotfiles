@@ -62,21 +62,25 @@ in
 
   # dunst (configs/dunst/dunstrc.d/50-palette.conf), a drop-in over dunstrc:
   # low in the bar's grey text framed in colour238, normal in colour254
-  # framed in the accent, critical framed in red
+  # framed in the accent, critical framed in red. Each opens with its app's
+  # name in a block of its frame's colour, closed by tmux's arrow (U+E0B0,
+  # written as pango markup), as the bar's blocks are, then the summary in
+  # bold and the body.
   dunst =
     let
-      urgency = name: fg: frame: highlight: ''
+      urgency = name: fg: frame: highlight: onframe: ''
         [urgency_${name}]
             background = "${colours.bar}"
             foreground = "${fg}"
             frame_color = "${frame}"
             highlight = "${highlight}"
+            format = "<span background='${frame}' foreground='${onframe}'> %a </span><span foreground='${frame}'>&#xe0b0;</span> <b>%s</b>\n%b"
       '';
     in
     "# ${generated}\n\n"
-    + urgency "low" colours.text colours.block colours.text
+    + urgency "low" colours.text colours.block colours.text colours.bright
     + "\n"
-    + urgency "normal" colours.bright colours.accent colours.accent
+    + urgency "normal" colours.bright colours.accent colours.accent colours.onaccent
     + "\n"
-    + urgency "critical" colours.bright colours.critical colours.critical;
+    + urgency "critical" colours.bright colours.critical colours.critical colours.onaccent;
 }

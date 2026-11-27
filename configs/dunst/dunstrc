@@ -24,6 +24,8 @@
     corner_radius = 8
 
     markup = full
+    # each urgency's own, from the palette's drop-in, puts the app's name in a
+    # block before these (hosts/vm-aarch64/palette.nix)
     format = "<b>%s</b>\n%b"
     alignment = left
     show_age_threshold = 60

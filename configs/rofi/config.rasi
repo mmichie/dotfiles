@@ -2,8 +2,9 @@
  * rofi for the vm-aarch64 guest (Mod+R, hosts/vm-aarch64/dwm/config.h):
  * apps, commands and open windows, in the desktop's colours (palette.rasi,
  * from hosts/vm-aarch64/palette.nix). The search field is two blocks like
- * the status text's (hosts/vm-aarch64/slstatus/config.h): the mode on the
- * accent, what you type on colour238. The selected entry is black on the
+ * those of tmux's status line and dwm's bar: the mode on the accent, what
+ * you type on colour238, each closed by tmux's arrow, as tall as a line of
+ * text so the font's arrow fills it. The selected entry is black on the
  * accent, as in dmenu. Below the search, a message: the calculator's result
  * (Mod+equal), or what a menu asks (hosts/vm-aarch64/scripts). The icons
  * are Papirus's. rofi reads this file each time it opens.
@@ -43,19 +44,37 @@ mainbox {
 
 inputbar {
 	spacing: 0;
-	children: [ prompt, entry ];
+	children: [ prompt, textbox-into-entry, entry, textbox-out-of-entry ];
 }
 
 prompt {
 	background-color: @accent;
 	text-color: @onaccent;
-	padding: 4px 10px;
+	padding: 0 10px;
+}
+
+/* tmux's arrow from one block into the next (U+E0B0), the left one's colour
+ * pointing right over the right one's. As markup: rofi shows a theme's \u
+ * escape as text. */
+textbox-into-entry {
+	expand: false;
+	markup: true;
+	str: "&#xe0b0;";
+	background-color: @block;
+	text-color: @accent;
+}
+
+textbox-out-of-entry {
+	expand: false;
+	markup: true;
+	str: "&#xe0b0;";
+	text-color: @block;
 }
 
 entry {
 	background-color: @block;
 	text-color: @bright;
-	padding: 4px 10px;
+	padding: 0 10px;
 	placeholder: "type to filter";
 	placeholder-color: @text;
 }
