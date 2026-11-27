@@ -1,0 +1,79 @@
+/*
+ * rofi's menus of icons (hosts/vm-aarch64/scripts): power, Mod+Shift+E, and
+ * screenshots, Mod+Shift+S. A row of tiles under the menu's name and a line
+ * of its state, in the desktop's colours (palette.rasi); the selected tile
+ * on the accent.
+ */
+configuration {
+	show-icons: false;
+	font: "JetBrainsMono Nerd Font Semi-Bold 11.25"; /* st's font */
+}
+
+@import "palette.rasi"
+
+* {
+	background-color: transparent;
+	text-color: @bright;
+}
+
+window {
+	width: 520px;
+	background-color: @bar;
+	border: 2px;
+	border-color: @accent;
+	border-radius: 8px;
+	padding: 18px;
+}
+
+mainbox {
+	spacing: 14px;
+	children: [ inputbar, message, listview ];
+}
+
+inputbar {
+	children: [ prompt ];
+}
+
+prompt {
+	background-color: @accent;
+	text-color: @onaccent;
+	padding: 6px 12px;
+}
+
+message {
+	background-color: @block;
+	padding: 6px 12px;
+}
+
+textbox {
+	text-color: @text;
+}
+
+listview {
+	columns: 4;
+	lines: 1;
+	spacing: 12px;
+	fixed-columns: true;
+	scrollbar: false;
+}
+
+element {
+	padding: 20px 0;
+	border-radius: 8px;
+}
+
+element normal.normal, element alternate.normal {
+	background-color: @block;
+	text-color: @bright;
+}
+
+element selected.normal {
+	background-color: @accent;
+	text-color: @onaccent;
+}
+
+element-text {
+	horizontal-align: 0.5;
+	font: "JetBrainsMono Nerd Font 28";
+	text-color: inherit;
+}

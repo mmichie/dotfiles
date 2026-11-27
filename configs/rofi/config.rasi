@@ -4,12 +4,14 @@
  * from hosts/vm-aarch64/palette.nix). The search field is two blocks like
  * the status text's (hosts/vm-aarch64/slstatus/config.h): the mode on the
  * accent, what you type on colour238. The selected entry is black on the
- * accent, as in dmenu. rofi reads this file each time it opens.
+ * accent, as in dmenu. Below the search, a message: the calculator's result
+ * (Mod+equal), or what a menu asks (hosts/vm-aarch64/scripts). The icons
+ * are Papirus's. rofi reads this file each time it opens.
  */
 configuration {
 	modi: "drun,run,window";
 	show-icons: true;
-	icon-theme: "Adwaita";
+	icon-theme: "Papirus-Dark";
 	font: "JetBrainsMono Nerd Font Semi-Bold 11.25"; /* st's font */
 	display-drun: "apps";
 	display-run: "run";
@@ -36,7 +38,7 @@ window {
 
 mainbox {
 	spacing: 12px;
-	children: [ inputbar, listview ];
+	children: [ inputbar, message, listview ];
 }
 
 inputbar {
@@ -81,7 +83,7 @@ element selected.normal {
 }
 
 element-icon {
-	size: 20px;
+	size: 24px;
 	background-color: transparent;
 }
 
@@ -89,4 +91,13 @@ element-text {
 	background-color: transparent;
 	text-color: inherit;
 	vertical-align: 0.5;
+}
+
+message {
+	background-color: @block;
+	padding: 4px 10px;
+}
+
+textbox {
+	text-color: @bright;
 }

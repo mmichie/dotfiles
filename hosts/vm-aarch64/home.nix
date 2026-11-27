@@ -15,6 +15,28 @@ let
     ];
     text = builtins.readFile ./dwm/chips.sh;
   };
+
+  # The desktop's menus (scripts/): power and screenshots, Mod+Shift+E and
+  # Mod+Shift+S in dwm/config.h. rofi and systemctl come from the system's
+  # PATH: rofi with its plugins, systemctl the running systemd's.
+  script =
+    name: file: runtimeInputs:
+    pkgs.writeShellApplication {
+      inherit name runtimeInputs;
+      text = builtins.readFile file;
+    };
+  scripts = with pkgs; [
+    (script "rofi-power" ./scripts/power.sh [
+      gawk
+      procps
+    ])
+    (script "rofi-screenshot" ./scripts/screenshot.sh [
+      maim
+      xdotool
+      xclip
+      libnotify
+    ])
+  ];
 in
 {
   xdg.configFile = {
@@ -39,6 +61,7 @@ in
   home.packages = [
     dwm-chips
   ]
+  ++ scripts
   ++ (with pkgs; [
     asciiquarium # an aquarium in the terminal
     yazi # a terminal file manager with image previews (Ghostty's graphics)

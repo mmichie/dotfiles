@@ -29,7 +29,7 @@
     show_age_threshold = 60
     progress_bar = true
 
-    icon_theme = "Adwaita"
+    icon_theme = "Papirus-Dark"
     enable_recursive_icon_lookup = true
     icon_position = left
     min_icon_size = 32

@@ -209,6 +209,12 @@ in
           # undrawn after a switch of desktops.
           ${lib.getExe pkgs.dunst} &
 
+          # The clipboard's history, for Mod+Shift+V (clipmenu in rofi): kept
+          # in /run/user, so it ends with the session. Nothing copied while a
+          # 1Password window has focus goes in. A password copied from
+          # 1Password's browser extension would, since Chrome has the focus.
+          CM_IGNORE_WINDOW=1Password CM_MAX_CLIPS=100 ${pkgs.clipmenu}/bin/clipmenud &
+
           # dwm's status text: CPU, memory and disk use, date and time, each
           # a label or icon on the bar's accent beside its value on grey,
           # refreshed every second (slstatus/config.h).
@@ -371,10 +377,20 @@ in
     adwaita-icon-theme # the cursor theme (xdg.icons above)
     # DWM launcher; -h, which dwm passes, makes its line as tall as the bar
     (dmenu.override { patches = [ ./dmenu/lineheight.diff ]; })
-    # The themed launcher, Mod+R (configs/rofi)
-    rofi
+    # The themed launcher, Mod+R (configs/rofi), with the calculator and the
+    # emoji picker for Mod+equal and Mod+E (dwm/config.h)
+    (rofi.override {
+      plugins = [
+        rofi-calc
+        rofi-emoji
+      ];
+    })
+    # Papirus's icons, for rofi's apps and dunst's notifications
+    papirus-icon-theme
     # The dashboard, Mod+A (configs/eww)
     eww
+    # The clipboard's history, Mod+Shift+V; clipmenud starts with the session
+    clipmenu
     # Tabs around st, Mod+Shift+T, in the desktop's colours
     (withPalette (tabbed.override { customConfig = builtins.readFile ./tabbed/config.h; }))
     # Started with the X session above; here for dunstctl (Mod+N and its

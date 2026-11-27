@@ -165,6 +165,15 @@ static const char *dunsthistory[]  = { "dunstctl", "history-pop", NULL };
 /* the dashboard (configs/eww): the system, the time, the load, the volume;
  * eww starts its daemon on the first open */
 static const char *ewwcmd[] = { "eww", "open", "--toggle", "dashboard", NULL };
+/* the menus, in rofi (configs/rofi): power and screenshots are scripts
+ * (hosts/vm-aarch64/scripts), the clipboard's history is clipmenu's, the
+ * emoji and the calculator are plugins; all but power copy what you pick */
+static const char *powercmd[] = { "rofi-power", NULL };
+static const char *shotcmd[]  = { "rofi-screenshot", NULL };
+static const char *clipcmd[]  = { "/bin/sh", "-c", "CM_LAUNCHER=rofi exec clipmenu -p clipboard", NULL };
+static const char *emojicmd[] = { "rofi", "-modi", "emoji", "-show", "emoji", "-emoji-mode", "copy", NULL };
+static const char *calccmd[]  = { "rofi", "-modi", "calc", "-show", "calc", "-no-show-match", "-no-sort",
+	"-no-history", "-calc-command", "printf %s '{result}' | xclip -selection clipboard", NULL };
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
@@ -172,6 +181,11 @@ static const Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_r,      spawn,          {.v = roficmd } },
 	{ MODKEY,                       XK_a,      spawn,          {.v = ewwcmd } },
+	{ MODKEY|ShiftMask,             XK_e,      spawn,          {.v = powercmd } },
+	{ MODKEY|ShiftMask,             XK_s,      spawn,          {.v = shotcmd } },
+	{ MODKEY|ShiftMask,             XK_v,      spawn,          {.v = clipcmd } },
+	{ MODKEY,                       XK_e,      spawn,          {.v = emojicmd } },
+	{ MODKEY,                       XK_equal,  spawn,          {.v = calccmd } },
 	{ MODKEY|ShiftMask,             XK_t,      spawn,          {.v = tabbedcmd } },
 	{ MODKEY,                       XK_n,      spawn,          {.v = dunstclose } },
 	{ MODKEY|ShiftMask,             XK_n,      spawn,          {.v = dunstcloseall } },
