@@ -159,6 +159,7 @@ static const char *termcmd[]  = { "/bin/sh", "-c", "exec st -e " TMUXSTART, NULL
 /* rofi's app launcher (configs/rofi/config.rasi); Ctrl+Tab switches to its
  * other modes, commands and windows */
 static const char *roficmd[]  = { "rofi", "-show", "drun", NULL };
+static const char *windowcmd[] = { "rofi", "-show", "window", NULL };
 /* st in tabbed, which closes with its last tab (tabbed/config.h); each tab
  * starts as termcmd does */
 static const char *tabbedcmd[] = { "/bin/sh", "-c", "exec tabbed -c -r 2 st -w '' -e " TMUXSTART, NULL };
@@ -268,4 +269,11 @@ static const Button buttons[] = {
 	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
 	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
 	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
+	/* the desktop, which shows in the gaps and on an empty desktop: menus,
+	 * as Enlightenment opens them there. A click that misses a window by a
+	 * few pixels lands here, so the left button has the mildest, the window
+	 * list; the middle one the power menu, the right one the launcher. */
+	{ ClkRootWin,           0,              Button1,        spawn,          {.v = windowcmd } },
+	{ ClkRootWin,           0,              Button2,        spawn,          {.v = powercmd } },
+	{ ClkRootWin,           0,              Button3,        spawn,          {.v = roficmd } },
 };
