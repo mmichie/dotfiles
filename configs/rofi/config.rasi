@@ -1,10 +1,10 @@
 /*
  * rofi for the vm-aarch64 guest (Mod+R, hosts/vm-aarch64/dwm/config.h):
- * apps, commands and open windows, in dwm's colours, the xterm-256 values of
- * the tmux theme. The search field is two blocks like the status text's
- * (hosts/vm-aarch64/slstatus/config.h): the mode on the accent, what you
- * type on colour238. The selected entry is black on the accent, as in dmenu.
- * rofi reads this file each time it opens.
+ * apps, commands and open windows, in the desktop's colours (palette.rasi,
+ * from hosts/vm-aarch64/palette.nix). The search field is two blocks like
+ * the status text's (hosts/vm-aarch64/slstatus/config.h): the mode on the
+ * accent, what you type on colour238. The selected entry is black on the
+ * accent, as in dmenu. rofi reads this file each time it opens.
  */
 configuration {
 	modi: "drun,run,window";
@@ -17,14 +17,9 @@ configuration {
 	drun-display-format: "{name}";
 }
 
-* {
-	bar:      #1c1c1c; /* colour234 */
-	text:     #8a8a8a; /* colour245 */
-	bright:   #e4e4e4; /* colour254 */
-	block:    #444444; /* colour238 */
-	accent:   #00afff; /* colour39 */
-	onaccent: #000000; /* colour16 */
+@import "palette.rasi"
 
+* {
 	background-color: transparent;
 	text-color: @bright;
 }

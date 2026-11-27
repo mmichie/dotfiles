@@ -6,10 +6,10 @@
  * after applying the patches beside it, so when a dwm bump changes
  * config.def.h, carry the change over by hand.
  *
- * The colours are the xterm-256 values of the tmux theme in
- * configs/tmux/tmux.conf, so dwm's bar and the tmux status line inside st
- * read as one theme: a colour234 bar, colour245 text, a colour39 accent.
- * The tags and the layout symbol take chadwm's colours (chadwmbar.diff).
+ * The colours, COL_BAR and the rest, come from palette.h, which
+ * configuration.nix renders from hosts/vm-aarch64/palette.nix: the tmux
+ * theme's for the bar, chadwm's for the tags and the layout symbol
+ * (chadwmbar.diff), chevron's for the chips (chips.diff).
  */
 
 /* appearance */
@@ -44,37 +44,26 @@ static const int systrayiconsize    = 18;       /* an icon's height */
  * in configuration.nix) */
 static const char *fonts[]          = { "JetBrainsMono Nerd Font:size=11.25:weight=semibold" };
 static const char dmenufont[]       = "JetBrainsMono Nerd Font:size=11.25:weight=semibold";
-static const char col_bar[]         = "#1c1c1c"; /* colour234 */
-static const char col_text[]        = "#8a8a8a"; /* colour245 */
-static const char col_title[]       = "#e4e4e4"; /* colour254 */
-static const char col_accent[]      = "#00afff"; /* colour39 */
-static const char col_onaccent[]    = "#000000"; /* colour16 */
-static const char col_border[]      = "#444444"; /* colour238 */
-/* chadwm's onedark colours (chadwmbar.diff): a tag with windows, or the
- * selected one, is drawn in its own (tagcolours, by tag) and the selected
- * one underlined in it; the layout symbol is green */
-static const char col_blue[]        = "#61afef";
-static const char col_red[]         = "#e06c75";
-static const char col_orange[]      = "#caaa6a";
-static const char col_green[]       = "#7ec7a2";
-static const char col_pink[]        = "#c678dd";
-static const char col_yellow[]      = "#ebcb8b";
-static const char *tagcolours[]     = { col_blue, col_red, col_orange, col_green, col_pink, col_yellow };
+#include "palette.h"
+/* a tag with windows, or the selected one, is drawn in its own colour (by
+ * tag, chadwm's onedark; chadwmbar.diff), and the selected one underlined in
+ * it; the layout symbol is green */
+static const char *tagcolours[]     = { COL_BLUE, COL_RED, COL_ORANGE, COL_GREEN, COL_PINK, COL_YELLOW };
 static const char *colors[][3]      = {
-	/*                fg            bg          border     */
-	[SchemeNorm]  = { col_text,     col_bar,    col_border },
-	[SchemeSel]   = { col_onaccent, col_accent, col_accent },
+	/*                  fg            bg          border */
+	[SchemeNorm]    = { COL_TEXT,     COL_BAR,    COL_BLOCK },
+	[SchemeSel]     = { COL_ONACCENT, COL_ACCENT, COL_ACCENT },
 	/* the focused window's title (titlescheme.diff); stock dwm uses SchemeSel */
-	[SchemeTitle] = { col_title,    col_bar,    col_border },
+	[SchemeTitle]   = { COL_BRIGHT,   COL_BAR,    COL_BLOCK },
 	/* the selected tab in monocle (tab.diff) */
-	[SchemeTagSel] = { col_title,   col_bar,    col_accent },
+	[SchemeTagSel]  = { COL_BRIGHT,   COL_BAR,    COL_ACCENT },
 	/* empty tags, dimmed (barstyle.diff) */
-	[SchemeVacant] = { col_border,  col_bar,    col_border },
-	[SchemeLayout] = { col_green,   col_bar,    col_border },
+	[SchemeVacant]  = { COL_BLOCK,    COL_BAR,    COL_BLOCK },
+	[SchemeLayout]  = { COL_GREEN,    COL_BAR,    COL_BLOCK },
 	/* a chip's text (chips.diff), as the status blocks' values */
-	[SchemeChip]   = { col_title,   col_border, col_border },
+	[SchemeChip]    = { COL_BRIGHT,   COL_BLOCK,  COL_BLOCK },
 	/* another window's directory in the bar's window list (barlist.diff) */
-	[SchemeChipDim] = { col_text,   col_border, col_border },
+	[SchemeChipDim] = { COL_TEXT,     COL_BLOCK,  COL_BLOCK },
 };
 
 /* chips (chips.diff): what a terminal publishes for the bar, drawn in place
@@ -84,11 +73,11 @@ static const char *colors[][3]      = {
  * marks' */
 static const ChipKind chipkinds[] = {
 	/* kind       icon                  colour      icon's colour */
-	{ "dir",      "\xef\x81\xbb",       "#0087af",  "#ffffff" }, /* nf-fa-folder */
-	{ "branch",   "\xee\x82\xa0",       "#d7005f",  "#ffffff" }, /* the powerline branch */
-	{ "waiting",  "\xf3\xb0\x9a\xa9",   "#ffd700",  "#000000" }, /* nf-md-robot: waiting on you */
-	{ "working",  "\xf3\xb0\x9a\xa9",   "#585858",  "#e4e4e4" },
-	{ "done",     "\xf3\xb0\x9a\xa9",   "#5faf5f",  "#000000" }, /* finished its turn */
+	{ "dir",      "\xef\x81\xbb",       COL_DIR,     COL_WHITE },    /* nf-fa-folder */
+	{ "branch",   "\xee\x82\xa0",       COL_BRANCH,  COL_WHITE },    /* the powerline branch */
+	{ "waiting",  "\xf3\xb0\x9a\xa9",   COL_WAITING, COL_ONACCENT }, /* nf-md-robot: waiting on you */
+	{ "working",  "\xf3\xb0\x9a\xa9",   COL_WORKING, COL_BRIGHT },
+	{ "done",     "\xf3\xb0\x9a\xa9",   COL_DONE,    COL_ONACCENT }, /* finished its turn */
 };
 
 /* tagging: the tags, the window rules and DESKTOPKEYS (the per-tag keys, used
@@ -156,7 +145,7 @@ spawnreleased(const Arg *arg)
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static char dmenuheight[4];    /* component of dmenucmd: the bar's height, written in setup() (barstyle.diff) */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-h", dmenuheight, "-fn", dmenufont, "-nb", col_bar, "-nf", col_title, "-sb", col_accent, "-sf", col_onaccent, NULL };
+static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-h", dmenuheight, "-fn", dmenufont, "-nb", COL_BAR, "-nf", COL_BRIGHT, "-sb", COL_ACCENT, "-sf", COL_ONACCENT, NULL };
 /* st as Ghostty starts on the Mac (configs/ghostty/config): in tmux, attached
  * to a detached session or a new one, or a plain shell once every session
  * already has a window (bin/tmux-attach-or-new). sh expands $HOME. */

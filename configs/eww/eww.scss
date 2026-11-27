@@ -1,11 +1,6 @@
-// The dashboard in dwm's colours, the xterm-256 values of the tmux theme
-// (configs/tmux/tmux.conf), and st's font.
-$bar: #1c1c1c;      // colour234
-$text: #8a8a8a;     // colour245
-$bright: #e4e4e4;   // colour254
-$block: #444444;    // colour238
-$accent: #00afff;   // colour39
-$onaccent: #000000; // colour16
+// The dashboard in the desktop's colours (_palette.scss, from
+// hosts/vm-aarch64/palette.nix) and st's font.
+@import "palette";
 
 * {
   all: unset;

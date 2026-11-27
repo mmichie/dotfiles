@@ -142,6 +142,16 @@ vm-switch:
         . vm:/nix-config
     ssh vm "sudo nixos-rebuild switch --flake /nix-config#vm-aarch64"
 
+# Write the VM desktop's colours (hosts/vm-aarch64/palette.nix) into the configs
+# linked live from configs/: rofi's, eww's and dunst's. dwm, slstatus and tabbed
+# take them at build time. The flake's palette check fails when these files
+# and palette.nix disagree, so run this after editing palette.nix.
+palette:
+    nix eval --raw --file hosts/vm-aarch64/palette.nix rasi > configs/rofi/palette.rasi
+    nix eval --raw --file hosts/vm-aarch64/palette.nix scss > configs/eww/_palette.scss
+    mkdir -p configs/dunst/dunstrc.d
+    nix eval --raw --file hosts/vm-aarch64/palette.nix dunst > configs/dunst/dunstrc.d/50-palette.conf
+
 # Backup the sops age key, SSH keys, GPG keyring, and GAM runtime state to
 # backup.tar.gz. The age key is the ROOT OF TRUST — without it the sops
 # secrets (atuin, zshrc-local*) are undecryptable on a rebuild, so it leads.

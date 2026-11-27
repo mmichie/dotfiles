@@ -5,6 +5,16 @@
   ...
 }:
 
+let
+  # The desktop's colours (palette.nix), as the C header dwm, slstatus and
+  # tabbed include: each copies it into its source before building.
+  paletteH = pkgs.writeText "palette.h" (import ./palette.nix).c;
+  withPalette =
+    pkg:
+    pkg.overrideAttrs (old: {
+      postPatch = (old.postPatch or "") + "\ncp ${paletteH} palette.h\n";
+    });
+in
 {
   imports = [
     ./hardware-configuration.nix
@@ -132,6 +142,7 @@
               postPatch = ''
                 ${old.postPatch}
                 cp ${pkgs.callPackage ./dwm/desktops.nix { }} desktops.h
+                cp ${paletteH} palette.h
               '';
               # XRender and Imlib2, which scale and draw the window icons
               # (dwm/winicon.diff)
@@ -201,7 +212,7 @@
           # dwm's status text: CPU, memory and disk use, date and time, each
           # a label or icon on the bar's accent beside its value on grey,
           # refreshed every second (slstatus/config.h).
-          ${lib.getExe (pkgs.slstatus.override { conf = ./slstatus/config.h; })} &
+          ${lib.getExe (withPalette (pkgs.slstatus.override { conf = ./slstatus/config.h; }))} &
         '';
       };
     };
@@ -364,8 +375,8 @@
     rofi
     # The dashboard, Mod+A (configs/eww)
     eww
-    # Tabs around st, Mod+Shift+T, in the tmux theme's colours
-    (tabbed.override { customConfig = builtins.readFile ./tabbed/config.h; })
+    # Tabs around st, Mod+Shift+T, in the desktop's colours
+    (withPalette (tabbed.override { customConfig = builtins.readFile ./tabbed/config.h; }))
     # Started with the X session above; here for dunstctl (Mod+N and its
     # neighbours in dwm/config.h)
     dunst

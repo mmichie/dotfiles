@@ -34,6 +34,10 @@ just vm-switch
 # Build NixOS VM config from macOS host (without applying)
 just vm-build
 
+# Rewrite rofi's, eww's and dunst's colour files from the VM desktop's
+# palette (hosts/vm-aarch64/palette.nix), after editing it
+just palette
+
 # Update flake inputs
 just update
 
@@ -149,8 +153,9 @@ hosts/                        # Per-host configuration.nix (thin: import a base,
     st/                       # st's colour patches (Ghostty's palette, bold text not brightened)
     slstatus/                 # slstatus's config.h: the status text in dwm's bar
     dmenu/                    # dmenu's line-height patch (-h), so it matches dwm's bar
-    tabbed/                   # tabbed's config.h: st's font, the tmux theme's colours
-    home.nix                  # the VM's own home config: links configs/{dunst,rofi}, terminal toys
+    tabbed/                   # tabbed's config.h: st's font, the desktop's colours
+    palette.nix               # the desktop's colours, for dwm, slstatus, tabbed, rofi, dunst and eww
+    home.nix                  # the VM's own home config: links configs/{dunst,rofi,eww}, dwm-chips, terminal toys
 hostclass/
   darwin-workstation.nix      # macOS-specific home config (karabiner)
   linux-workstation.nix       # Linux-specific home config (clipboard tools, git signing, Linux-only counterparts of casks)
@@ -159,7 +164,7 @@ modules/darwin/               # workstation-base.nix (shared macOS base), homebr
 modules/home/                 # options, lib, packages-core/dev, shell, git, editor, terminal, secrets, secrets-darwin, aerospace (generated config)
 configs/                      # Raw config files (symlinked by home-manager)
   claude/ ghostty/ git/ karabiner/ nvim/ ssh/ system/ tmux/ wezterm/ zsh/
-  dunst/ rofi/                  # the VM's X desktop (linked by hosts/vm-aarch64/home.nix)
+  dunst/ rofi/ eww/           # the VM's X desktop (linked by hosts/vm-aarch64/home.nix)
   aerospace/                  # superseded by modules/home/aerospace.nix; still the live config until each Mac switches
 bin/                          # Personal scripts
 .github/workflows/            # CI: flake check + fmt + lint + zsh tests (push), weekly linux bootstrap rehearsal

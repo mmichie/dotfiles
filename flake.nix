@@ -180,6 +180,22 @@
               zsh --no-globalrcs tests/run.zsh
               touch $out
             '';
+
+        # The colours `just palette` writes into rofi's, eww's and dunst's
+        # configs have to match their source, hosts/vm-aarch64/palette.nix.
+        palette =
+          let
+            palette = import ./hosts/vm-aarch64/palette.nix;
+            same =
+              name: text: committed:
+              "diff -u ${committed} ${pkgs.writeText name text}";
+          in
+          pkgs.runCommand "palette-files" { } ''
+            ${same "palette.rasi" palette.rasi ./configs/rofi/palette.rasi}
+            ${same "_palette.scss" palette.scss ./configs/eww/_palette.scss}
+            ${same "50-palette.conf" palette.dunst ./configs/dunst/dunstrc.d/50-palette.conf}
+            touch $out
+          '';
       });
 
       # ── Dev shell ─────────────────────────────────────────────────

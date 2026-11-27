@@ -6,10 +6,11 @@
  * package copies this file over config.def.h. The functions args[] can use
  * are listed in that config.def.h.
  *
- * Each value sits in blocks of tmux's colours, through status2d's codes
- * (dwm/status2d.diff): its label or icon black on the bar's accent, #00afff
- * (col_accent in dwm/config.h), then the value in colour254 on colour238,
- * like the blocks of tmux's status line. ^b#rrggbb^ sets the background,
+ * Each value sits in blocks of the desktop's colours (palette.h, which
+ * configuration.nix renders from hosts/vm-aarch64/palette.nix), through
+ * status2d's codes (dwm/status2d.diff): its label or icon black on the
+ * accent, then the value in colour254 on colour238, like the blocks of
+ * tmux's status line. ^b#rrggbb^ sets the background,
  * ^c#rrggbb^ the text, ^d^ goes back to the bar's own colours, and ^f10^
  * skips 10px, the gap after each item: as wide as the gaps between windows
  * (gappx in dwm/config.h). dwm draws the blocks a little short of the bar's
@@ -32,8 +33,9 @@ static const char unknown_str[] = "n/a";
 /* maximum output string length */
 #define MAXLEN 2048
 
-#define LABEL(s) "^b#00afff^^c#000000^ " s " "  /* colour16 on the accent */
-#define VALUE    "^b#444444^^c#e4e4e4^ "        /* colour254 on colour238 */
+#include "palette.h"
+#define LABEL(s) "^b" COL_ACCENT "^^c" COL_ONACCENT "^ " s " "
+#define VALUE    "^b" COL_BLOCK "^^c" COL_BRIGHT "^ "
 #define END      " ^d^^f10^"
 #define CAL   "\xf3\xb0\xb8\x97" /* U+F0E17 md-calendar_month */
 #define CLOCK "\xf3\xb0\x85\x90" /* U+F0150 md-clock_outline */

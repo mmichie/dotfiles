@@ -2,9 +2,10 @@
 
 /*
  * tabbed for the vm-aarch64 guest, around st (Mod+Shift+T in dwm/config.h):
- * upstream's config.def.h (tabbed 0.9) with st's font and the tmux theme's
- * colours, as in dwm/config.h: tabs like tmux's window list, the current one
- * black on the accent, an urgent one black on colour221 like tmux's
+ * upstream's config.def.h (tabbed 0.9) with st's font and the desktop's
+ * colours (palette.h, which configuration.nix renders from
+ * hosts/vm-aarch64/palette.nix): tabs like tmux's window list, the current
+ * one black on the accent, an urgent one black on colour221 like tmux's
  * messages. The nix package copies this file over config.h (customConfig).
  * The keys are upstream's: Ctrl+Shift+Return opens a tab, Ctrl+Shift+H/L
  * go to the previous/next, Ctrl+1..9 to one by number, Ctrl+Q closes it.
@@ -12,12 +13,13 @@
 
 /* appearance */
 static const char font[]        = "JetBrainsMono Nerd Font:size=11.25:weight=semibold"; /* st's font */
-static const char* normbgcolor  = "#1c1c1c"; /* colour234 */
-static const char* normfgcolor  = "#8a8a8a"; /* colour245 */
-static const char* selbgcolor   = "#00afff"; /* colour39 */
-static const char* selfgcolor   = "#000000"; /* colour16 */
-static const char* urgbgcolor   = "#ffd75f"; /* colour221 */
-static const char* urgfgcolor   = "#000000"; /* colour16 */
+#include "palette.h"
+static const char* normbgcolor  = COL_BAR;
+static const char* normfgcolor  = COL_TEXT;
+static const char* selbgcolor   = COL_ACCENT;
+static const char* selfgcolor   = COL_ONACCENT;
+static const char* urgbgcolor   = COL_URGENT;
+static const char* urgfgcolor   = COL_ONACCENT;
 static const char before[]      = "<";
 static const char after[]       = ">";
 static const char titletrim[]   = "...";
