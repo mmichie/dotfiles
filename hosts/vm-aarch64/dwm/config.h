@@ -163,8 +163,10 @@ static const char *dunstclose[]    = { "dunstctl", "close", NULL };
 static const char *dunstcloseall[] = { "dunstctl", "close-all", NULL };
 static const char *dunsthistory[]  = { "dunstctl", "history-pop", NULL };
 /* the dashboard (configs/eww): the system, the time, the load, GitHub, the
- * music, the volume; eww starts its daemon on the first open */
+ * music, the volume; eww starts its daemon on the first open. The calendar
+ * is eww's too. */
 static const char *ewwcmd[] = { "eww", "open", "--toggle", "dashboard", NULL };
+static const char *calendarcmd[] = { "eww", "open", "--toggle", "calendar", NULL };
 /* the menus, in rofi (configs/rofi): power and screenshots are scripts
  * (hosts/vm-aarch64/scripts), the clipboard's history is clipmenu's, the
  * emoji and the calculator are plugins; all but power copy what you pick */
@@ -181,6 +183,7 @@ static const Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_r,      spawn,          {.v = roficmd } },
 	{ MODKEY,                       XK_a,      spawn,          {.v = ewwcmd } },
+	{ MODKEY|ShiftMask,             XK_a,      spawn,          {.v = calendarcmd } },
 	{ MODKEY|ShiftMask,             XK_e,      spawn,          {.v = powercmd } },
 	{ MODKEY|ShiftMask,             XK_s,      spawn,          {.v = shotcmd } },
 	{ MODKEY|ShiftMask,             XK_v,      spawn,          {.v = clipcmd } },

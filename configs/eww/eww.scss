@@ -50,3 +50,12 @@
 .gh-2 { background-color: mix($accent, $block, 60%); }
 .gh-3 { background-color: mix($accent, $block, 80%); }
 .gh-4 { background-color: $accent; }
+
+// the calendar, framed like the dashboard, today on the accent
+.calendar-box { background-color: $bar; border: 2px solid $accent; padding: 14px; }
+.cal { color: $bright; padding: 4px; }
+.cal.header { color: $bright; }
+.cal.button { color: $text; }
+.cal.highlight { color: $accent; }
+.cal:indeterminate { color: $block; }
+.cal:selected { background-color: $accent; color: $onaccent; border-radius: 4px; }
