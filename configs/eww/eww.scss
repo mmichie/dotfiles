@@ -33,3 +33,20 @@
 
 .btn { background-color: $block; color: $bright; padding: 6px 12px; }
 .btn:hover { background-color: $accent; color: $onaccent; }
+
+// the music section: the cover beside the track, its progress, the controls
+.music .cover { min-width: 64px; min-height: 64px; border-radius: 6px; background-size: cover; background-position: center; }
+.track trough { background-color: $block; min-height: 4px; }
+.track progress { background-color: $accent; min-height: 4px; }
+.ctl { color: $bright; }
+.ctl label { font-size: 22px; }
+.ctl:hover { color: $accent; }
+
+// GitHub: a day per square, from grey to the accent by activity
+.gh-day { min-width: 10px; min-height: 10px; border-radius: 2px; }
+.gh--1 { background-color: transparent; }
+.gh-0 { background-color: $block; }
+.gh-1 { background-color: mix($accent, $block, 35%); }
+.gh-2 { background-color: mix($accent, $block, 60%); }
+.gh-3 { background-color: mix($accent, $block, 80%); }
+.gh-4 { background-color: $accent; }

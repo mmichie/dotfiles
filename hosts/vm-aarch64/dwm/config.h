@@ -162,8 +162,8 @@ static const char *tabbedcmd[] = { "/bin/sh", "-c", "exec tabbed -c -r 2 st -w '
 static const char *dunstclose[]    = { "dunstctl", "close", NULL };
 static const char *dunstcloseall[] = { "dunstctl", "close-all", NULL };
 static const char *dunsthistory[]  = { "dunstctl", "history-pop", NULL };
-/* the dashboard (configs/eww): the system, the time, the load, the volume;
- * eww starts its daemon on the first open */
+/* the dashboard (configs/eww): the system, the time, the load, GitHub, the
+ * music, the volume; eww starts its daemon on the first open */
 static const char *ewwcmd[] = { "eww", "open", "--toggle", "dashboard", NULL };
 /* the menus, in rofi (configs/rofi): power and screenshots are scripts
  * (hosts/vm-aarch64/scripts), the clipboard's history is clipmenu's, the

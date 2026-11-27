@@ -387,8 +387,9 @@ in
     })
     # Papirus's icons, for rofi's apps and dunst's notifications
     papirus-icon-theme
-    # The dashboard, Mod+A (configs/eww)
+    # The dashboard, Mod+A (configs/eww); playerctl drives its music section
     eww
+    playerctl
     # The clipboard's history, Mod+Shift+V; clipmenud starts with the session
     clipmenu
     # Tabs around st, Mod+Shift+T, in the desktop's colours
